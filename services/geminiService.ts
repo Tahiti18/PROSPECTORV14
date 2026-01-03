@@ -498,7 +498,8 @@ export const generateMockup = async (businessName: string, niche: string): Promi
     model: 'gemini-2.5-flash-image', 
     contents: { parts: [{ text: `High-end 4k website mockup for ${businessName} (${niche})` }] } 
   }); 
-  const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData); 
+  // Fixed TS2532 by using optional chaining on parts before calling find
+  const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData); 
   return part?.inlineData?.data ? `data:image/png;base64,${part.inlineData.data}` : ""; 
 };
 
