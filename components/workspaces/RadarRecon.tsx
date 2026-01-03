@@ -15,42 +15,41 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
   const [leadCount, setLeadCount] = useState(6);
 
   const handleScan = async () => {
+    if (!process.env.API_KEY) {
+      alert("SYSTEM ERROR: API Key is missing.\n\nFOR RAILWAY:\nGo to Settings > Variables and add API_KEY.\n\nFOR LOCAL/DEV:\nCreate a .env file in the root with: API_KEY=your_key");
+      return;
+    }
+    
     setLoading(true);
     try {
-      // Parallel execution of the thinking timer and actual lead generation
       const [result] = await Promise.all([
         generateLeads(theater, niche, leadCount),
-        new Promise(resolve => setTimeout(resolve, 8000)) // Sufficient time for loader visibility
+        new Promise(resolve => setTimeout(resolve, 8000))
       ]);
       
       if (!result || !result.leads || !Array.isArray(result.leads)) {
-        throw new Error("Intelligence mesh returned an invalid structure.");
+        throw new Error("The AI returned an invalid data structure. This usually happens if search citations interfere with the JSON.");
       }
 
       const formattedLeads: Lead[] = result.leads.map((l: any, i: number) => ({
         ...l,
-        id: l.id || `L-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 5)}`,
+        id: l.id || `L-${Date.now()}-${i}`,
         status: 'cold',
         rank: l.rank || i + 1,
-        // Ensure critical fields aren't empty for the UI
-        businessName: l.businessName || 'UNKNOWN_ENTITY',
+        businessName: l.businessName || 'UNIDENTIFIED_TARGET',
         websiteUrl: l.websiteUrl || '#',
         leadScore: l.leadScore || 50,
         assetGrade: l.assetGrade || 'C',
         city: l.city || theater,
         niche: l.niche || niche || 'AI Transformation',
-        socialGap: l.socialGap || 'Target analysis pending.',
+        socialGap: l.socialGap || 'No manual social gap detected yet.',
         groundingSources: result.groundingSources || []
       }));
 
-      if (formattedLeads.length > 0) {
-        onLeadsGenerated(formattedLeads);
-      } else {
-        alert("Theater scan returned zero results. Check your niche parameters or region.");
-      }
+      onLeadsGenerated(formattedLeads);
     } catch (e) {
       console.error("Discovery Engine Error:", e);
-      alert("CRITICAL ERROR: Intelligence gathering failed. Check connection and logs.");
+      alert(`CRITICAL ERROR: Intelligence gathering failed.\n\nPotential Causes:\n1. Invalid API Key or Quota Exceeded\n2. AI returned unstructured text\n3. Network Timeout\n\nCheck 'Prod Log' in the sidebar for technical trace.`);
     } finally {
       setLoading(false);
     }

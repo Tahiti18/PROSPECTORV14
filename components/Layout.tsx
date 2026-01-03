@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { MainMode, SubModule } from '../types';
 
 interface LayoutProps {
@@ -15,6 +15,39 @@ interface LayoutProps {
   toggleTheme: () => void;
 }
 
+const STRATEGIC_CITIES = [
+  { rank: 1, city: "NEW YORK, USA", tier: "S+", focus: "FINANCE_TECH" },
+  { rank: 2, city: "LONDON, UK", tier: "S+", focus: "GLOBAL_BIZ" },
+  { rank: 3, city: "DUBAI, UAE", tier: "S", focus: "WEALTH_CRYPTO" },
+  { rank: 4, city: "SINGAPORE", tier: "S", focus: "ASIA_HQ" },
+  { rank: 5, city: "AUSTIN, USA", tier: "A+", focus: "TECH_GROWTH" },
+  { rank: 6, city: "MIAMI, USA", tier: "A+", focus: "WEB3_LUXURY" },
+  { rank: 7, city: "SYDNEY, AUS", tier: "A+", focus: "APAC_FINANCE" },
+  { rank: 8, city: "SAN FRANCISCO, USA", tier: "A+", focus: "DEEP_TECH" },
+  { rank: 9, city: "TORONTO, CAN", tier: "A", focus: "NORTH_TECH" },
+  { rank: 10, city: "LOS ANGELES, USA", tier: "A", focus: "MEDIA_TECH" },
+  { rank: 11, city: "ZURICH, SWI", tier: "A", focus: "BANKING" },
+  { rank: 12, city: "MELBOURNE, AUS", tier: "A", focus: "CULTURE_BIZ" },
+  { rank: 13, city: "DUBLIN, IRE", tier: "A", focus: "EU_TECH_HQ" },
+  { rank: 14, city: "CHICAGO, USA", tier: "B+", focus: "CORP_FINANCE" },
+  { rank: 15, city: "DALLAS, USA", tier: "B+", focus: "ENERGY_BIZ" },
+  { rank: 16, city: "MANCHESTER, UK", tier: "B+", focus: "UK_GROWTH" },
+  { rank: 17, city: "SEATTLE, USA", tier: "B+", focus: "CLOUD_TECH" },
+  { rank: 18, city: "VANCOUVER, CAN", tier: "B", focus: "LIFESTYLE_TECH" },
+  { rank: 19, city: "BRISBANE, AUS", tier: "B", focus: "QLD_GROWTH" },
+  { rank: 20, city: "HOUSTON, USA", tier: "B", focus: "INDUSTRIAL" },
+  { rank: 21, city: "BOSTON, USA", tier: "B", focus: "BIO_ROBOTICS" },
+  { rank: 22, city: "ATLANTA, USA", tier: "B", focus: "MEDIA_CORP" },
+  { rank: 23, city: "HONG KONG", tier: "B", focus: "FINANCE_HUB" },
+  { rank: 24, city: "EDINBURGH, UK", tier: "C+", focus: "FINTECH" },
+  { rank: 25, city: "DENVER, USA", tier: "C+", focus: "STARTUP_HUB" },
+  { rank: 26, city: "SAN DIEGO, USA", tier: "C+", focus: "DEFENSE_BIO" },
+  { rank: 27, city: "GOLD COAST, AUS", tier: "C", focus: "TOURISM_WEALTH" },
+  { rank: 28, city: "PERTH, AUS", tier: "C", focus: "MINING_WEALTH" },
+  { rank: 29, city: "AUCKLAND, NZ", tier: "C", focus: "NZ_HUB" },
+  { rank: 30, city: "PHOENIX, USA", tier: "C", focus: "MFG_TECH" }
+];
+
 const Icons = {
   Operate: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>,
   Create: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l5 5" /></svg>,
@@ -28,6 +61,19 @@ const Icons = {
 export const Layout: React.FC<LayoutProps> = ({ 
   children, activeMode, setActiveMode, activeModule, setActiveModule, onSearchClick, theater, setTheater, theme, toggleTheme
 }) => {
+  const [showCities, setShowCities] = useState(false);
+  const cityInputRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (cityInputRef.current && !cityInputRef.current.contains(event.target as Node)) {
+        setShowCities(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const subModules: Record<MainMode, { id: SubModule; label: string; icon: string | React.ReactNode }[]> = {
     OPERATE: [
       { id: 'COMMAND', label: 'COMMAND', icon: Icons.Command },
@@ -151,15 +197,54 @@ export const Layout: React.FC<LayoutProps> = ({
             <span className="absolute right-2.5 inset-y-0 flex items-center text-[7px] font-black text-slate-500">⌘K</span>
           </div>
 
-          <div className={`flex items-center gap-2 border rounded-lg px-4 py-2 hover:border-indigo-500 transition-colors ${theme === 'dark' ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-300'}`}>
-            <span className="text-[10px]">🌍</span>
-            <input 
-              type="text"
-              value={theater}
-              onChange={(e) => setTheater(e.target.value.toUpperCase())}
-              className={`bg-transparent text-[10px] font-black uppercase tracking-[0.2em] w-24 focus:outline-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
-              placeholder="REGION"
-            />
+          <div className="relative" ref={cityInputRef}>
+            <div 
+              className={`flex items-center gap-2 border rounded-lg px-4 py-2 hover:border-indigo-500 transition-colors cursor-pointer ${theme === 'dark' ? 'bg-slate-950 border-slate-700' : 'bg-slate-50 border-slate-300'}`}
+              onClick={() => setShowCities(!showCities)}
+            >
+              <span className="text-[10px]">🌍</span>
+              <input 
+                type="text"
+                value={theater}
+                onChange={(e) => setTheater(e.target.value.toUpperCase())}
+                className={`bg-transparent text-[10px] font-black uppercase tracking-[0.2em] w-32 focus:outline-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                placeholder="REGION"
+              />
+              <span className="text-[8px] text-slate-500">▼</span>
+            </div>
+
+            {showCities && (
+              <div className={`absolute top-full right-0 mt-2 w-72 rounded-2xl border shadow-2xl max-h-[400px] overflow-y-auto custom-scrollbar z-50 animate-in slide-in-from-top-2 duration-200 ${theme === 'dark' ? 'bg-[#020617] border-slate-800' : 'bg-white border-slate-200'}`}>
+                <div className={`p-3 border-b sticky top-0 backdrop-blur-md z-10 flex justify-between items-center ${theme === 'dark' ? 'border-slate-800/80 bg-[#020617]/90' : 'border-slate-100 bg-white/90'}`}>
+                   <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">STRATEGIC TARGETS</span>
+                   <span className="text-[8px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">AI RANKED</span>
+                </div>
+                <div className="p-2 space-y-1">
+                   {STRATEGIC_CITIES.map(c => (
+                     <button
+                       key={c.rank}
+                       onClick={() => { setTheater(c.city); setShowCities(false); }}
+                       className={`w-full text-left p-3 rounded-xl flex items-center justify-between group transition-all ${theme === 'dark' ? 'hover:bg-slate-900' : 'hover:bg-slate-50'}`}
+                     >
+                        <div className="flex items-center gap-3">
+                           <div className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-black border ${
+                             c.tier.includes('S') ? 'bg-indigo-600 border-indigo-500 text-white' :
+                             c.tier.includes('A') ? 'bg-emerald-600/10 border-emerald-500/20 text-emerald-500' :
+                             'bg-slate-800 border-slate-700 text-slate-500'
+                           }`}>
+                             {c.tier}
+                           </div>
+                           <div>
+                              <p className={`text-[10px] font-bold uppercase tracking-tight ${theme === 'dark' ? 'text-slate-200 group-hover:text-white' : 'text-slate-800'}`}>{c.city}</p>
+                              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{c.focus.replace('_', ' ')}</p>
+                           </div>
+                        </div>
+                        <span className="text-[8px] font-black text-slate-700 group-hover:text-indigo-500 transition-colors">#{c.rank}</span>
+                     </button>
+                   ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>

@@ -70,18 +70,28 @@ const App: React.FC = () => {
   const [activeMode, setActiveMode] = useState<MainMode>('OPERATE');
   const [activeModule, setActiveModule] = useState<SubModule>('COMMAND');
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [theater, setTheater] = useState<string>(() => localStorage.getItem(STORAGE_KEY_THEATER) || 'CYPRUS');
+  const [theater, setTheater] = useState<string>(() => localStorage.getItem(STORAGE_KEY_THEATER) || 'DUBAI');
   const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem(STORAGE_KEY_THEME) as 'dark' | 'light') || 'dark');
   const [lockedLeadId, setLockedLeadId] = useState<string | null>(null);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [compute, setCompute] = useState<ComputeStats | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Initialize Data
   useEffect(() => {
     const savedLeads = localStorage.getItem(STORAGE_KEY_LEADS);
     const savedTheater = localStorage.getItem(STORAGE_KEY_THEATER);
-    if (savedLeads) { try { setLeads(JSON.parse(savedLeads)); } catch (e) {} }
+    
+    if (savedLeads) { 
+      try { 
+        const parsed = JSON.parse(savedLeads);
+        if (Array.isArray(parsed)) setLeads(parsed);
+      } catch (e) {
+        console.error("Ledger Corruption Detected:", e);
+      } 
+    }
     if (savedTheater) setTheater(savedTheater);
     setIsHydrated(true);
 
@@ -89,20 +99,41 @@ const App: React.FC = () => {
     return () => { unsubscribe(); };
   }, []);
 
+  // Theme Sync
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem(STORAGE_KEY_THEME, theme);
+  }, [theme]);
+
+  // Auto-save Theater
   useEffect(() => {
     if (!isHydrated) return;
-    localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
     localStorage.setItem(STORAGE_KEY_THEATER, theater);
-    localStorage.setItem(STORAGE_KEY_THEME, theme);
-  }, [leads, theater, theme, isHydrated]);
+  }, [theater, isHydrated]);
+
+  // Auto-save Leads
+  useEffect(() => {
+    if (!isHydrated) return;
+    // Always sync leads to local storage, even if empty (to allow clearing)
+    localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
+  }, [leads, isHydrated]);
 
   const lockedLead = useMemo(() => leads.find(l => l.id === lockedLeadId), [leads, lockedLeadId]);
   const handleUpdateStatus = (id: string, status: Lead['status']) => { setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l)); };
   const navigate = (mode: MainMode, mod: SubModule) => { setActiveMode(mode); setActiveModule(mod); };
   
   const manualSave = () => { 
-    localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads)); 
-    alert("SUCCESS: SYSTEM STATE COMMITTED TO LEDGER."); 
+    setSaveStatus('saving');
+    localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
+    setTimeout(() => {
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }, 500);
   };
 
   const exportLeads = () => {
@@ -126,7 +157,10 @@ const App: React.FC = () => {
       switch (activeModule) {
         case 'COMMAND': return <MissionControl leads={leads} theater={theater} onNavigate={navigate} />;
         case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(l) => { setLeads(l); navigate('OPERATE', 'TARGET_LIST'); }} />;
-        case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => setLeads(prev => [...prev, ...newL])} />;
+        case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => {
+          setLeads(prev => [...prev, ...newL]);
+          // Optional: Show a quick toast or log here if needed, but the UI updates automatically.
+        }} />;
         case 'TARGET_LIST': return <TargetList leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('OPERATE', 'WAR_ROOM'); }} />;
         case 'WAR_ROOM': return <WarRoom lead={lockedLead} />;
         case 'PIPELINE': return <Pipeline leads={leads} onUpdateStatus={handleUpdateStatus} />;
@@ -232,10 +266,10 @@ const App: React.FC = () => {
         reader.readAsText(file);
       }} className="hidden" />
       
-      <footer className={`fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t px-10 py-5 flex justify-between items-center z-[100] shadow-[0_-15px_40px_rgba(0,0,0,0.4)] ${theme === 'dark' ? 'bg-[#0b1021]/95 border-slate-800 shadow-black' : 'bg-white/95 border-slate-200 shadow-slate-200'}`}>
+      <footer className={`fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t px-10 py-5 flex justify-between items-center z-[100] shadow-[0_-15px_40px_rgba(0,0,0,0.4)] transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0b1021]/90 border-slate-800 shadow-black' : 'bg-white/90 border-slate-200 shadow-slate-200'}`}>
         <div className="flex items-center gap-10">
           <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+            <div className={`w-2.5 h-2.5 rounded-full ${leads.length > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'} shadow-[0_0_10px_rgba(16,185,129,0.5)]`}></div>
             <span className={`text-[10px] font-black uppercase tracking-[0.3em] italic ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>{leads.length} TARGETS INDEXED</span>
           </div>
           <div className={`h-6 w-px hidden md:block ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
@@ -253,16 +287,22 @@ const App: React.FC = () => {
           <button 
             onClick={exportLeads}
             disabled={leads.length === 0}
-            className={`px-7 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 disabled:opacity-30 border ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800' : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
+            className={`px-7 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed border ${theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800' : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200 hover:text-slate-900'}`}
           >
             <span className="text-sm">📤</span> EXPORT
           </button>
 
           <button 
             onClick={manualSave} 
-            className="bg-indigo-600 border border-indigo-400/20 text-white px-12 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500 hover:shadow-[0_0_30px_rgba(79,70,229,0.4)] active:scale-95 transition-all flex items-center gap-3"
+            className={`px-12 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shadow-[0_0_30px_rgba(79,70,229,0.2)] ${
+              saveStatus === 'saved' 
+                ? 'bg-emerald-500 text-white border-emerald-400' 
+                : 'bg-indigo-600 border-indigo-400/20 text-white hover:bg-indigo-500 active:scale-95'
+            }`}
           >
-            <span className="text-sm">💾</span> SAVE LEDGER
+            {saveStatus === 'idle' && <><span className="text-sm">💾</span> SAVE LEDGER</>}
+            {saveStatus === 'saving' && <><span className="animate-spin text-sm">🔄</span> SAVING...</>}
+            {saveStatus === 'saved' && <><span className="text-sm">✓</span> SAVED</>}
           </button>
         </div>
       </footer>
