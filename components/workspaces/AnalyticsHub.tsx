@@ -1,0 +1,109 @@
+
+import React, { useMemo } from 'react';
+import { Lead } from '../../types';
+
+interface AnalyticsHubProps {
+  leads: Lead[];
+}
+
+export const AnalyticsHub: React.FC<AnalyticsHubProps> = ({ leads }) => {
+  // Real calculations based on current ledger
+  const stats = useMemo(() => {
+    const totalLeads = leads.length;
+    const gradeA = leads.filter(l => l.assetGrade === 'A').length;
+    
+    // Logic: Grade A = €50k, Grade B = €20k, Grade C = €5k
+    const pipelineValue = leads.reduce((acc, l) => {
+      if (l.assetGrade === 'A') return acc + 50000;
+      if (l.assetGrade === 'B') return acc + 20000;
+      return acc + 5000;
+    }, 0);
+
+    // Leakage logic: (100 - leadScore) * some factor
+    const leakage = leads.reduce((acc, l) => acc + (100 - l.leadScore) * 1000, 0);
+    
+    const avgScore = totalLeads ? Math.round(leads.reduce((a, b) => a + b.leadScore, 0) / totalLeads) : 0;
+
+    return {
+      totalLeads,
+      gradeA,
+      pipelineValue: (pipelineValue / 1000000).toFixed(1),
+      leakage: (leakage / 1000000).toFixed(1),
+      dominance: avgScore
+    };
+  }, [leads]);
+
+  const metrics = [
+    { label: 'TOTAL PIPELINE VALUE', val: `€${stats.pipelineValue}M`, sub: 'CALCULATED FROM LEDGER' },
+    { label: 'TOTAL REVENUE LEAKAGE', val: `€${stats.leakage}M`, sub: 'EST. OPPORTUNITY COST' },
+    { label: 'HIGH-PROB TARGETS', val: stats.gradeA.toString(), sub: 'GRADE-A LEAD DENSITY', dark: true },
+    { label: 'DOMINANCE INDEX', val: `${stats.dominance}%`, sub: 'MEAN PROSPECT READINESS', indigo: true },
+  ];
+
+  return (
+    <div className="max-w-[1550px] mx-auto py-10 space-y-16 animate-in fade-in duration-700">
+      <div className="text-center space-y-4">
+        <h1 className="text-6xl font-black italic text-white uppercase tracking-tighter leading-none">
+          MARKET <span className="text-indigo-500">DOMINANCE</span> ANALYTICS
+        </h1>
+        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] italic">
+          AGGREGATE INTELLIGENCE FOR {leads.length} ACTIVE NODES
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {metrics.map((m, i) => (
+          <div key={i} className={`p-10 rounded-[48px] border flex flex-col space-y-4 shadow-2xl transition-all hover:scale-[1.03] ${
+            m.indigo ? 'bg-indigo-600 border-indigo-500' : 
+            m.dark ? 'bg-[#020617] border-slate-800' : 'bg-[#0b1021] border-slate-800'
+          }`}>
+             <p className={`text-[10px] font-black uppercase tracking-widest ${m.indigo ? 'text-indigo-200' : 'text-slate-500'}`}>{m.label}</p>
+             <h3 className={`text-5xl font-black italic tracking-tighter ${m.indigo ? 'text-white' : 'text-white'}`}>{m.val}</h3>
+             <p className={`text-[8px] font-black uppercase tracking-widest ${m.indigo ? 'text-indigo-300' : 'text-indigo-400'}`}>{m.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="lg:col-span-7 bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl space-y-12">
+           <h3 className="text-lg font-black italic text-white uppercase tracking-widest">REVENUE CAPTURE PROJECTION</h3>
+           <div className="space-y-12">
+              {[
+                { l: 'Q1 AI ONBOARDING', v: Math.min(stats.dominance + 10, 100), c: 'bg-indigo-600' },
+                { l: 'Q2 FUNNEL OPTIMIZATION', v: Math.min(stats.dominance + 25, 100), c: 'bg-indigo-500' },
+                { l: 'Q3 CATEGORY DOMINANCE', v: Math.min(stats.dominance + 40, 100), c: 'bg-emerald-500' }
+              ].map((p, i) => (
+                <div key={i} className="space-y-4 group">
+                   <div className="flex justify-between items-end">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-colors">{p.l}</span>
+                      <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{p.v}%</span>
+                   </div>
+                   <div className="h-2 bg-slate-900 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-1000 ${p.c}`} style={{ width: `${p.v}%` }}></div>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+
+        <div className="lg:col-span-5 bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl space-y-12">
+           <h3 className="text-lg font-black italic text-white uppercase tracking-widest">MARKET RISK ANALYSIS</h3>
+           <div className="space-y-6">
+              <div className="bg-[#020617] border border-slate-800 p-8 rounded-3xl flex gap-8 group hover:border-rose-500/30 transition-all">
+                 <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-all text-xl font-bold italic">!</div>
+                 <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">
+                   {stats.totalLeads > 10 ? 'LOCAL SATURATION INCREASING. TARGET HIGH-END LUXURY SECTORS FOR HIGHEST CONVERSION.' : 'THEATER RECON INCOMPLETE. DATA DENSITY BELOW OPTIMAL THRESHOLD.'}
+                 </p>
+              </div>
+              <div className="bg-[#020617] border border-slate-800 p-8 rounded-3xl flex gap-8 group hover:border-emerald-500/30 transition-all">
+                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all text-xl font-bold">✓</div>
+                 <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">
+                   HIGH POTENTIAL FOR MULTI-LINGUAL AI CONCIERGE INTEGRATION TO RECOVER MISSED INTERNATIONAL INQUIRIES.
+                 </p>
+              </div>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
