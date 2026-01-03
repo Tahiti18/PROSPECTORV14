@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Lead } from '../types';
 import { generateLeads } from '../services/geminiService';
 import { LeadTable } from './LeadTable';
-import { Loader } from './Loader';
+import { Loader } from '../services/Loader';
 
 interface IntelligenceWorkspaceProps {
   leads: Lead[];

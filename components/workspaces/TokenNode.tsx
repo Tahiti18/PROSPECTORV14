@@ -15,7 +15,7 @@ export const TokenNode: React.FC = () => {
       setIsLoading(false);
     });
     const unsubscribe = subscribeToCompute(setCompute);
-    return () => unsubscribe();
+    return () => { unsubscribe(); };
   }, []);
 
   if (isLoading) return <div className="p-20 text-center text-slate-500 animate-pulse uppercase tracking-widest text-[10px]">Syncing Token Vault...</div>;
@@ -42,7 +42,7 @@ export const TokenNode: React.FC = () => {
          </div>
 
          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full relative z-10">
-            {stats.recentOps.map((op: any, i: number) => (
+            {stats?.recentOps?.map((op: any, i: number) => (
               <div key={i} className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl flex justify-between items-center group hover:border-indigo-500/30 transition-all">
                  <div className="space-y-1">
                     <p className="text-[10px] font-black text-slate-200 uppercase tracking-widest">{op.op}</p>

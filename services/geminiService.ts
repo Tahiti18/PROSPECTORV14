@@ -535,7 +535,7 @@ export const generateVideoPayload = async (prompt: string): Promise<string> => {
     await new Promise(r => setTimeout(r, 10000)); 
     op = await ai.operations.getVideosOperation({ operation: op }); 
   } 
-  return `${op.response?.generatedVideos?.[0]?.video?.uri}&key=${process.env.API_KEY}`; 
+  return (op.response?.generatedVideos?.[0]?.video?.uri ?? '') + `&key=${process.env.API_KEY}`; 
 };
 
 export const generateAudioPitch = async (text: string, voice: string = 'Kore'): Promise<string> => { 

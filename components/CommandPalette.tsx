@@ -6,6 +6,7 @@ interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (mode: MainMode, module: SubModule) => void;
+  theme: 'dark' | 'light';
 }
 
 const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string }[] = [
@@ -83,7 +84,7 @@ const ZONE_BG_HOVERS: Record<string, string> = {
   'CONTROL ZONE': 'hover:bg-amber-500/10 group-hover:text-amber-400',
 };
 
-export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelect }) => {
+export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelect, theme }) => {
   const [query, setQuery] = useState('');
 
   if (!isOpen) return null;
@@ -98,14 +99,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={onClose}></div>
-      <div className="relative w-full max-w-2xl bg-[#0b1021] border border-slate-800 rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className={`relative w-full max-w-2xl border border-slate-800 rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-[#0b1021]' : 'bg-white'}`}>
         <div className="p-8 border-b border-slate-800/50 flex items-center gap-4">
           <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="3" strokeLinecap="round"/></svg>
           </div>
           <input
             autoFocus
-            className="w-full bg-transparent text-slate-100 placeholder-slate-600 text-xl outline-none font-bold uppercase tracking-wider"
+            className={`w-full bg-transparent placeholder-slate-600 text-xl outline-none font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}
             placeholder="SEARCH MODULES (E.G., 'RECON', 'VEO', 'PROPOSAL')..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -135,7 +136,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                           {item.mod === 'COMMAND' ? '📊' : item.zone.includes('CREATE') ? '🎨' : item.zone.includes('SELL') ? '💰' : '📁'}
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-xs font-black text-slate-200 uppercase tracking-widest group-hover:text-white transition-colors">{item.label}</span>
+                          <span className={`text-xs font-black uppercase tracking-widest group-hover:text-white transition-colors ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>{item.label}</span>
                           <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.2em]">{item.mode} MODULE</span>
                         </div>
                       </div>
@@ -153,7 +154,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
           )}
         </div>
 
-        <div className="bg-[#05091a] p-4 border-t border-slate-800/50 flex justify-between items-center">
+        <div className={`p-4 border-t border-slate-800/50 flex justify-between items-center ${theme === 'dark' ? 'bg-[#05091a]' : 'bg-slate-50'}`}>
            <div className="flex gap-4 text-[9px] font-black text-slate-600 uppercase tracking-widest">
               <span>↑↓ SELECT</span>
               <span className="mx-1">•</span>

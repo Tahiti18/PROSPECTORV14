@@ -15,7 +15,7 @@ export const BillingNode: React.FC = () => {
       setIsLoading(false);
     });
     const unsubscribe = subscribeToCompute(setCompute);
-    return () => unsubscribe();
+    return () => { unsubscribe(); };
   }, []);
 
   if (isLoading) return <div className="p-20 text-center text-slate-500 animate-pulse uppercase tracking-widest text-[10px]">Syncing with Billing Hub...</div>;
@@ -79,10 +79,10 @@ export const BillingNode: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
          {[
-           { l: 'TOTAL TOKENS INDEXED', v: stats.tokenUsage.toLocaleString(), c: 'text-slate-900 dark:text-white' },
-           { l: 'SESSION ESTIMATE', v: `$${stats.estimatedCost}`, c: 'text-indigo-600 dark:text-indigo-400' },
-           { l: 'ACTIVE THEATERS', v: stats.activeTheaters, c: 'text-cyan-600 dark:text-cyan-400' },
-           { l: 'PROJECTED REV LIFT', v: `$${stats.projectedRevenueLift.toLocaleString()}`, c: 'text-emerald-600 dark:text-emerald-400' }
+           { l: 'TOTAL TOKENS INDEXED', v: stats?.tokenUsage?.toLocaleString() || '0', c: 'text-slate-900 dark:text-white' },
+           { l: 'SESSION ESTIMATE', v: `$${stats?.estimatedCost || '0.00'}`, c: 'text-indigo-600 dark:text-indigo-400' },
+           { l: 'ACTIVE THEATERS', v: stats?.activeTheaters || '0', c: 'text-cyan-600 dark:text-cyan-400' },
+           { l: 'PROJECTED REV LIFT', v: `$${stats?.projectedRevenueLift?.toLocaleString() || '0'}`, c: 'text-emerald-600 dark:text-emerald-400' }
          ].map((m, i) => (
            <div key={i} className="bg-white dark:bg-[#0b1021] border border-slate-200 dark:border-slate-800 p-10 rounded-[32px] flex flex-col items-center text-center space-y-2 group hover:border-indigo-500/40 transition-all shadow-xl">
               <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{m.l}</span>

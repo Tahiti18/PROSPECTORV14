@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { GoogleGenAI, Modality } from "@google/genai";
+import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 
 export const LiveScribe: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
@@ -29,12 +29,15 @@ export const LiveScribe: React.FC = () => {
             setIsActive(true);
             setTranscripts(prev => [...prev, "RECORDING NODE ESTABLISHED..."]);
           },
-          onmessage: async (message) => {
-             if (message.serverContent?.inputTranscription) {
-               setTranscripts(prev => [...prev, `USER: ${message.serverContent.inputTranscription.text}`]);
+          onmessage: async (message: LiveServerMessage) => {
+             const input = message.serverContent?.inputTranscription?.text;
+             const output = message.serverContent?.outputTranscription?.text;
+             
+             if (input) {
+               setTranscripts(prev => [...prev, `USER: ${input}`]);
              }
-             if (message.serverContent?.outputTranscription) {
-               setTranscripts(prev => [...prev, `STRAT: ${message.serverContent.outputTranscription.text}`]);
+             if (output) {
+               setTranscripts(prev => [...prev, `STRAT: ${output}`]);
              }
           },
           onclose: () => setIsActive(false),
