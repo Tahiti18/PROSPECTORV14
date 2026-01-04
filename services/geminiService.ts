@@ -391,6 +391,35 @@ export const architectFunnel = async (lead: Lead): Promise<any[]> => {
   return extractJSON(resp.text || "[]") || []; 
 };
 
+// 6. ROI_CALC: Upgraded to Pro for Financial Persuasion (The "Closer" Module)
+export const generateROIReport = async (ltv: number, volume: number, conv: number): Promise<string> => {
+  pushLog("GENERATING ROI NARRATIVE (PRO)...");
+  const ai = getAI();
+  try {
+    const revenue = (volume * (conv / 100)) * ltv;
+    const response = await ai.models.generateContent({
+      model: "gemini-3-pro-preview",
+      contents: `Act as a Chief Financial Officer for an AI Agency.
+      Data: 
+      - Client LTV: $${ltv}
+      - Monthly Lead Volume: ${volume}
+      - AI Conversion Lift: ${conv}%
+      - Projected Monthly Revenue Increase: $${revenue.toFixed(2)}
+
+      Write a persuasive, executive-level summary explaining WHY this AI implementation is a "no-brainer" investment. 
+      Use psychological anchoring. Focus on the cost of inaction vs. compound growth.
+      Keep it under 200 words, but make every word sell the deal.`,
+      config: { 
+        thinkingConfig: { thinkingBudget: 4000 } // Reasoning budget to construct the financial argument
+      }
+    });
+    return response.text || "ROI Analysis Unavailable.";
+  } catch (e) {
+    console.error(e);
+    return "Error generating ROI report.";
+  }
+};
+
 // --- STANDARD OPERATIONAL NODES ---
 
 export const translateTactical = async (text: string, targetLang: string): Promise<string> => { const ai = getAI(); const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Translate: ${text} to ${targetLang}` }); return resp.text || "Failed."; };
@@ -594,29 +623,6 @@ export const generateAffiliateProgram = async (niche: string): Promise<any> => {
   } catch (e) {
     console.error(e);
     return { programName: "PARTNER_NET", tiers: [], recruitScript: "Error generating." };
-  }
-};
-
-export const generateROIReport = async (ltv: number, volume: number, conv: number): Promise<string> => {
-  pushLog("GENERATING ROI NARRATIVE...");
-  const ai = getAI();
-  try {
-    const revenue = (volume * (conv / 100)) * ltv;
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Act as a Chief Financial Officer for an AI Agency.
-      Data: 
-      - Client LTV: $${ltv}
-      - Monthly Lead Volume: ${volume}
-      - AI Conversion Lift: ${conv}%
-      - Projected Monthly Revenue Increase: $${revenue.toFixed(2)}
-
-      Write a short, punchy, executive summary explaining WHY this AI implementation is a "no-brainer" investment. Focus on compound growth and competitive advantage. Keep it under 150 words.`,
-    });
-    return response.text || "ROI Analysis Unavailable.";
-  } catch (e) {
-    console.error(e);
-    return "Error generating ROI report.";
   }
 };
 
