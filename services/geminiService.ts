@@ -11,6 +11,29 @@ const getAI = () => {
   return new GoogleGenAI({ apiKey: apiKey || '' });
 };
 
+// --- GLOBAL SESSION STATE ---
+export interface AssetRecord {
+  id: string;
+  type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'TEXT';
+  title: string;
+  data: string; // Base64 or URL
+  timestamp: string;
+}
+
+export const SESSION_ASSETS: AssetRecord[] = [];
+
+export const saveAsset = (type: AssetRecord['type'], title: string, data: string) => {
+  const asset: AssetRecord = {
+    id: `ASSET-${Date.now().toString().slice(-6)}`,
+    type,
+    title,
+    data,
+    timestamp: new Date().toLocaleTimeString()
+  };
+  SESSION_ASSETS.unshift(asset); // Newest first
+  pushLog(`ASSET SECURED: ${title} [${type}]`);
+};
+
 export const PRODUCTION_LOGS: string[] = [];
 const pushLog = (msg: string) => {
   console.log(`[SYSTEM_LOG] ${msg}`);
@@ -20,12 +43,10 @@ const pushLog = (msg: string) => {
 
 const extractJSON = (text: string) => {
   try {
-    // Attempt to find the first outer-most JSON object
     let match = text.match(/\{[\s\S]*\}/);
     if (match) {
         return JSON.parse(match[0]);
     }
-    // Fallback for markdown blocks
     match = text.match(/```json([\s\S]*)```/);
     if (match) {
         return JSON.parse(match[1]);
@@ -50,7 +71,6 @@ export interface BenchmarkReport {
 export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<BenchmarkReport> => {
   pushLog(`ENGAGING MODULE: ${moduleType} for ${lead.businessName}`);
   const ai = getAI();
-  const isElite = ELITE_NODES.includes(moduleType as SubModule);
   // ALWAYS use Pro for Benchmark to ensure depth
   const model = "gemini-3-pro-preview";
   
@@ -113,7 +133,6 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
 
     trackCall(model, (response.text?.length || 0) + prompt.length);
 
-    // Fallback if AI returns empty object
     if (!rawData.entityName) {
         throw new Error("AI returned empty intelligence payload.");
     }
@@ -523,5 +542,29 @@ export const generatePlaybookStrategy = async (theater: string): Promise<any> =>
   } catch (e) {
     console.error(e);
     return { strategyName: "DEFAULT PROTOCOL", steps: [] };
+  }
+};
+
+// --- NEW AFFILIATE STRATEGY ---
+export const generateAffiliateProgram = async (niche: string): Promise<any> => {
+  pushLog(`ARCHITECTING AFFILIATE MATRIX FOR ${niche}`);
+  const ai = getAI();
+  const prompt = `Create a 3-tier Affiliate Partner Structure for an AI agency in the ${niche} niche.
+  Return valid JSON: { 
+    "programName": "Name", 
+    "tiers": [{ "name": "Tier 1", "commission": "10%", "requirement": "Requirement" }],
+    "recruitScript": "Short email to recruit partners"
+  }`;
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
+    });
+    return JSON.parse(response.text || "{}");
+  } catch (e) {
+    console.error(e);
+    return { programName: "PARTNER_NET", tiers: [], recruitScript: "Error generating." };
   }
 };

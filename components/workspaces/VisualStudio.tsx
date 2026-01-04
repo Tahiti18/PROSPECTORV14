@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Lead } from '../../types';
-import { generateVisual } from '../../services/geminiService';
+import { generateVisual, saveAsset } from '../../services/geminiService';
 
 interface VisualStudioProps {
   leads: Lead[];
@@ -19,6 +19,8 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
     try {
       const base64Image = await generateVisual(prompt);
       setGeneratedImage(base64Image);
+      // Save to Vault
+      saveAsset('IMAGE', `Visual_Studio_${Date.now()}`, base64Image);
     } catch (e) {
       console.error(e);
       alert("Generation failed.");

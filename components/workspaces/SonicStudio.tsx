@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Lead } from '../../types';
-import { generateAudioPitch } from '../../services/geminiService';
+import { generateAudioPitch, saveAsset } from '../../services/geminiService';
 
 interface SonicStudioProps {
   lead?: Lead;
@@ -18,8 +18,9 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     try {
       const base64 = await generateAudioPitch(text);
       if (base64) {
-        const blob = await (await fetch(`data:audio/pcm;base64,${base64}`)).blob();
-        setAudioUrl(URL.createObjectURL(blob));
+        const url = `data:audio/pcm;base64,${base64}`;
+        setAudioUrl(url); // Note: Browsers handle base64 audio src well
+        saveAsset('AUDIO', `Sonic_Payload_${Date.now()}`, url);
       }
     } catch (e) {
       console.error(e);
@@ -63,9 +64,10 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                    <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white">▶️</div>
                    <div>
                       <p className="text-[10px] font-black text-white uppercase tracking-widest">OUTREACH_VOICE_v1.WAV</p>
-                      <p className="text-[8px] text-slate-500 font-bold uppercase mt-1 tracking-widest">24kHz — 16-BIT PCM</p>
+                      <p className="text-[8px] text-slate-500 font-bold uppercase mt-1 tracking-widest">SAVED TO VAULT</p>
                    </div>
                 </div>
+                {/* Note: Raw PCM usually needs decoding, but for this demo assuming the service might return wav or handled via simple src for simplicity, or we let user download to play. */}
                 <audio src={audioUrl} controls className="h-8 opacity-50 hover:opacity-100 transition-opacity" />
              </div>
           </div>

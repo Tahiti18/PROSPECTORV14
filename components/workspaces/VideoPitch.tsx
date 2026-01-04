@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Lead } from '../../types';
-import { generateVideoPayload } from '../../services/geminiService';
+import { generateVideoPayload, saveAsset } from '../../services/geminiService';
 
 interface VideoPitchProps {
   lead?: Lead;
@@ -11,7 +11,6 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
   const [prompt, setPrompt] = useState(lead ? `A sleek 4k cinematic intro for a high-end AI agency pitching to ${lead.businessName} in ${lead.city}. Show luxury office aesthetics and rapid data visualization.` : "");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [hasApiKey, setHasApiKey] = useState(false);
 
   const checkAndOpenKey = async () => {
     // @ts-ignore
@@ -20,7 +19,6 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
       // @ts-ignore
       await window.aistudio.openSelectKey();
     }
-    setHasApiKey(true);
   };
 
   const handleForge = async () => {
@@ -30,6 +28,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
       await checkAndOpenKey();
       const url = await generateVideoPayload(prompt);
       setVideoUrl(url);
+      saveAsset('VIDEO', `Veo_Payload_${Date.now()}`, url);
     } catch (e) {
       console.error(e);
       alert("Video generation requires a paid API key and valid permissions.");

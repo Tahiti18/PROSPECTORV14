@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Lead } from '../../types';
-import { generateMockup } from '../../services/geminiService';
+import { generateMockup, saveAsset } from '../../services/geminiService';
 
 interface Mockups4KProps {
   lead?: Lead;
@@ -17,6 +17,7 @@ export const Mockups4K: React.FC<Mockups4KProps> = ({ lead }) => {
     try {
       const url = await generateMockup(lead.businessName, lead.niche);
       setImageUrl(url);
+      saveAsset('IMAGE', `Mockup_4K_${lead.businessName}`, url);
     } catch (e) {
       console.error(e);
     } finally {
