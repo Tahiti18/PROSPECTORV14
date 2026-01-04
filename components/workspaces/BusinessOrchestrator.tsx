@@ -108,6 +108,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleCopyMarkdown = async () => {
@@ -117,14 +118,21 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       await navigator.clipboard.writeText(md);
       alert("Full dossier markdown copied to clipboard.");
     } catch (e) {
-      // Fallback for older browsers or strict permissions
+      // Fallback for older browsers or strict permissions (iOS/Safari)
       const ta = document.createElement("textarea");
       ta.value = md;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
       document.body.appendChild(ta);
+      ta.focus();
       ta.select();
-      document.execCommand("copy");
+      try {
+        document.execCommand("copy");
+        alert("Copied (fallback mode) ✓");
+      } catch (err) {
+        alert("Copy failed. Please select text manually.");
+      }
       document.body.removeChild(ta);
-      alert("Copied (fallback mode) ✓");
     }
   };
 
@@ -133,8 +141,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     const saved = dossierStorage.save(targetLead, packageData, leadAssets.map(a => a.id));
     
     // Safety Assertion: Ensure we aren't saving heavy blobs in the dossier record
-    // This protects LocalStorage quota
-    if (process.env.NODE_ENV !== "production") {
+    // Cast to any to avoid TypeScript errors with missing Vite types
+    if ((import.meta as any).env?.DEV) {
       const s = JSON.stringify(saved);
       if (s.includes("data:image") || (s.includes("base64") && s.length > 20000)) {
         console.warn("CRITICAL WARNING: Dossier snapshot contains heavy payload. Verify asset linking.");
