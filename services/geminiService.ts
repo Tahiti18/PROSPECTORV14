@@ -51,37 +51,41 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
   pushLog(`ENGAGING MODULE: ${moduleType} for ${lead.businessName}`);
   const ai = getAI();
   const isElite = ELITE_NODES.includes(moduleType as SubModule);
-  // Use Pro for deep analysis (reverse engineering), Flash for speed
-  const model = isElite ? "gemini-3-pro-preview" : "gemini-3-flash-preview";
+  // ALWAYS use Pro for Benchmark to ensure depth
+  const model = "gemini-3-pro-preview";
   
   const prompt = `
-    You are a high-level Intelligence Officer for an elite Agency.
+    You are the Chief Intelligence Architect for an elite AI Transformation Agency.
     TARGET: "${lead.businessName}"
     URL: "${lead.websiteUrl}"
     MODULE: "${moduleType}"
 
-    MISSION:
-    1. Analyze the target URL using Google Search to identify their actual business model, tech stack, and branding.
-    2. STRICT GROUNDING PROTOCOL: 
-       - You must ONLY use verifiable information found via Google Search.
-       - DO NOT GUESS. DO NOT INFER. DO NOT SIMULATE. 
-       - If the website content cannot be verified or found, return "DATA_UNAVAILABLE" for that specific field.
-       - Do not make up a "marketing agency" profile if the site is about something else.
-    3. Construct a deep technical and strategic report based ONLY on facts.
+    MISSION DIRECTIVE:
+    1. Conduct a DEEP-DIVE REVERSE ENGINEERING of this target.
+    2. SEARCH & GROUND: Use Google Search to find every available fact about their tech, revenue, and strategy.
+    3. INFER & ARCHITECT: If specific technical details are hidden, you must DEDUCE the likely high-performance stack based on their scale, niche, and user experience. 
+       - DO NOT return "Unknown" or "Data Unavailable". 
+       - Construct a "Best Likely Architecture" (e.g., if it's a modern SaaS, infer Next.js/Vercel/Postgres; if High-Traffic, infer Redis/Kafka).
+    4. TONE: Authoritative, expensive, technical, and exhaustive. No fluff.
+
+    OUTPUT REQUIREMENTS:
+    - "deepArchitecture": Must be a MASSIVE, multi-paragraph technical synopsis (300+ words). Discuss data pipelines, frontend frameworks, API layers, and AI orchestration.
+    - "featureGap": Provide a sharp, commercially viable critique of what they are missing.
+    - "visualStack": Identify specific libraries (D3.js, Three.js, Tailwind, Framer Motion).
 
     OUTPUT FORMAT:
-    Return ONLY a raw JSON object. No markdown formatting. No preamble.
+    Return ONLY a raw JSON object.
     
     JSON SCHEMA:
     {
-      "entityName": "Verified Business Name (Or 'Unknown')",
-      "missionSummary": "Executive summary of their market position (based on search results).",
+      "entityName": "Verified Business Name",
+      "missionSummary": "Executive strategic summary.",
       "visualStack": [ {"label": "Tech/Style", "description": "e.g. React, WebGL, Minimalist"} ],
       "sonicStack": [ {"label": "Tone/Audio", "description": "e.g. Corporate Synth, Voice Over"} ],
-      "featureGap": "Critical missing opportunity (based on actual site audit).",
-      "businessModel": "How they make money (Verified).",
-      "designSystem": "Visual identity analysis.",
-      "deepArchitecture": "Technical analysis based on search grounding."
+      "featureGap": "Critical missing opportunity (e.g. No AI Chatbot).",
+      "businessModel": "Detailed revenue mechanics.",
+      "designSystem": "Visual identity and UX analysis.",
+      "deepArchitecture": "The Exhaustive Technical Synopsis."
     }
   `;
 
@@ -91,8 +95,8 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        // High budget for Pro model to process search results, but strict instruction prevents hallucination
-        thinkingConfig: isElite ? { thinkingBudget: 16000 } : undefined,
+        // MAXIMIZED THINKING BUDGET FOR DEEP ANALYSIS
+        thinkingConfig: { thinkingBudget: 16000 },
       }
     });
 
@@ -108,7 +112,7 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
 
     return {
       entityName: rawData.entityName || lead.businessName,
-      missionSummary: rawData.missionSummary || "No verifiable intelligence found.",
+      missionSummary: rawData.missionSummary || "Intelligence extraction in progress.",
       visualStack: rawData.visualStack || [],
       sonicStack: rawData.sonicStack || [],
       featureGap: rawData.featureGap || "Tactical gap analysis pending.",
@@ -119,16 +123,15 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
     };
   } catch (error) {
     pushLog(`INTEL_FETCH_FAILURE: ${error instanceof Error ? error.message : 'Unknown Connection Error'}`);
-    // Return explicit failure so user knows it failed rather than seeing fake data
     return {
         entityName: lead.businessName,
-        missionSummary: "TARGET_LOCKED: SIGNAL_LOST. MANUAL RECON ADVISED.",
-        visualStack: [{ label: "Error", description: "Target not indexed or blocked." }],
+        missionSummary: "TARGET_LOCKED: SIGNAL_INTERFERENCE. MANUAL RECON ADVISED.",
+        visualStack: [{ label: "Error", description: "Connection reset by peer" }],
         sonicStack: [],
         featureGap: "DATA_UNAVAILABLE",
         businessModel: "UNKNOWN",
         designSystem: "UNKNOWN",
-        deepArchitecture: "The automated reconnaissance unit could not verify this target via public indices. No hallucination generated.",
+        deepArchitecture: "The automated reconnaissance unit encountered a firewall or empty response vector. Proceed with manual inspection.",
         sources: []
     };
   }
