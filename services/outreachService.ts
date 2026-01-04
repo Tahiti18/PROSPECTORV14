@@ -1,3 +1,4 @@
+
 import { OutreachLog, OutreachChannel, OutreachMode } from '../types';
 
 const LOG_STORAGE_KEY = 'outreachLog'; 
@@ -31,7 +32,8 @@ function mkId() {
 function makeSnippet(body?: string) {
   const v = (body ?? "").replace(/\s+/g, " ").trim();
   if (!v) return undefined;
-  return v.length > SNIPPET_MAX ? v.slice(0, SNIPPET_MAX) : v;
+  // Polish: Append ellipsis if truncated
+  return v.length > SNIPPET_MAX ? v.slice(0, SNIPPET_MAX - 1) + '…' : v;
 }
 
 export const outreachService = {
