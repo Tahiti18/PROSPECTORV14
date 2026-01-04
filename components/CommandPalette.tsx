@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MainMode, SubModule } from '../types';
 
 interface CommandPaletteProps {
@@ -9,147 +9,207 @@ interface CommandPaletteProps {
   theme: 'dark' | 'light';
 }
 
-const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string }[] = [
-  // OPERATE ZONE (INDIGO)
-  { mode: 'OPERATE', mod: 'COMMAND', label: 'COMMAND', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'RADAR_RECON', label: 'RADAR RECON', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'AUTO_CRAWL', label: 'AUTO-CRAWL', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'TARGET_LIST', label: 'TARGET LIST', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'PIPELINE', label: 'PIPELINE', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'WAR_ROOM', label: 'WAR ROOM', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'DEEP_LOGIC', label: 'DEEP LOGIC', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'WORKSPACE', label: 'WORKSPACE', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'VIRAL_PULSE', label: 'VIRAL PULSE', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'VISION_LAB', label: 'VISION LAB', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'ARTICLE_INTEL', label: 'ARTICLE INTEL', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'BENCHMARK', label: 'BENCHMARK', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'ANALYTICS', label: 'ANALYTICS', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'HEATMAP', label: 'HEATMAP', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'PROMPT_AI', label: 'PROMPT AI', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'MODEL_TEST', label: 'MODEL TEST', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'FACT_CHECK', label: 'FACT CHECK', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'TRANSLATOR', label: 'TRANSLATOR', zone: 'OPERATE ZONE' },
-  
-  // STUDIO ZONE (ROSE) - New Dedicated Video/Audio Hub
-  { mode: 'STUDIO', mod: 'VIDEO_PITCH', label: 'VEO FORGE', zone: 'STUDIO ZONE' },
-  { mode: 'STUDIO', mod: 'VIDEO_AI', label: 'VIDEO AUDIT', zone: 'STUDIO ZONE' },
-  { mode: 'STUDIO', mod: 'CINEMA_INTEL', label: 'CINEMA INTEL', zone: 'STUDIO ZONE' },
-  { mode: 'STUDIO', mod: 'MOTION_LAB', label: 'MOTION LAB', zone: 'STUDIO ZONE' },
-  { mode: 'STUDIO', mod: 'SONIC_STUDIO', label: 'SONIC STUDIO', zone: 'STUDIO ZONE' },
-  { mode: 'STUDIO', mod: 'LIVE_SCRIBE', label: 'LIVE SCRIBE', zone: 'STUDIO ZONE' },
+// FULL 54-MODULE REGISTRY MAPPED TO NEW COLOR ZONES
+const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string; icon: string }[] = [
+  // --- OPERATE ZONE (INDIGO: INTELLIGENCE & LOGIC) ---
+  { mode: 'OPERATE', mod: 'COMMAND', label: 'MISSION CONTROL', zone: 'OPERATE ZONE', icon: '📊' },
+  { mode: 'OPERATE', mod: 'RADAR_RECON', label: 'RADAR RECON', zone: 'OPERATE ZONE', icon: '📡' },
+  { mode: 'OPERATE', mod: 'AUTO_CRAWL', label: 'AUTO CRAWL SWARM', zone: 'OPERATE ZONE', icon: '🕷️' },
+  { mode: 'OPERATE', mod: 'TARGET_LIST', label: 'TARGET LEDGER', zone: 'OPERATE ZONE', icon: '🎯' },
+  { mode: 'OPERATE', mod: 'PIPELINE', label: 'PIPELINE VIEW', zone: 'OPERATE ZONE', icon: '🔄' },
+  { mode: 'OPERATE', mod: 'WAR_ROOM', label: 'WAR ROOM', zone: 'OPERATE ZONE', icon: '⚔️' },
+  { mode: 'OPERATE', mod: 'DEEP_LOGIC', label: 'DEEP LOGIC LAB', zone: 'OPERATE ZONE', icon: '🧠' },
+  { mode: 'OPERATE', mod: 'WORKSPACE', label: 'GEMINI WORKSPACE', zone: 'OPERATE ZONE', icon: '⚡' },
+  { mode: 'OPERATE', mod: 'VIRAL_PULSE', label: 'VIRAL PULSE', zone: 'OPERATE ZONE', icon: '📈' },
+  { mode: 'OPERATE', mod: 'VISION_LAB', label: 'VISION LAB', zone: 'OPERATE ZONE', icon: '👁️' },
+  { mode: 'OPERATE', mod: 'ARTICLE_INTEL', label: 'ARTICLE INTEL', zone: 'OPERATE ZONE', icon: '📄' },
+  { mode: 'OPERATE', mod: 'BENCHMARK', label: 'BENCHMARK REVERSE', zone: 'OPERATE ZONE', icon: '📏' },
+  { mode: 'OPERATE', mod: 'ANALYTICS', label: 'ANALYTICS CORE', zone: 'OPERATE ZONE', icon: '📉' },
+  { mode: 'OPERATE', mod: 'ANALYTICS_HUB', label: 'DOMINANCE HUB', zone: 'OPERATE ZONE', icon: '🏰' },
+  { mode: 'OPERATE', mod: 'HEATMAP', label: 'HEATMAP', zone: 'OPERATE ZONE', icon: '🔥' },
+  { mode: 'OPERATE', mod: 'PROMPT_AI', label: 'PROMPT INTERFACE', zone: 'OPERATE ZONE', icon: '💬' },
+  { mode: 'OPERATE', mod: 'MODEL_TEST', label: 'MODEL BENCHMARK', zone: 'OPERATE ZONE', icon: '🧪' },
+  { mode: 'OPERATE', mod: 'FACT_CHECK', label: 'FACT CHECKER', zone: 'OPERATE ZONE', icon: '✅' },
+  { mode: 'OPERATE', mod: 'TRANSLATOR', label: 'TACTICAL TRANSLATOR', zone: 'OPERATE ZONE', icon: '🌐' },
 
-  // CREATE ZONE (CYAN/ROSE) - Static Assets
-  { mode: 'CREATE', mod: 'VISUAL_STUDIO', label: 'VISUAL STUDIO', zone: 'CREATE ZONE' },
-  { mode: 'CREATE', mod: 'MOCKUPS_4K', label: '4K MOCKUPS', zone: 'CREATE ZONE' },
-  { mode: 'CREATE', mod: 'PRODUCT_SYNTH', label: 'PRODUCT SYNTH', zone: 'CREATE ZONE' },
-  { mode: 'CREATE', mod: 'FLASH_SPARK', label: 'FLASH SPARK', zone: 'CREATE ZONE' },
-  { mode: 'CREATE', mod: 'MEDIA_VAULT', label: 'MEDIA VAULT', zone: 'CREATE ZONE' },
-  
-  // SELL ZONE (EMERALD)
-  { mode: 'SELL', mod: 'BUSINESS_ORCHESTRATOR', label: 'BUSINESS ORCHESTRATOR', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'PROPOSALS', label: 'PROPOSALS', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'ROI_CALC', label: 'ROI CALC', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'SEQUENCER', label: 'SEQUENCER', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'DECK_ARCH', label: 'DECK ARCH', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'DEMO_SANDBOX', label: 'DEMO SANDBOX', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'DRAFTING', label: 'DRAFTING', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'VOICE_STRAT', label: 'VOICE STRAT', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'AI_CONCIERGE', label: 'AI CONCIERGE', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'PITCH_GEN', label: 'PITCH GEN', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'FUNNEL_MAP', label: 'FUNNEL MAP', zone: 'SELL ZONE' },
-  
-  // CONTROL ZONE (AMBER)
-  { mode: 'CONTROL', mod: 'PLAYBOOK', label: 'PLAYBOOK', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'BILLING', label: 'BILLING', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'AFFILIATE', label: 'AFFILIATE', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'IDENTITY', label: 'IDENTITY', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'OS_FORGE', label: 'OS FORGE', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'EXPORT_DATA', label: 'EXPORT DATA', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'CALENDAR', label: 'CALENDAR', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'PROD_LOG', label: 'PROD. LOG', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'SETTINGS', label: 'SETTINGS', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'CIPHER_NODE', label: 'CIPHER NODE', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'NEXUS_GRAPH', label: 'NEXUS GRAPH', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'CHRONOS', label: 'CHRONOS', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'TASKS', label: 'TASKS', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'THEME', label: 'THEME', zone: 'CONTROL ZONE' },
-  { mode: 'CONTROL', mod: 'TOKENS', label: 'TOKENS', zone: 'CONTROL ZONE' },
+  // --- CREATE ZONE (VIOLET: IMAGINATION & SYNTHESIS) ---
+  { mode: 'CREATE', mod: 'VISUAL_STUDIO', label: 'VISUAL STUDIO', zone: 'CREATE ZONE', icon: '🎨' },
+  { mode: 'CREATE', mod: 'MOCKUPS_4K', label: '4K MOCKUP FORGE', zone: 'CREATE ZONE', icon: '🖥️' },
+  { mode: 'CREATE', mod: 'PRODUCT_SYNTH', label: 'PRODUCT SYNTH', zone: 'CREATE ZONE', icon: '🧬' },
+  { mode: 'CREATE', mod: 'FLASH_SPARK', label: 'FLASH SPARK', zone: 'CREATE ZONE', icon: '⚡' },
+  { mode: 'CREATE', mod: 'MEDIA_VAULT', label: 'MEDIA VAULT', zone: 'CREATE ZONE', icon: '🔒' },
+
+  // --- STUDIO ZONE (AMBER: PRODUCTION & MOTION) ---
+  { mode: 'STUDIO', mod: 'VIDEO_PITCH', label: 'VEO FORGE', zone: 'STUDIO ZONE', icon: '📹' },
+  { mode: 'STUDIO', mod: 'VIDEO_AI', label: 'VIDEO AUDIT', zone: 'STUDIO ZONE', icon: '🎥' },
+  { mode: 'STUDIO', mod: 'CINEMA_INTEL', label: 'CINEMA INTEL', zone: 'STUDIO ZONE', icon: '🎬' },
+  { mode: 'STUDIO', mod: 'MOTION_LAB', label: 'MOTION LAB', zone: 'STUDIO ZONE', icon: '🏃' },
+  { mode: 'STUDIO', mod: 'SONIC_STUDIO', label: 'SONIC STUDIO', zone: 'STUDIO ZONE', icon: '🎵' },
+  { mode: 'STUDIO', mod: 'LIVE_SCRIBE', label: 'LIVE SCRIBE', zone: 'STUDIO ZONE', icon: '✍️' },
+
+  // --- SELL ZONE (EMERALD: REVENUE & STRATEGY) ---
+  { mode: 'SELL', mod: 'BUSINESS_ORCHESTRATOR', label: 'BUSINESS ORCHESTRATOR', zone: 'SELL ZONE', icon: '🎼' },
+  { mode: 'SELL', mod: 'PROPOSALS', label: 'PROPOSAL ARCHITECT', zone: 'SELL ZONE', icon: '📝' },
+  { mode: 'SELL', mod: 'ROI_CALC', label: 'ROI CALCULATOR', zone: 'SELL ZONE', icon: '💰' },
+  { mode: 'SELL', mod: 'SEQUENCER', label: 'ATTACK SEQUENCER', zone: 'SELL ZONE', icon: '⛓️' },
+  { mode: 'SELL', mod: 'DECK_ARCH', label: 'DECK ARCHITECT', zone: 'SELL ZONE', icon: '🏗️' },
+  { mode: 'SELL', mod: 'DEMO_SANDBOX', label: 'DEMO SANDBOX', zone: 'SELL ZONE', icon: '🏖️' },
+  { mode: 'SELL', mod: 'DRAFTING', label: 'DRAFTING PORTAL', zone: 'SELL ZONE', icon: '✏️' },
+  { mode: 'SELL', mod: 'VOICE_STRAT', label: 'VOICE STRATEGIST', zone: 'SELL ZONE', icon: '🗣️' },
+  { mode: 'SELL', mod: 'AI_CONCIERGE', label: 'AI CONCIERGE', zone: 'SELL ZONE', icon: '🤖' },
+  { mode: 'SELL', mod: 'PITCH_GEN', label: 'PITCH GENERATOR', zone: 'SELL ZONE', icon: '📢' },
+  { mode: 'SELL', mod: 'FUNNEL_MAP', label: 'FUNNEL MAPPER', zone: 'SELL ZONE', icon: '🗺️' },
+
+  // --- CONTROL ZONE (CYAN: SYSTEM & INFRA) ---
+  { mode: 'CONTROL', mod: 'PLAYBOOK', label: 'AGENCY PLAYBOOK', zone: 'CONTROL ZONE', icon: '📖' },
+  { mode: 'CONTROL', mod: 'BILLING', label: 'THEATER BILLING', zone: 'CONTROL ZONE', icon: '💳' },
+  { mode: 'CONTROL', mod: 'AFFILIATE', label: 'AFFILIATE MATRIX', zone: 'CONTROL ZONE', icon: '🤝' },
+  { mode: 'CONTROL', mod: 'IDENTITY', label: 'AGENCY IDENTITY', zone: 'CONTROL ZONE', icon: '🏢' },
+  { mode: 'CONTROL', mod: 'OS_FORGE', label: 'OS CONFIG FORGE', zone: 'CONTROL ZONE', icon: '⚒️' },
+  { mode: 'CONTROL', mod: 'EXPORT_DATA', label: 'DATA EXPORT NODE', zone: 'CONTROL ZONE', icon: '📤' },
+  { mode: 'CONTROL', mod: 'CALENDAR', label: 'COMBAT CALENDAR', zone: 'CONTROL ZONE', icon: '📅' },
+  { mode: 'CONTROL', mod: 'PROD_LOG', label: 'PRODUCTION LOGS', zone: 'CONTROL ZONE', icon: '📋' },
+  { mode: 'CONTROL', mod: 'SETTINGS', label: 'SYSTEM SETTINGS', zone: 'CONTROL ZONE', icon: '⚙️' },
+  { mode: 'CONTROL', mod: 'CIPHER_NODE', label: 'CIPHER SECURITY', zone: 'CONTROL ZONE', icon: '🔑' },
+  { mode: 'CONTROL', mod: 'NEXUS_GRAPH', label: 'NEXUS GRAPH', zone: 'CONTROL ZONE', icon: '🕸️' },
+  { mode: 'CONTROL', mod: 'CHRONOS', label: 'CHRONOS LOGS', zone: 'CONTROL ZONE', icon: '⏳' },
+  { mode: 'CONTROL', mod: 'TASKS', label: 'MISSION TASKS', zone: 'CONTROL ZONE', icon: '✅' },
+  { mode: 'CONTROL', mod: 'THEME', label: 'UI THEME ENGINE', zone: 'CONTROL ZONE', icon: '🎨' },
+  { mode: 'CONTROL', mod: 'TOKENS', label: 'TOKEN VAULT', zone: 'CONTROL ZONE', icon: '🎟️' },
 ];
 
-const ZONE_COLORS: Record<string, string> = {
-  'OPERATE ZONE': 'text-indigo-400 border-indigo-500/30',
-  'STUDIO ZONE': 'text-rose-400 border-rose-500/30',
-  'CREATE ZONE': 'text-cyan-400 border-cyan-500/30',
-  'SELL ZONE': 'text-emerald-400 border-emerald-500/30',
-  'CONTROL ZONE': 'text-amber-400 border-amber-500/30',
-};
-
-const ZONE_BG_HOVERS: Record<string, string> = {
-  'OPERATE ZONE': 'hover:bg-indigo-500/10 group-hover:text-indigo-400',
-  'STUDIO ZONE': 'hover:bg-rose-500/10 group-hover:text-rose-400',
-  'CREATE ZONE': 'hover:bg-cyan-500/10 group-hover:text-cyan-400',
-  'SELL ZONE': 'hover:bg-emerald-500/10 group-hover:text-emerald-400',
-  'CONTROL ZONE': 'hover:bg-amber-500/10 group-hover:text-amber-400',
+// REFINED COLOR SYSTEM (NO RED)
+const ZONE_STYLES: Record<string, { headerBg: string; headerText: string; hoverBg: string; hoverText: string; iconBg: string; border: string }> = {
+  'OPERATE ZONE': {
+    headerBg: 'bg-indigo-950/80',
+    headerText: 'text-indigo-400',
+    hoverBg: 'hover:bg-indigo-600/10',
+    hoverText: 'group-hover:text-indigo-400',
+    iconBg: 'group-hover:bg-indigo-600 group-hover:text-white',
+    border: 'border-indigo-500/30'
+  },
+  'CREATE ZONE': {
+    headerBg: 'bg-violet-950/80',
+    headerText: 'text-violet-400',
+    hoverBg: 'hover:bg-violet-600/10',
+    hoverText: 'group-hover:text-violet-400',
+    iconBg: 'group-hover:bg-violet-600 group-hover:text-white',
+    border: 'border-violet-500/30'
+  },
+  'STUDIO ZONE': { // REPLACED RED WITH AMBER/ORANGE
+    headerBg: 'bg-amber-950/80',
+    headerText: 'text-amber-400',
+    hoverBg: 'hover:bg-amber-600/10',
+    hoverText: 'group-hover:text-amber-400',
+    iconBg: 'group-hover:bg-amber-600 group-hover:text-white',
+    border: 'border-amber-500/30'
+  },
+  'SELL ZONE': {
+    headerBg: 'bg-emerald-950/80',
+    headerText: 'text-emerald-400',
+    hoverBg: 'hover:bg-emerald-600/10',
+    hoverText: 'group-hover:text-emerald-400',
+    iconBg: 'group-hover:bg-emerald-600 group-hover:text-white',
+    border: 'border-emerald-500/30'
+  },
+  'CONTROL ZONE': {
+    headerBg: 'bg-cyan-950/80',
+    headerText: 'text-cyan-400',
+    hoverBg: 'hover:bg-cyan-600/10',
+    hoverText: 'group-hover:text-cyan-400',
+    iconBg: 'group-hover:bg-cyan-600 group-hover:text-white',
+    border: 'border-cyan-500/30'
+  }
 };
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelect, theme }) => {
   const [query, setQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   if (!isOpen) return null;
 
-  const filtered = MODULE_DATA.filter(item => 
+  const filteredItems = MODULE_DATA.filter(item => 
     item.label.toLowerCase().includes(query.toLowerCase()) || 
     item.zone.toLowerCase().includes(query.toLowerCase())
   );
 
-  const zones = Array.from(new Set(MODULE_DATA.map(f => f.zone)));
+  // Group items by zone for rendering
+  const zones = Array.from(new Set(filteredItems.map(f => f.zone)));
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={onClose}></div>
-      <div className={`relative w-full max-w-2xl border border-slate-800 rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 ${theme === 'dark' ? 'bg-[#0b1021]' : 'bg-white'}`}>
-        <div className="p-8 border-b border-slate-800/50 flex items-center gap-4">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="3" strokeLinecap="round"/></svg>
+    <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 pt-20">
+      <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl transition-opacity" onClick={onClose}></div>
+      
+      <div className={`relative w-full max-w-3xl border border-slate-800 rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh] ${theme === 'dark' ? 'bg-[#0b1021]' : 'bg-white'}`}>
+        
+        {/* SEARCH HEADER */}
+        <div className="p-6 border-b border-slate-800/50 flex items-center gap-5 shrink-0">
+          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/30 shrink-0 animate-pulse">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="3" strokeLinecap="round"/></svg>
           </div>
           <input
             autoFocus
-            className={`w-full bg-transparent placeholder-slate-600 text-xl outline-none font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}
-            placeholder="SEARCH MODULES (E.G., 'RECON', 'VEO', 'PROPOSAL')..."
+            className={`w-full bg-transparent placeholder-slate-600 text-2xl outline-none font-black uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+            placeholder="SEARCH NEURAL MODULES..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <div className="px-3 py-1 bg-slate-800 rounded-lg text-[10px] font-black text-slate-500 uppercase tracking-widest">ESC</div>
+          <button onClick={onClose} className="px-3 py-1.5 bg-slate-800 rounded-lg text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white transition-colors">ESC</button>
         </div>
         
-        <div className="max-h-[600px] overflow-y-auto p-4 custom-scrollbar">
-          {zones.map(zone => {
-            const items = filtered.filter(f => f.zone === zone);
-            if (items.length === 0) return null;
+        {/* SCROLLABLE CONTENT */}
+        <div className="overflow-y-auto custom-scrollbar flex-1 relative">
+          {filteredItems.length === 0 && (
+            <div className="py-32 text-center flex flex-col items-center justify-center opacity-50">
+               <span className="text-4xl mb-4">📡</span>
+               <p className="text-slate-500 font-black uppercase tracking-widest">SIGNAL LOST: NO MODULES FOUND</p>
+            </div>
+          )}
+
+          {zones.map((zone) => {
+            const style = ZONE_STYLES[zone] || ZONE_STYLES['OPERATE ZONE'];
+            const items = filteredItems.filter(f => f.zone === zone);
             
             return (
-              <div key={zone} className="mb-6">
-                <div className={`px-4 py-1.5 border-b mb-3 ${ZONE_COLORS[zone]}`}>
-                  <span className="text-[10px] font-black uppercase tracking-[0.4em]">{zone}</span>
+              <div key={zone} className="relative">
+                {/* STICKY HEADER */}
+                <div className={`sticky top-0 z-10 px-6 py-2 border-y ${style.border} ${style.headerBg} backdrop-blur-md flex justify-between items-center`}>
+                  <span className={`text-[10px] font-black uppercase tracking-[0.4em] ${style.headerText}`}>{zone}</span>
+                  <span className={`text-[9px] font-bold ${style.headerText} opacity-60`}>{items.length} NODES</span>
                 </div>
-                <div className="grid grid-cols-1 gap-1">
+
+                <div className="p-2 space-y-1">
                   {items.map((item, i) => (
                     <button
-                      key={i}
-                      onClick={() => onSelect(item.mode, item.mod)}
-                      className={`w-full text-left px-6 py-3 rounded-2xl transition-all flex items-center justify-between group ${ZONE_BG_HOVERS[zone]}`}
+                      key={item.mod}
+                      onClick={() => { onSelect(item.mode, item.mod); onClose(); }}
+                      className={`w-full text-left px-6 py-4 rounded-2xl transition-all flex items-center justify-between group ${style.hoverBg} ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="w-9 h-9 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-                          {item.mod === 'COMMAND' ? '📊' : item.zone.includes('CREATE') ? '🎨' : item.zone.includes('SELL') ? '💰' : item.zone.includes('STUDIO') ? '📹' : '📁'}
+                      <div className="flex items-center gap-5">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all duration-300 border border-slate-800 bg-slate-900 ${style.iconBg}`}>
+                          {item.icon}
                         </div>
                         <div className="flex flex-col">
-                          <span className={`text-xs font-black uppercase tracking-widest group-hover:text-white transition-colors ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>{item.label}</span>
-                          <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.2em]">{item.mode} MODULE</span>
+                          <span className={`text-sm font-black uppercase tracking-widest transition-colors ${style.hoverText} ${theme === 'dark' ? 'text-slate-300' : 'text-slate-800'}`}>
+                            {item.label}
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.2em] group-hover:text-slate-500">
+                            {item.mode} PROTOCOL
+                          </span>
                         </div>
                       </div>
-                      <div className="opacity-0 group-hover:opacity-100 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest transition-opacity">
-                        ENGAGE <span className="text-sm">→</span>
+                      <div className="opacity-0 group-hover:opacity-100 flex items-center gap-3 text-[9px] font-black uppercase tracking-widest transition-all translate-x-2 group-hover:translate-x-0">
+                        <span className={style.headerText}>INITIALIZE</span>
+                        <span className="text-lg leading-none">→</span>
                       </div>
                     </button>
                   ))}
@@ -157,16 +217,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
               </div>
             );
           })}
-          {filtered.length === 0 && (
-            <div className="py-20 text-center text-slate-600 font-black uppercase tracking-widest italic">Signal lost: no modules found</div>
-          )}
         </div>
 
-        <div className={`p-4 border-t border-slate-800/50 flex justify-between items-center ${theme === 'dark' ? 'bg-[#05091a]' : 'bg-slate-50'}`}>
-           <div className="flex gap-4 text-[9px] font-black text-slate-600 uppercase tracking-widest">
-              <span>↑↓ SELECT</span>
-              <span className="mx-1">•</span>
-              <span>ENTER OPEN</span>
+        {/* FOOTER */}
+        <div className={`p-4 border-t border-slate-800/50 flex justify-between items-center bg-slate-950/80 shrink-0`}>
+           <div className="flex gap-6 text-[9px] font-black text-slate-600 uppercase tracking-widest">
+              <span>↑↓ NAVIGATE</span>
+              <span>ENTER SELECT</span>
+              <span>ESC CLOSE</span>
            </div>
            <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
