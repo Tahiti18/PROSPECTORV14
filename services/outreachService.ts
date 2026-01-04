@@ -37,10 +37,12 @@ export const outreachService = {
     return log;
   },
 
-  generateMailto: (email: string, subject: string, body: string): string => {
-    const encSubject = encodeURIComponent(subject);
-    const encBody = encodeURIComponent(body);
-    return `mailto:${email}?subject=${encSubject}&body=${encBody}`;
+  generateMailto: (email: string, subject: string, body: string, cc?: string): string => {
+    const params = new URLSearchParams();
+    params.append('subject', subject);
+    params.append('body', body);
+    if (cc) params.append('cc', cc);
+    return `mailto:${email}?${params.toString().replace(/\+/g, '%20')}`;
   },
 
   copyToClipboard: async (text: string): Promise<boolean> => {
