@@ -55,23 +55,31 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
   const model = "gemini-3-pro-preview";
   
   const prompt = `
-    You are the Chief Intelligence Architect for an elite AI Transformation Agency.
-    TARGET: "${lead.businessName}"
-    URL: "${lead.websiteUrl}"
+    You are the Lead Reverse-Engineer for a high-end AI Technical Agency.
+    TARGET ENTITY: "${lead.businessName}"
+    TARGET URL: "${lead.websiteUrl}"
     MODULE: "${moduleType}"
 
     MISSION DIRECTIVE:
-    1. Conduct a DEEP-DIVE REVERSE ENGINEERING of this target.
-    2. SEARCH & GROUND: Use Google Search to find every available fact about their tech, revenue, and strategy.
-    3. INFER & ARCHITECT: If specific technical details are hidden, you must DEDUCE the likely high-performance stack based on their scale, niche, and user experience. 
-       - DO NOT return "Unknown" or "Data Unavailable". 
-       - Construct a "Best Likely Architecture" (e.g., if it's a modern SaaS, infer Next.js/Vercel/Postgres; if High-Traffic, infer Redis/Kafka).
-    4. TONE: Authoritative, expensive, technical, and exhaustive. No fluff.
+    Conduct a FORENSIC TECHNICAL AUTOPSY of this target. 
+    Do not provide a generic marketing summary. I need a brutal, engineer-level deconstruction of their stack, capabilities, and flaws.
+
+    INVESTIGATION VECTORS:
+    1. **Generative Capabilities (CRITICAL):** If this is an AI tool, you MUST identify the underlying models. 
+       - Are they wrapping OpenAI/Anthropic? 
+       - Using Replicate for Stable Diffusion/Flux? 
+       - Using ElevenLabs for audio? 
+       - Using Runway/Pika for video?
+       - DEDUCE this based on their pricing, speed, and output quality claims found in search.
+    2. **Infrastructure:** Identify the hosting (Vercel/AWS/GCP), database strategies (Vector DBs like Pinecone vs Postgres), and frontend framework (Next.js/React/Vue).
+    3. **Monetization Mechanics:** How do they actually capture value? (Credit arbitrage, tiered subs, enterprise licensing).
+    4. **The "Social Gap":** Contrast their technical prowess with their actual social media presence.
 
     OUTPUT REQUIREMENTS:
-    - "deepArchitecture": Must be a MASSIVE, multi-paragraph technical synopsis (300+ words). Discuss data pipelines, frontend frameworks, API layers, and AI orchestration.
-    - "featureGap": Provide a sharp, commercially viable critique of what they are missing.
-    - "visualStack": Identify specific libraries (D3.js, Three.js, Tailwind, Framer Motion).
+    - **"deepArchitecture"**: This must be a MASSIVE, 500+ word technical essay. Break down the "Model Orchestration Layer", "Frontend State Management", "Asset Pipeline", and "Latency Optimization". 
+    - **"visualStack"**: List specific libraries (Three.js, Framer Motion, Tailwind, WebGL).
+    - **"sonicStack"**: List audio technologies or voice models inferred (ElevenLabs, Azure TTS, OpenAI Whisper).
+    - **"featureGap"**: A sharp, critical analysis of what is missing from their platform (e.g., "No API access for developers", "Lack of real-time collaboration").
 
     OUTPUT FORMAT:
     Return ONLY a raw JSON object.
@@ -79,13 +87,13 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
     JSON SCHEMA:
     {
       "entityName": "Verified Business Name",
-      "missionSummary": "Executive strategic summary.",
-      "visualStack": [ {"label": "Tech/Style", "description": "e.g. React, WebGL, Minimalist"} ],
-      "sonicStack": [ {"label": "Tone/Audio", "description": "e.g. Corporate Synth, Voice Over"} ],
-      "featureGap": "Critical missing opportunity (e.g. No AI Chatbot).",
-      "businessModel": "Detailed revenue mechanics.",
-      "designSystem": "Visual identity and UX analysis.",
-      "deepArchitecture": "The Exhaustive Technical Synopsis."
+      "missionSummary": "A high-fidelity technical abstract of the target's purpose.",
+      "visualStack": [ {"label": "Tech/Style", "description": "Specific library or design paradigm"} ],
+      "sonicStack": [ {"label": "Audio/Model", "description": "Specific AI model or audio tech"} ],
+      "featureGap": "Critical missing opportunity or technical flaw.",
+      "businessModel": "Detailed revenue mechanics and arbitrage strategy.",
+      "designSystem": "Visual identity, UI patterns, and UX philosophy.",
+      "deepArchitecture": "The Exhaustive Technical Synopsis (500+ words)."
     }
   `;
 
@@ -95,8 +103,8 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        // MAXIMIZED THINKING BUDGET FOR DEEP ANALYSIS
-        thinkingConfig: { thinkingBudget: 16000 },
+        // MAXIMUM THINKING BUDGET FOR DEEP FORENSICS
+        thinkingConfig: { thinkingBudget: 32000 },
       }
     });
 
