@@ -176,11 +176,12 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     setUploadError("");
     setUploadStatus("Reading file...");
 
-    // Guardrail A: Size Check
+    // Guardrail A: Size Check (25MB Limit)
     const MAX_MB = 25;
     if (file.size > MAX_MB * 1024 * 1024) {
-      setUploadError(`File too large (${Math.round(file.size / 1024 / 1024)}MB). Max ${MAX_MB}MB.`);
+      setUploadError(`File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max ${MAX_MB}MB.`);
       setUploadStatus("");
+      if (fileInputRef.current) fileInputRef.current.value = ''; // Reset for retry
       return;
     }
 

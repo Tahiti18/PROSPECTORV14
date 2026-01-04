@@ -3,23 +3,43 @@ import { Lead, OutreachLog } from '../types';
 
 const LOG_STORAGE_KEY = 'pomelli_outreach_log_v1';
 
+type GenerateMailtoArgs = {
+  to: string;
+  subject: string;
+  body: string;
+  cc?: string;
+};
+
 export const outreachService = {
   
   // Log interactions to a global persistent log (System of Record)
+  // Refactored to accept structured options for clarity
   logInteraction: (
     leadId: string, 
     type: OutreachLog['type'], 
-    contentSnippet: string, 
-    mode: 'live' | 'test' = 'live', 
-    to: string = ''
+    details: {
+      subject?: string;
+      body?: string;
+      mode?: 'live' | 'test';
+      to?: string;
+    }
   ): OutreachLog => {
+    const { subject, body, mode = 'live', to = '' } = details;
+    
+    // Auto-generate snippet from body, fallback to subject
+    const contentSnippet = body 
+      ? (body.slice(0, 100) + (body.length > 100 ? '...' : '')) 
+      : (subject || 'No Content');
+
     const log: OutreachLog = {
       id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       timestamp: Date.now(),
       type,
+      channel: type, // Explicitly map type to channel for consistency
       mode,
       to,
-      contentSnippet: contentSnippet.slice(0, 100) + '...',
+      subject,
+      contentSnippet,
       status: 'SENT'
     };
 
@@ -37,22 +57,20 @@ export const outreachService = {
     return log;
   },
 
-  generateMailto: (email: string, subject: string, body: string, cc?: string): { url: string; isTruncated: boolean } => {
+  generateMailto: ({ to, subject, body, cc }: GenerateMailtoArgs): { url: string; isTruncated: boolean; bodyForMailto: string } => {
     const MAILTO_BODY_LIMIT = 1800;
     const isTruncated = body.length > MAILTO_BODY_LIMIT;
     const bodyForMailto = isTruncated ? body.slice(0, MAILTO_BODY_LIMIT) + '...' : body;
 
-    const params = new URLSearchParams();
-    params.append('subject', subject);
-    params.append('body', bodyForMailto);
-    if (cc) params.append('cc', cc);
-    
-    // Properly encode spaces as %20 instead of + for strict mailto compatibility
-    const queryString = params.toString().replace(/\+/g, '%20');
-    
+    const params: string[] = [];
+    params.push(`subject=${encodeURIComponent(subject || "")}`);
+    params.push(`body=${encodeURIComponent(bodyForMailto || "")}`);
+    if (cc && cc.trim()) params.push(`cc=${encodeURIComponent(cc.trim())}`);
+
     return {
-      url: `mailto:${email}?${queryString}`,
-      isTruncated
+      url: `mailto:${encodeURIComponent(to)}?${params.join("&")}`,
+      isTruncated,
+      bodyForMailto
     };
   },
 
