@@ -1,12 +1,44 @@
 
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Lead } from '../../types';
+import { analyzeVisual } from '../../services/geminiService';
 
 interface VisionLabProps {
   lead?: Lead;
 }
 
 export const VisionLab: React.FC<VisionLabProps> = ({ lead }) => {
+  const [prompt, setPrompt] = useState('Extract all financial data, sentiment, and design patterns from this image.');
+  const [image, setImage] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setImage(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!image) return;
+    setIsLoading(true);
+    try {
+      const base64 = image.split(',')[1];
+      const mimeType = image.split(';')[0].split(':')[1];
+      const result = await analyzeVisual(base64, mimeType, prompt);
+      setAnalysis(result);
+    } catch (e) {
+      console.error(e);
+      alert("Analysis failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-[1550px] mx-auto py-6 space-y-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-start">
@@ -19,51 +51,75 @@ export const VisionLab: React.FC<VisionLabProps> = ({ lead }) => {
             Extract, translate, and analyze business intelligence from static visual plates.
           </p>
         </div>
-        <div className="bg-amber-500/10 border border-amber-500/20 px-6 py-2.5 rounded-full flex items-center gap-3">
-           <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
-           <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">MULTI-MODAL CORE ACTIVE</span>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-5 space-y-10">
-           <div className="bg-white border border-slate-200 rounded-[56px] p-12 shadow-2xl space-y-10">
+           <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-12 shadow-2xl space-y-10">
               <div className="space-y-6">
-                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">1. INTELLIGENCE PLATE (IMAGE)</h3>
-                 <div className="border-2 border-dashed border-slate-100 rounded-[40px] aspect-video flex flex-col items-center justify-center group hover:border-amber-400/40 transition-all cursor-pointer">
-                    <svg className="w-12 h-12 text-slate-100 group-hover:text-amber-400/40 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" strokeWidth="2"/></svg>
-                    <p className="text-[10px] font-black text-slate-200 uppercase tracking-widest mt-6 group-hover:text-slate-400 transition-colors">DROP RECEIPT, MENU, OR CHART</p>
+                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">1. INTELLIGENCE PLATE</h3>
+                 <div 
+                   onClick={() => fileInputRef.current?.click()}
+                   className="border-2 border-dashed border-slate-700 bg-slate-900/50 rounded-[40px] aspect-video flex flex-col items-center justify-center group hover:border-amber-500/40 transition-all cursor-pointer overflow-hidden relative"
+                 >
+                    {image ? (
+                      <img src={image} className="w-full h-full object-cover" alt="Upload" />
+                    ) : (
+                      <>
+                        <svg className="w-12 h-12 text-slate-600 group-hover:text-amber-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" strokeWidth="2"/></svg>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-6 group-hover:text-amber-400 transition-colors">CLICK TO UPLOAD</p>
+                      </>
+                    )}
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
                  </div>
               </div>
 
               <div className="space-y-6">
                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">2. MISSION OBJECTIVE</h3>
                  <textarea 
-                   className="w-full bg-slate-50 border-none rounded-3xl p-8 text-sm font-medium text-slate-700 h-40 resize-none placeholder-slate-300 italic focus:ring-1 focus:ring-amber-500/20"
-                   placeholder="What should I extract or analyze from this image?..."
+                   value={prompt}
+                   onChange={(e) => setPrompt(e.target.value)}
+                   className="w-full bg-[#020617] border border-slate-800 rounded-3xl p-8 text-sm font-medium text-slate-200 h-40 resize-none placeholder-slate-600 italic focus:outline-none focus:border-amber-500/50"
                  />
               </div>
+
+              <button 
+                onClick={handleAnalyze}
+                disabled={isLoading || !image}
+                className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black py-6 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all active:scale-95 shadow-xl shadow-amber-500/20"
+              >
+                {isLoading ? 'ANALYZING NEURAL PLATE...' : 'EXECUTE VISION PROTOCOL'}
+              </button>
            </div>
         </div>
 
         <div className="lg:col-span-7">
            <div className="bg-white border border-slate-200 rounded-[64px] h-full min-h-[700px] flex flex-col shadow-2xl overflow-hidden relative">
-              <div className="p-12 border-b border-slate-50 flex items-center gap-6">
+              <div className="p-12 border-b border-slate-100 flex items-center gap-6">
                  <div className="w-14 h-14 bg-black rounded-3xl flex items-center justify-center shadow-xl">
-                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2.5"/></svg>
+                    <span className="text-2xl">👁️</span>
                  </div>
                  <div>
                     <h3 className="text-2xl font-black italic text-black uppercase tracking-tighter">INTELLIGENCE OUTPUT</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em]">GROUNDED VISUAL REASONING</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em]">GEMINI 3 PRO VISION CORE</p>
                  </div>
               </div>
 
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-20 opacity-10 grayscale scale-110">
-                 <svg className="w-24 h-24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2"/><circle cx="12" cy="12" r="3" strokeWidth="2"/></svg>
-                 <h4 className="text-4xl font-black italic text-black uppercase tracking-tighter mt-10">NEURAL OPTIC FEED OFFLINE</h4>
-                 <p className="text-[11px] font-black text-slate-800 uppercase tracking-[0.4em] max-w-sm mt-4 leading-relaxed">
-                   UPLOAD A VISUAL ASSET AND PROVIDE MISSION PARAMETERS TO BEGIN REAL-TIME NEURAL DECODING.
-                 </p>
+              <div className="flex-1 p-16 relative overflow-y-auto custom-scrollbar-light">
+                 {isLoading ? (
+                   <div className="h-full flex flex-col items-center justify-center space-y-6 animate-pulse">
+                      <div className="w-16 h-16 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">DECODING PIXEL MATRIX...</p>
+                   </div>
+                 ) : analysis ? (
+                   <div className="prose prose-slate max-w-none text-slate-800 font-sans leading-relaxed whitespace-pre-wrap">
+                      {analysis}
+                   </div>
+                 ) : (
+                   <div className="h-full flex flex-col items-center justify-center text-center p-20 opacity-20">
+                      <h4 className="text-4xl font-black italic text-slate-800 uppercase tracking-tighter">OPTIC SENSOR IDLE</h4>
+                   </div>
+                 )}
               </div>
            </div>
         </div>

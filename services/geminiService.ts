@@ -419,3 +419,66 @@ export const synthesizeArticle = async (source: string, mode: string): Promise<s
   const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Audit ${source} in ${mode}.`, config: { tools: [{ googleSearch: {} }] } });
   return resp.text || "Failed.";
 };
+
+// --- NEW FUNCTIONAL MODULES ---
+
+export const analyzeVisual = async (base64Data: string, mimeType: string, prompt: string): Promise<string> => {
+  pushLog("ANALYZING VISUAL ASSET...");
+  const ai = getAI();
+  const model = "gemini-3-pro-preview"; // Multimodal analysis
+  
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: {
+        parts: [
+          { inlineData: { mimeType, data: base64Data } },
+          { text: `ACT AS A SENIOR DATA ANALYST. ${prompt}` }
+        ]
+      }
+    });
+    return response.text || "Visual analysis failed to extract meaningful data.";
+  } catch (e) {
+    console.error(e);
+    pushLog("VISUAL ANALYSIS FAILED.");
+    throw new Error("Visual Analysis Node Failure");
+  }
+};
+
+export const generateVisual = async (prompt: string): Promise<string> => {
+  pushLog("GENERATING ASSET (IMAGEN)...");
+  const ai = getAI();
+  const model = "gemini-2.5-flash-image";
+  
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: { parts: [{ text: prompt }] }
+    });
+    const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+    if (part?.inlineData?.data) {
+      return `data:image/png;base64,${part.inlineData.data}`;
+    }
+    throw new Error("No image data returned");
+  } catch (e) {
+    console.error(e);
+    pushLog("IMAGE GEN FAILED.");
+    throw new Error("Visual Generation Node Failure");
+  }
+};
+
+export const analyzeVideoUrl = async (url: string, prompt: string): Promise<string> => {
+  pushLog(`ANALYZING VIDEO URL: ${url}`);
+  const ai = getAI();
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-pro-preview",
+      contents: `Analyze this video URL: ${url}. \n\nMission: ${prompt}\n\nUse Google Search Grounding to find metadata, transcripts, or summaries of this video to perform the analysis.`,
+      config: { tools: [{ googleSearch: {} }] }
+    });
+    return response.text || "Video analysis unavailable via search grounding.";
+  } catch (e) {
+    console.error(e);
+    return "Failed to analyze video URL.";
+  }
+};
