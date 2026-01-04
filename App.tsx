@@ -129,7 +129,15 @@ const App: React.FC = () => {
   }, [leads, theater, isHydrated]);
 
   const lockedLead = useMemo(() => leads.find(l => l.id === lockedLeadId), [leads, lockedLeadId]);
-  const handleUpdateStatus = (id: string, status: Lead['status']) => { setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l)); };
+  
+  const handleUpdateStatus = (id: string, status: Lead['status']) => { 
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l)); 
+  };
+
+  const handleUpdateLead = (id: string, updates: Partial<Lead>) => {
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+  };
+
   const navigate = (mode: MainMode, mod: SubModule) => { setActiveMode(mode); setActiveModule(mod); };
   
   const manualSave = () => { 
@@ -164,7 +172,7 @@ const App: React.FC = () => {
         case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(newLeads) => { setLeads(prev => [...prev, ...newLeads]); navigate('OPERATE', 'TARGET_LIST'); }} />;
         case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => setLeads(prev => [...prev, ...newL])} />;
         case 'TARGET_LIST': return <TargetList leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('OPERATE', 'WAR_ROOM'); }} />;
-        case 'WAR_ROOM': return <WarRoom lead={lockedLead} />;
+        case 'WAR_ROOM': return <WarRoom lead={lockedLead} onUpdateLead={handleUpdateLead} />;
         case 'PIPELINE': return <Pipeline leads={leads} onUpdateStatus={handleUpdateStatus} />;
         case 'HEATMAP': return <Heatmap leads={leads} theater={theater} />;
         case 'DEEP_LOGIC': return <DeepLogic lead={lockedLead} />;

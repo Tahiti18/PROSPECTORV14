@@ -1,12 +1,48 @@
 
-import React from 'react';
-import { Lead } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Lead, OutreachStatus } from '../types';
 
 interface WarRoomProps {
   lead?: Lead;
+  onUpdateLead?: (id: string, updates: Partial<Lead>) => void;
 }
 
-export const WarRoom: React.FC<WarRoomProps> = ({ lead }) => {
+const STATUS_OPTIONS: OutreachStatus[] = ['cold', 'queued', 'sent', 'opened', 'replied', 'booked', 'won', 'lost', 'paused'];
+
+export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
+  const [localNotes, setLocalNotes] = useState('');
+  const [localTag, setLocalTag] = useState('');
+
+  // Sync local state when lead changes
+  useEffect(() => {
+    if (lead) {
+      setLocalNotes(lead.notes || '');
+    }
+  }, [lead?.id]);
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setLocalNotes(val);
+    if (lead && onUpdateLead) {
+      onUpdateLead(lead.id, { notes: val });
+    }
+  };
+
+  const addTag = () => {
+    if (!lead || !onUpdateLead || !localTag.trim()) return;
+    const currentTags = lead.tags || [];
+    if (!currentTags.includes(localTag.trim())) {
+      onUpdateLead(lead.id, { tags: [...currentTags, localTag.trim()] });
+    }
+    setLocalTag('');
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    if (!lead || !onUpdateLead) return;
+    const currentTags = lead.tags || [];
+    onUpdateLead(lead.id, { tags: currentTags.filter(t => t !== tagToRemove) });
+  };
+
   if (!lead) {
     return (
       <div className="h-96 flex flex-col items-center justify-center text-slate-500 bg-slate-900/50 border border-slate-800 rounded-2xl">
@@ -45,6 +81,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* LEFT COLUMN: Intelligence & Analysis */}
         <div className="lg:col-span-2 space-y-8">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
             <div className="p-6 bg-slate-900/50 border-b border-slate-800 flex items-center gap-2">
@@ -89,6 +126,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead }) => {
           </div>
         </div>
 
+        {/* RIGHT COLUMN: Target Intelligence & CRM */}
         <div className="space-y-8">
           <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-6">
             <h3 className="font-bold text-indigo-400 mb-4 uppercase tracking-widest text-xs">Target Intelligence</h3>
@@ -134,6 +172,61 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead }) => {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* CRM COMMAND PANEL */}
+          <div className="bg-[#0b1021] border border-slate-800 rounded-2xl p-6 shadow-xl">
+             <h3 className="font-bold text-white mb-6 uppercase tracking-widest text-xs flex items-center gap-2">
+               <span className="text-lg">🗂️</span> CRM Command
+             </h3>
+             
+             {/* Status Switcher */}
+             <div className="space-y-2 mb-6">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mission Status</p>
+                <select 
+                  value={lead.status} 
+                  onChange={(e) => onUpdateLead && onUpdateLead(lead.id, { status: e.target.value as OutreachStatus })}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-indigo-500 focus:outline-none uppercase"
+                >
+                   {STATUS_OPTIONS.map(s => (
+                     <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                   ))}
+                </select>
+             </div>
+
+             {/* Tags */}
+             <div className="space-y-2 mb-6">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tactical Tags</p>
+                <div className="flex flex-wrap gap-2 mb-2">
+                   {lead.tags?.map((t, i) => (
+                     <span key={i} className="inline-flex items-center gap-1 bg-slate-800 text-slate-300 text-[10px] font-bold px-2 py-1 rounded border border-slate-700">
+                        {t}
+                        <button onClick={() => removeTag(t)} className="text-slate-500 hover:text-rose-500 ml-1">×</button>
+                     </span>
+                   ))}
+                </div>
+                <div className="flex gap-2">
+                   <input 
+                     value={localTag}
+                     onChange={(e) => setLocalTag(e.target.value)}
+                     onKeyDown={(e) => e.key === 'Enter' && addTag()}
+                     placeholder="Add tag..."
+                     className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                   />
+                   <button onClick={addTag} className="bg-slate-800 text-white px-3 rounded-lg hover:bg-slate-700 text-xs">+</button>
+                </div>
+             </div>
+
+             {/* Notes */}
+             <div className="space-y-2">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Field Notes</p>
+                <textarea 
+                  value={localNotes}
+                  onChange={handleNotesChange}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-300 focus:border-indigo-500 focus:outline-none resize-none h-32"
+                  placeholder="Record tactical observations..."
+                />
+             </div>
           </div>
         </div>
       </div>

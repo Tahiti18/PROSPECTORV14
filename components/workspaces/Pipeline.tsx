@@ -1,22 +1,24 @@
 
 import React from 'react';
-import { Lead } from '../../types';
+import { Lead, OutreachStatus } from '../../types';
 
 interface PipelineProps {
   leads: Lead[];
   onUpdateStatus: (id: string, status: Lead['status']) => void;
 }
 
-const STAGES: { id: Lead['status']; label: string; count: number }[] = [
-  { id: 'cold', label: 'THEATER RECON', count: 18 },
-  { id: 'queued', label: 'INTEL AUDIT', count: 8 },
-  { id: 'sent', label: 'PAYLOAD FORGE', count: 0 },
-  { id: 'converted', label: 'SIGNAL DIST.', count: 0 },
+// Updated stages to map new canonical statuses
+const STAGES: { id: string; label: string; statuses: OutreachStatus[] }[] = [
+  { id: 'recon', label: 'THEATER RECON', statuses: ['cold'] },
+  { id: 'staging', label: 'INTEL STAGING', statuses: ['queued'] },
+  { id: 'active', label: 'ACTIVE COMBAT', statuses: ['sent', 'opened'] },
+  { id: 'dialogue', label: 'NEGOTIATION', statuses: ['replied', 'booked'] },
+  { id: 'closed', label: 'CLOSED / TERMINATED', statuses: ['won', 'lost', 'paused'] }
 ];
 
 export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => {
   return (
-    <div className="space-y-12 py-6 animate-in fade-in duration-700 max-w-[1550px] mx-auto">
+    <div className="space-y-12 py-6 animate-in fade-in duration-700 max-w-[1600px] mx-auto">
       <div className="flex justify-between items-end">
         <div className="space-y-2">
           <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter leading-none">MISSION <span className="text-indigo-600 not-italic">PIPELINE</span></h1>
@@ -37,59 +39,53 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        {STAGES.map((stage, sIdx) => {
-          const stageLeads = leads.filter(l => l.status === stage.id);
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        {STAGES.map((stage) => {
+          const stageLeads = leads.filter(l => stage.statuses.includes(l.status));
           return (
             <div key={stage.id} className="space-y-8">
               <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-6 flex items-center justify-between shadow-xl">
                  <div className="flex items-center gap-4">
-                    <h3 className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em]">{stage.label}</h3>
-                    <span className="w-4 h-4 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-600 font-black">i</span>
+                    <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">{stage.label}</h3>
                  </div>
-                 <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                    <span className="text-white font-black italic text-sm">{stageLeads.length || stage.count}</span>
+                 <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                    <span className="text-white font-black italic text-xs">{stageLeads.length}</span>
                  </div>
               </div>
 
-              <div className="space-y-6 min-h-[700px]">
+              <div className="space-y-4 min-h-[600px] bg-slate-900/20 rounded-[32px] p-2 border border-slate-800/50">
                 {stageLeads.map((lead, i) => (
                   <div 
                     key={lead.id} 
-                    className={`bg-slate-900 border border-slate-800 rounded-[36px] p-8 space-y-8 relative overflow-hidden transition-all hover:scale-[1.02] cursor-pointer shadow-2xl group ${
-                      i === 0 ? 'ring-2 ring-rose-500/20 border-rose-500/30' : 'hover:border-indigo-500/40'
-                    }`}
+                    className={`bg-slate-900 border border-slate-800 rounded-[24px] p-6 space-y-4 relative overflow-hidden transition-all hover:scale-[1.02] cursor-pointer shadow-lg group hover:border-indigo-500/40`}
                   >
                     <div className="flex justify-between items-start">
-                       <div className="space-y-1">
-                          <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">TGT_{lead.rank || i+1}</p>
-                          <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest italic">2D IN PHASE</p>
-                       </div>
-                       <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black border tracking-widest uppercase ${
+                       <span className={`px-2 py-0.5 rounded text-[8px] font-black border tracking-widest uppercase ${
                          lead.assetGrade === 'A' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
                        }`}>
-                         GRADE {lead.assetGrade}
+                         {lead.assetGrade}
                        </span>
+                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{lead.status}</span>
                     </div>
 
                     <div className="space-y-1">
-                       <h4 className="text-lg font-black text-white italic tracking-tighter uppercase leading-tight group-hover:text-indigo-400 transition-colors">{lead.businessName}</h4>
-                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest italic truncate">{lead.city} • {lead.niche}</p>
+                       <h4 className="text-sm font-black text-white italic tracking-tighter uppercase leading-tight group-hover:text-indigo-400 transition-colors truncate">{lead.businessName}</h4>
+                       <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic truncate">{lead.city}</p>
                     </div>
 
-                    <div className="pt-6 border-t border-slate-800 flex justify-between items-center">
+                    <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-rose-500' : 'bg-slate-600 animate-pulse'}`}></div>
-                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{i === 0 ? 'IDLE' : 'PENDING'}</span>
+                          <div className={`w-1.5 h-1.5 rounded-full ${lead.status === 'cold' ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`}></div>
+                          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{lead.status}</span>
                        </div>
-                       <span className="text-sm font-black italic text-indigo-400 tracking-tighter">€12.5K</span>
+                       <span className="text-xs font-black italic text-indigo-400 tracking-tighter">{lead.leadScore}</span>
                     </div>
                   </div>
                 ))}
                 
                 {stageLeads.length === 0 && (
-                   <div className="h-full border-2 border-dashed border-slate-800/40 rounded-[48px] flex flex-col items-center justify-center text-center opacity-20">
-                      <h4 className="text-3xl font-black italic text-slate-800 uppercase tracking-tighter">SECTOR CLEAR</h4>
+                   <div className="h-full flex flex-col items-center justify-center text-center opacity-20">
+                      <h4 className="text-xl font-black italic text-slate-800 uppercase tracking-tighter">EMPTY</h4>
                    </div>
                 )}
               </div>
@@ -97,11 +93,6 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
           );
         })}
       </div>
-
-      {/* Floating Action Button simulation from screenshot */}
-      <button className="fixed bottom-32 left-10 w-16 h-16 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-2xl shadow-emerald-500/40 hover:scale-110 active:scale-90 transition-all z-50">
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeWidth="2.5"/></svg>
-      </button>
     </div>
   );
 };

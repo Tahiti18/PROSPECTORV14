@@ -1,15 +1,23 @@
 
 import React, { useState, useMemo } from 'react';
-import { Lead } from '../../types';
+import { Lead, OutreachStatus } from '../../types';
 import { AutomationOrchestrator } from '../../services/automation/orchestrator';
 import { RunStatus } from '../automation/RunStatus';
+
+const STATUS_FILTER_OPTIONS: (OutreachStatus | 'ALL')[] = ['ALL', 'cold', 'queued', 'sent', 'opened', 'replied', 'booked', 'won', 'lost', 'paused'];
 
 export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, onLockLead: (id: string) => void, onInspect: (id: string) => void }> = ({ leads, lockedLeadId, onLockLead, onInspect }) => {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Lead; direction: 'asc' | 'desc' }>({ key: 'leadScore', direction: 'desc' });
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<OutreachStatus | 'ALL'>('ALL');
   
   const sortedLeads = useMemo(() => {
-    return [...leads].sort((a, b) => {
+    let filtered = leads;
+    if (statusFilter !== 'ALL') {
+      filtered = leads.filter(l => l.status === statusFilter);
+    }
+
+    return [...filtered].sort((a, b) => {
       // @ts-ignore
       const aVal = a[sortConfig.key] || '';
       // @ts-ignore
@@ -20,7 +28,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
       const comparison = aVal > bVal ? 1 : -1;
       return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
-  }, [leads, sortConfig]);
+  }, [leads, sortConfig, statusFilter]);
 
   const handleSort = (key: keyof Lead) => {
     setSortConfig(current => ({
@@ -41,16 +49,33 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
   return (
     <div className="space-y-8 py-6 max-w-[1600px] mx-auto relative px-6 pb-24 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
-        <h3 className="text-6xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl">
-          TARGET <span className="text-indigo-600 not-italic">LEDGER</span>
-        </h3>
-        <button 
-          onClick={handleOneClickRun}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-4 rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-600/30 transition-all active:scale-95 border-b-4 border-indigo-800 flex items-center gap-3"
-        >
-          <span className="text-xl">⚡</span>
-          RUN BEST LEAD (AUTO)
-        </button>
+        <div>
+          <h3 className="text-6xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl">
+            TARGET <span className="text-indigo-600 not-italic">LEDGER</span>
+          </h3>
+          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">
+            DATABASE: {leads.length} RECORDS
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <div className="bg-[#0b1021] border border-slate-800 rounded-xl px-4 flex items-center">
+             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mr-3">FILTER:</span>
+             <select 
+               value={statusFilter}
+               onChange={(e) => setStatusFilter(e.target.value as any)}
+               className="bg-transparent text-[10px] font-bold text-white uppercase focus:outline-none py-3 cursor-pointer"
+             >
+               {STATUS_FILTER_OPTIONS.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
+             </select>
+          </div>
+          <button 
+            onClick={handleOneClickRun}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-600/30 transition-all active:scale-95 border border-indigo-500/20 flex items-center gap-2"
+          >
+            <span className="text-lg">⚡</span>
+            RUN BEST LEAD
+          </button>
+        </div>
       </div>
 
       <div className="bg-[#0b1021] border border-slate-800 rounded-[40px] overflow-hidden shadow-2xl relative ring-1 ring-white/5">
@@ -81,12 +106,12 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                   </div>
                 </th>
                 <th 
-                  onClick={() => handleSort('assetGrade')} 
+                  onClick={() => handleSort('status')} 
                   className="cursor-pointer px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-colors select-none text-center whitespace-nowrap group"
                 >
                   <div className="flex items-center gap-2 justify-center">
-                    GRADE
-                    <span className={`text-indigo-500 transition-opacity ${sortConfig.key === 'assetGrade' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                    STATUS
+                    <span className={`text-indigo-500 transition-opacity ${sortConfig.key === 'status' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
                       {sortConfig.direction === 'asc' ? '↑' : '↓'}
                     </span>
                   </div>
@@ -144,14 +169,15 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                     </div>
                   </td>
 
-                  {/* GRADE */}
+                  {/* STATUS */}
                   <td className="px-8 py-6 text-center">
-                    <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl text-lg font-black border-2 shadow-lg ${
-                      lead.assetGrade === 'A' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10' :
-                      lead.assetGrade === 'B' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 shadow-blue-500/10' :
-                      'bg-slate-800 border-slate-700 text-slate-500'
+                    <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[9px] font-black border uppercase tracking-widest ${
+                      lead.status === 'cold' ? 'bg-slate-800 border-slate-700 text-slate-500' :
+                      lead.status === 'sent' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' :
+                      lead.status === 'won' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                      'bg-slate-800 border-slate-700 text-slate-300'
                     }`}>
-                      {lead.assetGrade}
+                      {lead.status}
                     </span>
                   </td>
 

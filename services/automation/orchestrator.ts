@@ -1,4 +1,3 @@
-
 import { AutomationRun, RunStep, AutomationArtifact, RunStatus } from './types';
 import { db } from './db';
 import { Steps } from './steps';
@@ -38,7 +37,7 @@ export class AutomationOrchestrator {
 
       const leads = db.getLeads();
       const eligible = leads
-        .filter(l => !l.locked && l.status !== 'converted')
+        .filter(l => !l.locked && l.status !== 'won')
         .sort((a, b) => b.leadScore - a.leadScore);
 
       if (eligible.length === 0) {

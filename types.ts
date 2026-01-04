@@ -22,14 +22,20 @@ export interface ComputeStats {
   flashCalls: number;
 }
 
-export type OutreachStatus = 'cold' | 'queued' | 'sent' | 'opened' | 'replied' | 'meeting_booked' | 'converted' | 'dead';
+// PHASE 1: Canonical Status Definition
+export type OutreachStatus = 'cold' | 'queued' | 'sent' | 'opened' | 'replied' | 'booked' | 'won' | 'lost' | 'paused';
 
 export interface OutreachLog {
   id: string;
   timestamp: number;
-  type: 'EMAIL' | 'LINKEDIN' | 'CALL';
+  type: 'EMAIL' | 'LINKEDIN' | 'CALL'; // Legacy channel field
+  channel?: 'EMAIL' | 'LINKEDIN' | 'CALL'; // Explicit channel
   contentSnippet: string;
+  subject?: string;
   status: 'SENT' | 'FAILED';
+  outcome?: string;
+  stepIndex?: number;
+  error?: string;
 }
 
 export interface Lead {
@@ -47,7 +53,7 @@ export interface Lead {
   visualProof: string;
   bestAngle: string;
   personalizedHook: string;
-  status: OutreachStatus; // Updated type
+  status: OutreachStatus;
   instagram?: string;
   tiktok?: string;
   youtube?: string;
@@ -57,7 +63,13 @@ export interface Lead {
   // Outreach CRM Data
   outreachHistory?: OutreachLog[];
   lastContactAt?: number;
-  nextFollowUp?: number;
+  nextFollowUp?: number; // legacy alias for nextFollowUpAt
+  nextFollowUpAt?: number;
+  
+  // Phase 1 CRM Fields
+  owner?: string;
+  notes?: string;
+  tags?: string[];
   
   // Automation Locking Fields (Strict Numeric Timestamps)
   locked?: boolean;
