@@ -29,11 +29,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
         </div>
         <div className="flex gap-10">
            <div className="flex items-center gap-3">
-              <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]"></div>
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">CRITICAL STALL</span>
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]"></div>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">ACTION REQUIRED</span>
            </div>
            <div className="flex items-center gap-3">
-              <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.4)]"></div>
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]"></div>
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">NEW ENTRY</span>
            </div>
         </div>
@@ -79,7 +79,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
 
                       <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
                          <div className="flex items-center gap-2">
-                            <div className={`w-1.5 h-1.5 rounded-full ${displayStatus === 'cold' ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`}></div>
+                            <div className={`w-1.5 h-1.5 rounded-full ${displayStatus === 'cold' ? 'bg-slate-500' : 'bg-emerald-500 animate-pulse'}`}></div>
                             <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{displayStatus}</span>
                          </div>
                          <span className="text-xs font-black italic text-indigo-400 tracking-tighter">{lead.leadScore}</span>

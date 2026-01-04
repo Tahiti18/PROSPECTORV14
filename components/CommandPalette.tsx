@@ -124,7 +124,6 @@ const ZONE_STYLES: Record<string, { headerBg: string; headerText: string; hoverB
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelect, theme }) => {
   const [query, setQuery] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Close on Escape
   useEffect(() => {

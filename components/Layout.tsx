@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { MainMode, SubModule } from '../types';
+import { Tooltip } from './Tooltip';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -75,70 +76,70 @@ export const Layout: React.FC<LayoutProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const subModules: Record<MainMode, { id: SubModule; label: string; icon: string | React.ReactNode }[]> = {
+  const subModules: Record<MainMode, { id: SubModule; label: string; icon: string | React.ReactNode; desc: string }[]> = {
     OPERATE: [
-      { id: 'COMMAND', label: 'COMMAND', icon: Icons.Command },
-      { id: 'RADAR_RECON', label: 'RADAR RECON', icon: Icons.Radar },
-      { id: 'AUTO_CRAWL', label: 'AUTO CRAWL', icon: '📡' },
-      { id: 'TARGET_LIST', label: 'TARGET LEDGER', icon: Icons.Target },
-      { id: 'PIPELINE', label: 'PIPELINE', icon: '🔄' },
-      { id: 'WAR_ROOM', label: 'WAR ROOM', icon: '⚔️' },
-      { id: 'DEEP_LOGIC', label: 'DEEP LOGIC', icon: '🧠' },
-      { id: 'VIRAL_PULSE', label: 'VIRAL PULSE', icon: '📈' },
-      { id: 'VISION_LAB', label: 'VISION LAB', icon: '👁️' },
-      { id: 'ARTICLE_INTEL', label: 'ARTICLE INTEL', icon: '📄' },
-      { id: 'BENCHMARK', label: 'BENCHMARK', icon: '📏' },
-      { id: 'ANALYTICS', label: 'ANALYTICS', icon: '📉' },
-      { id: 'HEATMAP', label: 'HEATMAP', icon: '🔥' },
-      { id: 'PROMPT_AI', label: 'PROMPT AI', icon: '💬' },
-      { id: 'MODEL_TEST', label: 'MODEL TEST', icon: '🧪' },
-      { id: 'FACT_CHECK', label: 'FACT CHECK', icon: '✅' },
-      { id: 'TRANSLATOR', label: 'TRANSLATOR', icon: '🌐' },
+      { id: 'COMMAND', label: 'COMMAND', icon: Icons.Command, desc: "Central mission hub. Overview of active targets, system status, and recent intelligence." },
+      { id: 'RADAR_RECON', label: 'RADAR RECON', icon: Icons.Radar, desc: "Broad-spectrum area scanner. Identify businesses in specific regions matching niche criteria." },
+      { id: 'AUTO_CRAWL', label: 'AUTO CRAWL', icon: '📡', desc: "Autonomous multi-vector crawler. Decompose regions into sectors and extract signals automatically." },
+      { id: 'TARGET_LIST', label: 'TARGET LEDGER', icon: Icons.Target, desc: "The master ledger. Sort, filter, and manage all identified prospects and their scores." },
+      { id: 'PIPELINE', label: 'PIPELINE', icon: '🔄', desc: "Kanban-style visual workflow. Track leads from 'Cold' to 'Closed' with stage analytics." },
+      { id: 'WAR_ROOM', label: 'WAR ROOM', icon: '⚔️', desc: "Deep-dive tactical center. Analyze a single target's vulnerabilities and plan the attack." },
+      { id: 'DEEP_LOGIC', label: 'DEEP LOGIC', icon: '🧠', desc: "System 2 reasoning engine. Solve complex strategic problems using high-compute AI chains." },
+      { id: 'VIRAL_PULSE', label: 'VIRAL PULSE', icon: '📈', desc: "Real-time trend monitor. Track viral topics and cultural currents relevant to the target." },
+      { id: 'VISION_LAB', label: 'VISION LAB', icon: '👁️', desc: "Static image intelligence. Extract data, sentiment, and design patterns from visual plates." },
+      { id: 'ARTICLE_INTEL', label: 'ARTICLE INTEL', icon: '📄', desc: "Textual synthesis engine. Convert long-form articles into executive briefs or viral hooks." },
+      { id: 'BENCHMARK', label: 'BENCHMARK', icon: '📏', desc: "Competitive reverse-engineering. Deconstruct a target's tech stack, design system, and gaps." },
+      { id: 'ANALYTICS', label: 'ANALYTICS', icon: '📉', desc: "Performance metrics. Visualization of system efficiency and success rates." },
+      { id: 'HEATMAP', label: 'HEATMAP', icon: '🔥', desc: "Geospatial opportunity visualization. See where high-value targets cluster in the theater." },
+      { id: 'PROMPT_AI', label: 'PROMPT AI', icon: '💬', desc: "Direct neural interface. Execute raw tactical queries against the core AI models." },
+      { id: 'MODEL_TEST', label: 'MODEL TEST', icon: '🧪', desc: "Engine benchmark arena. Compare output quality across different AI model versions." },
+      { id: 'FACT_CHECK', label: 'FACT CHECK', icon: '✅', desc: "Truth verification node. Cross-reference claims against grounded search data." },
+      { id: 'TRANSLATOR', label: 'TRANSLATOR', icon: '🌐', desc: "Linguistic adaptation matrix. Localize payloads for specific cultural theaters." },
     ],
     CREATE: [
-      { id: 'VISUAL_STUDIO', label: 'VISUAL STUDIO', icon: '🎨' },
-      { id: 'MOCKUPS_4K', label: '4K MOCKUPS', icon: '🖥️' },
-      { id: 'PRODUCT_SYNTH', label: 'PRODUCT SYNTH', icon: '🧬' },
-      { id: 'FLASH_SPARK', label: 'FLASH SPARK', icon: '⚡' },
-      { id: 'MEDIA_VAULT', label: 'MEDIA VAULT', icon: '🔒' },
+      { id: 'VISUAL_STUDIO', label: 'VISUAL STUDIO', icon: '🎨', desc: "High-fidelity image generation. Create bespoke brand assets and visual concepts." },
+      { id: 'MOCKUPS_4K', label: '4K MOCKUPS', icon: '🖥️', desc: "Ultra-premium product visualization. Generate photorealistic website or app mockups." },
+      { id: 'PRODUCT_SYNTH', label: 'PRODUCT SYNTH', icon: '🧬', desc: "Offer architecture. Design hypothetic high-ticket products and feature sets." },
+      { id: 'FLASH_SPARK', label: 'FLASH SPARK', icon: '⚡', desc: "High-velocity content generator. Rapidly produce hooks, captions, and viral ideas." },
+      { id: 'MEDIA_VAULT', label: 'MEDIA VAULT', icon: '🔒', desc: "Secure asset reservoir. Manage and export all generated media and intelligence files." },
     ],
     STUDIO: [
-      { id: 'VIDEO_PITCH', label: 'VEO FORGE', icon: '📹' },
-      { id: 'VIDEO_AI', label: 'VIDEO AUDIT', icon: '🎥' },
-      { id: 'CINEMA_INTEL', label: 'CINEMA INTEL', icon: '🎬' },
-      { id: 'MOTION_LAB', label: 'MOTION LAB', icon: '🏃' },
-      { id: 'SONIC_STUDIO', label: 'SONIC STUDIO', icon: '🎵' },
-      { id: 'LIVE_SCRIBE', label: 'LIVE SCRIBE', icon: '✍️' },
+      { id: 'VIDEO_PITCH', label: 'VEO FORGE', icon: '📹', desc: "Veo cinematic forge. Generate high-end video intros and mood boards." },
+      { id: 'VIDEO_AI', label: 'VIDEO AUDIT', icon: '🎥', desc: "Video content auditor. Analyze target's existing video strategy for weaknesses." },
+      { id: 'CINEMA_INTEL', label: 'CINEMA INTEL', icon: '🎬', desc: "Deep video decoding. Extract psychological hooks and metadata from video URLs." },
+      { id: 'MOTION_LAB', label: 'MOTION LAB', icon: '🏃', desc: "Dynamic storyboard architect. Plan complex motion sequences and video narratives." },
+      { id: 'SONIC_STUDIO', label: 'SONIC STUDIO', icon: '🎵', desc: "Audio synthesis lab. Generate voiceovers and sonic branding elements." },
+      { id: 'LIVE_SCRIBE', label: 'LIVE SCRIBE', icon: '✍️', desc: "Real-time combat transcription. Record and analyze sales calls or strategy sessions." },
     ],
     SELL: [
-      { id: 'BUSINESS_ORCHESTRATOR', label: 'BUSINESS ORCHESTRATOR', icon: '🎼' },
-      { id: 'PROPOSALS', label: 'PROPOSALS', icon: '📝' },
-      { id: 'ROI_CALC', label: 'ROI CALC', icon: '💰' },
-      { id: 'SEQUENCER', label: 'SEQUENCER', icon: '⛓️' },
-      { id: 'DECK_ARCH', label: 'DECK ARCH', icon: '🏗️' },
-      { id: 'DEMO_SANDBOX', label: 'DEMO SANDBOX', icon: '🏖️' },
-      { id: 'DRAFTING', label: 'DRAFTING', icon: '✏️' },
-      { id: 'VOICE_STRAT', label: 'VOICE STRAT', icon: '🗣️' },
-      { id: 'AI_CONCIERGE', label: 'AI CONCIERGE', icon: '🤖' },
-      { id: 'PITCH_GEN', label: 'PITCH GEN', icon: '📢' },
-      { id: 'FUNNEL_MAP', label: 'FUNNEL MAP', icon: '🗺️' },
+      { id: 'BUSINESS_ORCHESTRATOR', label: 'BUSINESS ORCHESTRATOR', icon: '🎼', desc: "Master strategy builder. Assemble full dossiers combining all intelligence assets." },
+      { id: 'PROPOSALS', label: 'PROPOSALS', icon: '📝', desc: "Smart contract architect. Draft high-converting proposals based on target data." },
+      { id: 'ROI_CALC', label: 'ROI CALC', icon: '💰', desc: "Financial projection engine. Quantify the exact value of AI transformation for the client." },
+      { id: 'SEQUENCER', label: 'SEQUENCER', icon: '⛓️', desc: "Outreach cadence builder. Design multi-channel contact sequences (Email + LinkedIn)." },
+      { id: 'DECK_ARCH', label: 'DECK ARCH', icon: '🏗️', desc: "Presentation logic. Structure compelling sales decks and narrative flows." },
+      { id: 'DEMO_SANDBOX', label: 'DEMO SANDBOX', icon: '🏖️', desc: "Simulation environment. Model growth scenarios to prove upside to clients." },
+      { id: 'DRAFTING', label: 'DRAFTING', icon: '✏️', desc: "Copywriting workbench. Refine specific sales scripts and messaging." },
+      { id: 'VOICE_STRAT', label: 'VOICE STRAT', icon: '🗣️', desc: "Real-time sales coach. AI guidance for objection handling and closing." },
+      { id: 'AI_CONCIERGE', label: 'AI CONCIERGE', icon: '🤖', desc: "Autonomous agent simulation. Test nurture sequences with a simulated AI receptionist." },
+      { id: 'PITCH_GEN', label: 'PITCH GEN', icon: '📢', desc: "Elevator hook generator. Create 30-second power pitches for immediate deployment." },
+      { id: 'FUNNEL_MAP', label: 'FUNNEL MAP', icon: '🗺️', desc: "Conversion cartography. Visualize and optimize the client's customer journey." },
     ],
     CONTROL: [
-      { id: 'PLAYBOOK', label: 'PLAYBOOK', icon: '📖' },
-      { id: 'BILLING', label: 'BILLING', icon: '💳' },
-      { id: 'AFFILIATE', label: 'AFFILIATE', icon: '🤝' },
-      { id: 'IDENTITY', label: 'IDENTITY', icon: '🏢' },
-      { id: 'OS_FORGE', label: 'OS FORGE', icon: '⚒️' },
-      { id: 'EXPORT_DATA', label: 'EXPORT DATA', icon: '📤' },
-      { id: 'CALENDAR', label: 'CALENDAR', icon: '📅' },
-      { id: 'PROD_LOG', label: 'PROD LOG', icon: '📋' },
-      { id: 'SETTINGS', label: 'SETTINGS', icon: '⚙️' },
-      { id: 'CIPHER_NODE', label: 'CIPHER NODE', icon: '🔑' },
-      { id: 'NEXUS_GRAPH', label: 'NEXUS GRAPH', icon: '🕸️' },
-      { id: 'CHRONOS', label: 'CHRONOS', icon: '⏳' },
-      { id: 'TASKS', label: 'TASKS', icon: '✅' },
-      { id: 'THEME', label: 'THEME', icon: '🎨' },
-      { id: 'TOKENS', label: 'TOKENS', icon: '🎟️' },
+      { id: 'PLAYBOOK', label: 'PLAYBOOK', icon: '📖', desc: "Agency doctrine. Define and refine your core operating procedures and scoring rubrics." },
+      { id: 'BILLING', label: 'BILLING', icon: '💳', desc: "Financial oversight. Track API usage costs and project operational expenditure." },
+      { id: 'AFFILIATE', label: 'AFFILIATE', icon: '🤝', desc: "Partner matrix. Design and manage referral structures and commission tiers." },
+      { id: 'IDENTITY', label: 'IDENTITY', icon: '🏢', desc: "Agency branding core. Define your own niche, voice, and visual identity." },
+      { id: 'OS_FORGE', label: 'OS FORGE', icon: '⚒️', desc: "System kernel. Configure low-level prompt injections and operational rules." },
+      { id: 'EXPORT_DATA', label: 'EXPORT DATA', icon: '📤', desc: "Data sovereignty. Export full system states and physical source code." },
+      { id: 'CALENDAR', label: 'CALENDAR', icon: '📅', desc: "Temporal command. Visualize deployment schedules and follow-up timelines." },
+      { id: 'PROD_LOG', label: 'PROD LOG', icon: '📋', desc: "System trace. View raw operational logs and debug system events." },
+      { id: 'SETTINGS', label: 'SETTINGS', icon: '⚙️', desc: "Global configuration. Adjust sensitivity, themes, and API connections." },
+      { id: 'CIPHER_NODE', label: 'CIPHER NODE', icon: '🔑', desc: "Encryption suite. Manage cryptographic keys for secure data handling." },
+      { id: 'NEXUS_GRAPH', label: 'NEXUS GRAPH', icon: '🕸️', desc: "Entity relationship visualizer. See connections between niches and targets." },
+      { id: 'CHRONOS', label: 'CHRONOS', icon: '⏳', desc: "Historical timeline. Review past system actions and audit trails." },
+      { id: 'TASKS', label: 'TASKS', icon: '✅', desc: "Mission checklist. Track operational to-dos for specific targets." },
+      { id: 'THEME', label: 'THEME', icon: '🎨', desc: "Visual interface control. Switch between different OS aesthetic modes." },
+      { id: 'TOKENS', label: 'TOKENS', icon: '🎟️', desc: "Credit management. Monitor neural token consumption and quotas." },
     ],
   };
 
@@ -168,7 +169,7 @@ export const Layout: React.FC<LayoutProps> = ({
               onClick={() => setActiveMode(mode)}
               className={`flex items-center gap-2 px-5 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
                 activeMode === mode 
-                  ? mode === 'STUDIO' ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/20' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
+                  ? mode === 'STUDIO' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
                   : theme === 'dark' ? 'text-slate-200 hover:text-white' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -259,14 +260,21 @@ export const Layout: React.FC<LayoutProps> = ({
           <button
             key={mod.id}
             onClick={() => setActiveModule(mod.id)}
-            className={`flex items-center gap-2.5 px-4 py-2 rounded-lg transition-all border group ${
+            className={`flex items-center gap-2.5 px-4 py-2 rounded-lg transition-all border group relative ${
               activeModule === mod.id 
-                ? activeMode === 'STUDIO' ? 'bg-rose-600/20 border-rose-500/50 text-rose-400 shadow-sm' : 'bg-indigo-600/20 border-indigo-500/50 text-indigo-400 shadow-sm' 
+                ? activeMode === 'STUDIO' ? 'bg-amber-600/20 border-amber-500/50 text-amber-400 shadow-sm' : 'bg-indigo-600/20 border-indigo-500/50 text-indigo-400 shadow-sm' 
                 : theme === 'dark' ? 'border-transparent text-slate-200 hover:text-white hover:bg-slate-800' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200'
             }`}
           >
             <span className={`text-xs transition-opacity group-hover:opacity-100 ${activeModule === mod.id ? 'opacity-100 font-bold' : 'opacity-70'}`}>{mod.icon}</span>
-            <span className={`text-[10px] font-black tracking-widest uppercase transition-colors ${activeModule === mod.id ? (activeMode === 'STUDIO' ? 'text-rose-400' : 'text-indigo-400') : ''}`}>{mod.label}</span>
+            <span className={`text-[10px] font-black tracking-widest uppercase transition-colors ${activeModule === mod.id ? (activeMode === 'STUDIO' ? 'text-amber-400' : 'text-indigo-400') : ''}`}>{mod.label}</span>
+            
+            {/* TOOLTIP TRIGGER ICON */}
+            <Tooltip content={mod.desc} side="bottom" width="w-56">
+              <div className="w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-slate-700/50 hover:bg-indigo-500 text-white ml-1">
+                <span className="text-[8px] font-serif italic">i</span>
+              </div>
+            </Tooltip>
           </button>
         ))}
       </div>

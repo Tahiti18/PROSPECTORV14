@@ -1,36 +1,101 @@
 
-import React, { ReactNode } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface TooltipProps {
-  children: ReactNode;
+  children: React.ReactNode;
   content: string;
   side?: 'top' | 'bottom' | 'left' | 'right';
   width?: string;
 }
 
 export const Tooltip: React.FC<TooltipProps> = ({ children, content, side = 'top', width = 'w-64' }) => {
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-3',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-3',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-3',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-3'
+  const [isVisible, setIsVisible] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  const updatePosition = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const scrollY = window.scrollY;
+      const scrollX = window.scrollX;
+
+      let top = 0;
+      let left = 0;
+
+      // Calculate position relative to viewport + scroll
+      if (side === 'bottom') {
+        top = rect.bottom + scrollY + 8;
+        left = rect.left + scrollX + (rect.width / 2);
+      } else if (side === 'top') {
+        top = rect.top + scrollY - 8;
+        left = rect.left + scrollX + (rect.width / 2);
+      } else if (side === 'right') {
+        top = rect.top + scrollY + (rect.height / 2);
+        left = rect.right + scrollX + 8;
+      } else { // left
+        top = rect.top + scrollY + (rect.height / 2);
+        left = rect.left + scrollX - 8;
+      }
+      
+      setCoords({ top, left });
+    }
   };
 
+  const handleMouseEnter = () => {
+    updatePosition();
+    setIsVisible(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsVisible(false);
+  };
+
+  // Close on scroll to prevent detached floating tooltips
+  useEffect(() => {
+    const handleScroll = () => {
+      if (isVisible) setIsVisible(false);
+    };
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [isVisible]);
+
   return (
-    <div className="group relative flex shrink-0 z-50">
-      {children}
-      <div className={`pointer-events-none absolute ${positionClasses[side]} ${width} opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-y-0 translate-y-1 z-[100]`}>
-        <div className="bg-[#0f172a] border border-slate-700/80 text-slate-300 text-xs font-medium leading-relaxed p-4 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] backdrop-blur-xl relative">
-           {/* Subtle arrow based on side */}
-           {side === 'top' && <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#0f172a] border-b border-r border-slate-700/80 rotate-45"></div>}
-           {side === 'bottom' && <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#0f172a] border-t border-l border-slate-700/80 rotate-45"></div>}
-           {side === 'left' && <div className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-3 bg-[#0f172a] border-t border-r border-slate-700/80 rotate-45"></div>}
-           {side === 'right' && <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-3 bg-[#0f172a] border-b border-l border-slate-700/80 rotate-45"></div>}
-           
-           <span className="block text-indigo-400 font-bold text-[10px] uppercase tracking-widest mb-1">Intelligence Note</span>
-           {content}
-        </div>
+    <>
+      <div 
+        ref={triggerRef} 
+        onMouseEnter={handleMouseEnter} 
+        onMouseLeave={handleMouseLeave}
+        className="inline-flex items-center justify-center cursor-help"
+        onClick={(e) => e.stopPropagation()} // Prevent triggering parent button click
+      >
+        {children}
       </div>
-    </div>
+      {isVisible && createPortal(
+        <div 
+          className={`fixed z-[9999] pointer-events-none ${width}`}
+          style={{ 
+            top: coords.top - window.scrollY, // Adjust for fixed position
+            left: coords.left - window.scrollX,
+            transform: side === 'top' ? 'translate(-50%, -100%)' : 
+                       side === 'bottom' ? 'translate(-50%, 0)' : 
+                       side === 'left' ? 'translate(-100%, -50%)' : 
+                       'translate(0, -50%)'
+          }}
+        >
+           <div className="bg-[#0f172a] border border-slate-700/80 text-slate-300 text-xs font-medium leading-relaxed p-4 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 relative">
+             <span className="block text-indigo-400 font-bold text-[10px] uppercase tracking-widest mb-1">Intelligence Note</span>
+             {content}
+             
+             {/* Arrows */}
+             {side === 'top' && <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#0f172a] border-b border-r border-slate-700/80 rotate-45"></div>}
+             {side === 'bottom' && <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#0f172a] border-t border-l border-slate-700/80 rotate-45"></div>}
+             {side === 'left' && <div className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-3 bg-[#0f172a] border-t border-r border-slate-700/80 rotate-45"></div>}
+             {side === 'right' && <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-3 bg-[#0f172a] border-b border-l border-slate-700/80 rotate-45"></div>}
+           </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 };
