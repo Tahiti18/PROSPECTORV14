@@ -175,6 +175,8 @@ export const loggedGenerateContent = async ({
       status: "SUCCESS",
     });
 
+    pushLog(`[AI_USAGE] ${module} (${modelClass}) ${latencyMs}ms | W:${effectiveWeight}`);
+
     const text = resp.text || "";
     // Maintain UI tracking compatibility
     trackCall(model, text.length + 100);
@@ -189,6 +191,8 @@ export const loggedGenerateContent = async ({
       status: "FAILURE",
       errorMessage: e?.message || String(e),
     });
+
+    pushLog(`[AI_USAGE] ${module} (${modelClass}) FAIL ${latencyMs}ms | W:${effectiveWeight} | ${e?.message || String(e)}`);
 
     throw e;
   }
