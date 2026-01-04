@@ -37,6 +37,59 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
     }
   };
 
+  const SUGGESTIONS = [
+    {
+      category: "CINEMATIC & LUXURY",
+      prompts: [
+        "Cinematic drone shot flying over a futuristic glass mansion on a cliff edge at sunset, 4k, highly detailed.",
+        "Close-up macro shot of a diamond rotating in a void with refractive light dispersion, luxury aesthetic.",
+        "Slow motion footage of a vintage 1960s sports car driving along a coastal highway, golden hour.",
+        "A sleek, modern architectural interior with floor-to-ceiling windows overlooking a cyber-city at night.",
+        "Liquid gold pouring over a matte black surface, forming abstract shapes, high contrast."
+      ]
+    },
+    {
+      category: "HIGH-TECH & AI",
+      prompts: [
+        "Abstract data visualization of a neural network glowing blue and purple in a dark void.",
+        "A futuristic holographic interface floating in mid-air, displaying complex financial charts and graphs.",
+        "Cybernetic eye opening to reveal digital code streaming within the iris, 8k resolution.",
+        "Server room with infinite rows of blinking lights, camera dolly zoom, matrix green color palette.",
+        "Nanobots assembling a complex mechanical structure, macro photography style."
+      ]
+    },
+    {
+      category: "SOCIAL & VIRAL",
+      prompts: [
+        "Fast-paced POV shot of running through a neon-lit Tokyo street at night, motion blur.",
+        "A satisfying loop of colorful kinetic sand being sliced by a knife, ASMR visual.",
+        "Stop-motion animation of office supplies rearranging themselves into a robot.",
+        "A cute robot mascot dancing on a desk, Pixar style animation.",
+        "Time-lapse of a busy city intersection turning from day to night in 5 seconds."
+      ]
+    },
+    {
+      category: "CORPORATE & BIZ",
+      prompts: [
+        "Diverse team of professionals brainstorming at a glass whiteboard in a sunlit office.",
+        "Handshake between two executives in slow motion with a lens flare background.",
+        "Low-angle shot of skyscrapers with clouds moving fast, symbolizing growth and stability.",
+        "A modern clean desk setup with a laptop, coffee, and plant, soft natural lighting.",
+        "Typing on a backlit mechanical keyboard, close-up with shallow depth of field."
+      ]
+    },
+    {
+      category: "ATMOSPHERIC & TEXTURE",
+      prompts: [
+        "Heavy rain falling on a window pane with blurred city lights in the background, lo-fi vibe.",
+        "Thick fog rolling over a dark forest, moody and cinematic.",
+        "Ink swirling in water, slow motion, 4k, vibrant colors.",
+        "Fire crackling in a fireplace, cozy atmosphere, close-up.",
+        "Stars rotating in the night sky, time-lapse astrophotography."
+      ]
+    }
+  ];
+
   return (
     <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
@@ -93,6 +146,31 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
                </div>
              )}
           </div>
+        </div>
+      </div>
+
+      <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-700 delay-200">
+        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 border-b border-slate-800/50 pb-4">
+          <span className="text-lg">💡</span> Neural Directives (Click to Apply)
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          {SUGGESTIONS.map((cat, i) => (
+             <div key={i} className="space-y-4">
+                <h4 className="text-[8px] font-black text-indigo-400 uppercase tracking-[0.3em]">{cat.category}</h4>
+                <div className="space-y-2">
+                  {cat.prompts.map((p, j) => (
+                    <button 
+                      key={j}
+                      onClick={() => setPrompt(p)}
+                      className="w-full text-left p-3 rounded-xl bg-slate-900/50 border border-slate-800 hover:border-indigo-500/30 hover:bg-slate-900 transition-all text-[9px] text-slate-400 hover:text-slate-200 font-bold leading-relaxed line-clamp-3 hover:line-clamp-none active:scale-95"
+                      title={p}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+             </div>
+          ))}
         </div>
       </div>
     </div>

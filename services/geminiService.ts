@@ -186,7 +186,8 @@ function writeString(view: DataView, offset: number, string: string) {
   }
 }
 
-function pcmToWav(base64PCM: string, sampleRate: number = 24000): string {
+// Improved Robust WAV Converter returning Data URI
+async function pcmToWavDataUri(base64PCM: string, sampleRate: number = 24000): Promise<string> {
   const binaryString = atob(base64PCM);
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
@@ -224,18 +225,16 @@ function pcmToWav(base64PCM: string, sampleRate: number = 24000): string {
   // data chunk length
   view.setUint32(40, len, true);
 
-  const wavBytes = new Uint8Array(wavHeader.byteLength + len);
-  wavBytes.set(new Uint8Array(wavHeader), 0);
-  wavBytes.set(bytes, wavHeader.byteLength);
-
-  let binary = '';
-  const wavLen = wavBytes.byteLength;
-  // Use a chunked approach for large strings to avoid stack overflow
-  const chunk = 8192;
-  for (let i = 0; i < wavLen; i += chunk) {
-    binary += String.fromCharCode.apply(null, Array.from(wavBytes.slice(i, i + chunk)));
-  }
-  return btoa(binary);
+  // Create Blob
+  const blob = new Blob([wavHeader, bytes], { type: 'audio/wav' });
+  
+  // Convert Blob to Data URI
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 // ===============================
@@ -677,9 +676,8 @@ export const generateAudioPitch = async (text: string, voice: string = 'Kore', l
   const pcmBase64 = resp.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
   if (!pcmBase64) throw new Error("Audio generation failed: No data returned.");
 
-  // Convert raw PCM to WAV container for browser playback
-  const wavBase64 = pcmToWav(pcmBase64, 24000);
-  const dataUri = `data:audio/wav;base64,${wavBase64}`;
+  // Convert raw PCM to WAV container for browser playback using async blob approach
+  const dataUri = await pcmToWavDataUri(pcmBase64, 24000);
 
   // Save playable WAV to vault
   if (dataUri) saveAsset('AUDIO', `SONIC_PITCH_${Date.now()}`, dataUri, 'SONIC_STUDIO', leadId);
