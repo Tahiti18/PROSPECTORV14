@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Lead, OutreachChannel, OutreachMode } from '../../types';
 import { outreachService } from '../../services/outreachService';
