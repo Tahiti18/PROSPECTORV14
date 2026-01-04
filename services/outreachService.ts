@@ -6,11 +6,19 @@ const LOG_STORAGE_KEY = 'pomelli_outreach_log_v1';
 export const outreachService = {
   
   // Log interactions to a global persistent log (System of Record)
-  logInteraction: (leadId: string, type: OutreachLog['type'], contentSnippet: string): OutreachLog => {
+  logInteraction: (
+    leadId: string, 
+    type: OutreachLog['type'], 
+    contentSnippet: string, 
+    mode: 'live' | 'test' = 'live', 
+    to: string = ''
+  ): OutreachLog => {
     const log: OutreachLog = {
       id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       timestamp: Date.now(),
       type,
+      mode,
+      to,
       contentSnippet: contentSnippet.slice(0, 100) + '...',
       status: 'SENT'
     };

@@ -1,18 +1,24 @@
 
+// PHASE 1: Canonical Status Definition
+export type OutreachStatus = 'cold' | 'queued' | 'sent' | 'opened' | 'replied' | 'booked' | 'won' | 'lost' | 'paused';
+
 export type MainMode = 'OPERATE' | 'CREATE' | 'SELL' | 'CONTROL';
 
-export type WorkspaceType = 'dashboard' | 'intelligence' | 'war-room' | 'creative' | 'outreach' | 'identity';
-
 export type SubModule = 
-  // OPERATE ZONE
-  | 'COMMAND' | 'RADAR_RECON' | 'AUTO_CRAWL' | 'TARGET_LIST' | 'PIPELINE' | 'WAR_ROOM' | 'DEEP_LOGIC' | 'WORKSPACE' | 'VIRAL_PULSE'
-  | 'VISION_LAB' | 'CINEMA_INTEL' | 'ARTICLE_INTEL' | 'BENCHMARK' | 'ANALYTICS' | 'HEATMAP' | 'PROMPT_AI' | 'MODEL_TEST' | 'VIDEO_AI' | 'FACT_CHECK' | 'TRANSLATOR'
-  // CREATE ZONE
-  | 'VIDEO_PITCH' | 'VISUAL_STUDIO' | 'MOCKUPS_4K' | 'SONIC_STUDIO' | 'PRODUCT_SYNTH' | 'MOTION_LAB' | 'FLASH_SPARK' | 'MEDIA_VAULT'
-  // SELL ZONE
-  | 'PROPOSALS' | 'ROI_CALC' | 'SEQUENCER' | 'DECK_ARCH' | 'DEMO_SANDBOX' | 'DRAFTING' | 'VOICE_STRAT' | 'LIVE_SCRIBE' | 'AI_CONCIERGE' | 'PITCH_GEN' | 'FUNNEL_MAP' | 'BUSINESS_ORCHESTRATOR'
-  // CONTROL ZONE
-  | 'PLAYBOOK' | 'BILLING' | 'AFFILIATE' | 'IDENTITY' | 'OS_FORGE' | 'EXPORT_DATA' | 'CALENDAR' | 'PROD_LOG' | 'SETTINGS' | 'CIPHER_NODE' | 'NEXUS_GRAPH' | 'CHRONOS' | 'TASKS' | 'THEME' | 'TOKENS';
+  | 'COMMAND' | 'RADAR_RECON' | 'AUTO_CRAWL' | 'TARGET_LIST' | 'PIPELINE' | 'WAR_ROOM' 
+  | 'DEEP_LOGIC' | 'WORKSPACE' | 'VIRAL_PULSE' | 'VISION_LAB' | 'CINEMA_INTEL' 
+  | 'ARTICLE_INTEL' | 'BENCHMARK' | 'ANALYTICS' | 'HEATMAP' | 'PROMPT_AI' | 'MODEL_TEST' 
+  | 'VIDEO_AI' | 'FACT_CHECK' | 'TRANSLATOR' | 'ANALYTICS_HUB'
+  | 'VIDEO_PITCH' | 'VISUAL_STUDIO' | 'MOCKUPS_4K' | 'SONIC_STUDIO' | 'PRODUCT_SYNTH' 
+  | 'MOTION_LAB' | 'FLASH_SPARK' | 'MEDIA_VAULT'
+  | 'BUSINESS_ORCHESTRATOR' | 'PROPOSALS' | 'ROI_CALC' | 'SEQUENCER' | 'DECK_ARCH' 
+  | 'DEMO_SANDBOX' | 'DRAFTING' | 'VOICE_STRAT' | 'LIVE_SCRIBE' | 'AI_CONCIERGE' 
+  | 'PITCH_GEN' | 'FUNNEL_MAP'
+  | 'PLAYBOOK' | 'BILLING' | 'AFFILIATE' | 'IDENTITY' | 'OS_FORGE' | 'EXPORT_DATA' 
+  | 'CALENDAR' | 'PROD_LOG' | 'SETTINGS' | 'CIPHER_NODE' | 'NEXUS_GRAPH' | 'CHRONOS' 
+  | 'TASKS' | 'THEME' | 'TOKENS';
+
+export type WorkspaceType = 'dashboard' | 'intelligence' | 'war-room' | 'creative' | 'outreach' | 'identity';
 
 export interface ComputeStats {
   sessionTokens: number;
@@ -22,14 +28,13 @@ export interface ComputeStats {
   flashCalls: number;
 }
 
-// PHASE 1: Canonical Status Definition
-export type OutreachStatus = 'cold' | 'queued' | 'sent' | 'opened' | 'replied' | 'booked' | 'won' | 'lost' | 'paused';
-
 export interface OutreachLog {
   id: string;
   timestamp: number;
   type: 'EMAIL' | 'LINKEDIN' | 'CALL';
   channel?: 'EMAIL' | 'LINKEDIN' | 'CALL';
+  mode?: 'live' | 'test'; // New: Track if it was a real send or admin test
+  to?: string; // New: Record actual recipient
   contentSnippet: string;
   subject?: string;
   status: 'SENT' | 'FAILED';
