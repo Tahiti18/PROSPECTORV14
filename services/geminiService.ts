@@ -8,6 +8,8 @@ import {
   UserRole,
   ModelClass,
   ReasoningDepth,
+  isFounderMode,
+  getAvailableCredits,
 } from "./usageLogger";
 
 const getAI = () => {
@@ -106,7 +108,7 @@ export const extractJSON = (text: string) => {
 };
 
 // ===============================
-// LOGGED WRAPPER (NO ENFORCEMENT)
+// LOGGED WRAPPER (WITH ENFORCEMENT SWITCH)
 // ===============================
 type LoggedGenerateArgs = {
   ai: GoogleGenAI;
@@ -159,6 +161,26 @@ export const loggedGenerateContent = async ({
     moduleWeight,
     effectiveWeight,
   };
+
+  // --- MONETIZATION GATE ---
+  // Only enforce limits if NOT in Founder Mode
+  if (!isFounderMode()) {
+    const currentBalance = getAvailableCredits(userId || "anonymous");
+    if (currentBalance < effectiveWeight) {
+      const errorMsg = `CREDIT_LIMIT_EXCEEDED: Required ${effectiveWeight}, Available ${currentBalance}`;
+      
+      await logAiOperation({
+        ...logBase,
+        latencyMs: 0,
+        status: "FAILURE",
+        errorMessage: errorMsg,
+      });
+
+      pushLog(`[AI_USAGE] BLOCKED: ${module} (${effectiveWeight} credits needed)`);
+      throw new Error(errorMsg);
+    }
+  }
+  // -------------------------
 
   try {
     const resp = await ai.models.generateContent({

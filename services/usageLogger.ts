@@ -90,3 +90,23 @@ export const uuidLike = (): string => {
   const s = Math.random().toString(16).slice(2);
   return `log_${Date.now()}_${s}`;
 };
+
+/**
+ * MONETIZATION ENFORCEMENT SWITCH
+ * Default: TRUE (Founder Mode = No Limits)
+ * Set FOUNDER_MODE=false in env to enable credit checks.
+ */
+export const isFounderMode = (): boolean => {
+  if (typeof process === 'undefined') return true;
+  return process.env.FOUNDER_MODE !== 'false';
+};
+
+/**
+ * CREDIT BALANCE STUB
+ * @param userId - The user to check
+ * @returns number - Available credits (Infinity by default)
+ */
+export const getAvailableCredits = (userId: string): number => {
+  // TODO: Connect to real ledger/database
+  return Infinity;
+};
