@@ -147,6 +147,49 @@ export const Layout: React.FC<LayoutProps> = ({
   const labelColor = theme === 'dark' ? 'text-white' : 'text-slate-900';
   const stripBg = theme === 'dark' ? 'bg-[#0b1021]/60 border-slate-800/30' : 'bg-slate-50 border-slate-200';
 
+  // HELPER: MAIN NAVIGATION BUTTON STYLES
+  const getModeStyles = (mode: MainMode, isActive: boolean) => {
+    if (!isActive) {
+      return theme === 'dark' ? 'text-slate-200 hover:text-white' : 'text-slate-500 hover:text-slate-800';
+    }
+    switch (mode) {
+      case 'OPERATE': return 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20';
+      case 'CREATE': return 'bg-violet-600 text-white shadow-lg shadow-violet-600/20';
+      case 'STUDIO': return 'bg-amber-600 text-white shadow-lg shadow-amber-600/20';
+      case 'SELL': return 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20';
+      case 'CONTROL': return 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20';
+      default: return 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20';
+    }
+  };
+
+  // HELPER: SUB-MODULE BUTTON STYLES
+  const getSubModuleStyles = (mode: MainMode, isActive: boolean) => {
+     if (!isActive) {
+        return theme === 'dark' ? 'border-transparent text-slate-200 hover:text-white hover:bg-slate-800' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200';
+     }
+     switch (mode) {
+      case 'OPERATE': return 'bg-indigo-600/20 border-indigo-500/50 text-indigo-400 shadow-sm';
+      case 'CREATE': return 'bg-violet-600/20 border-violet-500/50 text-violet-400 shadow-sm';
+      case 'STUDIO': return 'bg-amber-600/20 border-amber-500/50 text-amber-400 shadow-sm';
+      case 'SELL': return 'bg-emerald-600/20 border-emerald-500/50 text-emerald-400 shadow-sm';
+      case 'CONTROL': return 'bg-cyan-600/20 border-cyan-500/50 text-cyan-400 shadow-sm';
+      default: return 'bg-indigo-600/20 border-indigo-500/50 text-indigo-400 shadow-sm';
+     }
+  };
+  
+  // HELPER: SUB-MODULE TEXT COLOR
+  const getSubModuleTextColor = (mode: MainMode, isActive: boolean) => {
+      if (!isActive) return '';
+      switch (mode) {
+          case 'OPERATE': return 'text-indigo-400';
+          case 'CREATE': return 'text-violet-400';
+          case 'STUDIO': return 'text-amber-400';
+          case 'SELL': return 'text-emerald-400';
+          case 'CONTROL': return 'text-cyan-400';
+          default: return 'text-indigo-400';
+      }
+  }
+
   return (
     <div className={`flex flex-col h-screen overflow-hidden ${theme === 'dark' ? 'bg-[#020617]' : 'bg-white'}`}>
       <header className={`${headerBg} backdrop-blur-xl border-b px-6 py-3 flex items-center justify-between z-40 transition-colors duration-300`}>
@@ -167,11 +210,7 @@ export const Layout: React.FC<LayoutProps> = ({
             <button
               key={mode}
               onClick={() => setActiveMode(mode)}
-              className={`flex items-center gap-2 px-5 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
-                activeMode === mode 
-                  ? mode === 'STUDIO' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
-                  : theme === 'dark' ? 'text-slate-200 hover:text-white' : 'text-slate-500 hover:text-slate-800'
-              }`}
+              className={`flex items-center gap-2 px-5 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${getModeStyles(mode, activeMode === mode)}`}
             >
               {mode === 'OPERATE' && Icons.Operate}
               {mode === 'CREATE' && Icons.Create}
@@ -261,13 +300,11 @@ export const Layout: React.FC<LayoutProps> = ({
             key={mod.id}
             onClick={() => setActiveModule(mod.id)}
             className={`flex items-center gap-2.5 px-4 py-2 rounded-lg transition-all border group relative ${
-              activeModule === mod.id 
-                ? activeMode === 'STUDIO' ? 'bg-amber-600/20 border-amber-500/50 text-amber-400 shadow-sm' : 'bg-indigo-600/20 border-indigo-500/50 text-indigo-400 shadow-sm' 
-                : theme === 'dark' ? 'border-transparent text-slate-200 hover:text-white hover:bg-slate-800' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+               getSubModuleStyles(activeMode, activeModule === mod.id)
             }`}
           >
             <span className={`text-xs transition-opacity group-hover:opacity-100 ${activeModule === mod.id ? 'opacity-100 font-bold' : 'opacity-70'}`}>{mod.icon}</span>
-            <span className={`text-[10px] font-black tracking-widest uppercase transition-colors ${activeModule === mod.id ? (activeMode === 'STUDIO' ? 'text-amber-400' : 'text-indigo-400') : ''}`}>{mod.label}</span>
+            <span className={`text-[10px] font-black tracking-widest uppercase transition-colors ${getSubModuleTextColor(activeMode, activeModule === mod.id)}`}>{mod.label}</span>
             
             {/* TOOLTIP TRIGGER ICON */}
             <Tooltip content={mod.desc} side="bottom" width="w-56">
