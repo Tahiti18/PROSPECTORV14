@@ -16,11 +16,11 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     if (!text) return;
     setIsGenerating(true);
     try {
-      const base64 = await generateAudioPitch(text);
+      const base64 = await generateAudioPitch(text, 'Kore', lead?.id);
       if (base64) {
         const url = `data:audio/pcm;base64,${base64}`;
         setAudioUrl(url); // Note: Browsers handle base64 audio src well
-        saveAsset('AUDIO', `Sonic_Payload_${Date.now()}`, url);
+        // Asset saved internally by generateAudioPitch with leadId
       }
     } catch (e) {
       console.error(e);

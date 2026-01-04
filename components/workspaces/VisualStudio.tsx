@@ -17,10 +17,9 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
     if (!prompt) return;
     setIsGenerating(true);
     try {
-      const base64Image = await generateVisual(prompt);
+      const base64Image = await generateVisual(prompt, lockedLead?.id);
       setGeneratedImage(base64Image);
-      // Save to Vault
-      saveAsset('IMAGE', `Visual_Studio_${Date.now()}`, base64Image);
+      // Asset saved internally by generateVisual with leadId
     } catch (e) {
       console.error(e);
       alert("Generation failed.");

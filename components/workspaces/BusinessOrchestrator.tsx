@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Lead } from '../../types';
 import { SESSION_ASSETS, orchestrateBusinessPackage } from '../../services/geminiService';
 import { dossierStorage, StrategicDossier } from '../../services/dossierStorage';
+import { OutreachModal } from './OutreachModal';
 
 interface BusinessOrchestratorProps {
   leads: Lead[];
@@ -16,14 +17,23 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   const [history, setHistory] = useState<StrategicDossier[]>([]);
   const [isOrchestrating, setIsOrchestrating] = useState(false);
   const [activeTab, setActiveTab] = useState<'strategy' | 'narrative' | 'content' | 'outreach'>('strategy');
+  const [isOutreachOpen, setIsOutreachOpen] = useState(false);
 
   // Filter Vault for selected lead
   const targetLead = leads.find(l => l.id === selectedLeadId);
   
   const leadAssets = useMemo(() => {
     if (!targetLead) return [];
+    
+    // Priority 1: Exact Lead ID Match (The Patch)
+    // Priority 2: Fuzzy Title Match (Legacy Fallback)
     const searchTerms = targetLead.businessName.toLowerCase().split(' ');
+    
     return SESSION_ASSETS.filter(a => {
+      // Precise Match
+      if (a.leadId && a.leadId === targetLead.id) return true;
+      
+      // Fuzzy Match (Fallback)
       const titleLower = a.title.toLowerCase();
       return searchTerms.some(term => term.length > 3 && titleLower.includes(term));
     });
@@ -177,7 +187,10 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                       {leadAssets.map(a => (
                         <div key={a.id} className="text-[9px] font-bold text-slate-400 truncate bg-slate-950 px-3 py-2 rounded-lg border border-slate-800/50 flex justify-between">
                            <span className="truncate max-w-[180px]">{a.title}</span>
-                           <span className="text-emerald-600 ml-2">{a.module?.split('_')[0]}</span>
+                           <div className="flex items-center gap-2">
+                              {a.leadId === targetLead.id && <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 rounded">LINKED</span>}
+                              <span className="text-emerald-600 ml-2">{a.module?.split('_')[0]}</span>
+                           </div>
                         </div>
                       ))}
                       {leadAssets.length === 0 && <p className="text-[9px] text-rose-500 font-bold uppercase tracking-widest text-center py-4">NO ASSETS FOUND IN VAULT</p>}
@@ -320,14 +333,20 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
                     {/* Footer Actions */}
                     <div className="border-t border-slate-800 p-6 flex justify-between items-center bg-[#05091a]">
-                       <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                          DOSSIER ID: {currentDossier.id}
-                       </p>
+                       <div className="flex gap-4">
+                          <button 
+                            onClick={handleExportMarkdown}
+                            className="flex items-center gap-2 text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
+                          >
+                             <span>↓</span> EXPORT MARKDOWN
+                          </button>
+                       </div>
+                       
                        <button 
-                         onClick={handleExportMarkdown}
-                         className="flex items-center gap-2 text-[9px] font-black text-emerald-400 hover:text-white uppercase tracking-widest transition-colors"
+                         onClick={() => setIsOutreachOpen(true)}
+                         className="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
                        >
-                          <span>↓</span> EXPORT MARKDOWN
+                          <span>🚀</span> LAUNCH CAMPAIGN
                        </button>
                     </div>
                  </div>
@@ -336,6 +355,16 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
         </div>
 
       </div>
+
+      {currentDossier && targetLead && (
+        <OutreachModal 
+          isOpen={isOutreachOpen}
+          onClose={() => setIsOutreachOpen(false)}
+          dossier={currentDossier}
+          lead={targetLead}
+          onSent={() => window.location.reload()} // Quick dirty refresh to show status update
+        />
+      )}
     </div>
   );
 };

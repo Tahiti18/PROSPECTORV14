@@ -15,9 +15,9 @@ export const Mockups4K: React.FC<Mockups4KProps> = ({ lead }) => {
     if (!lead) return;
     setIsGenerating(true);
     try {
-      const url = await generateMockup(lead.businessName, lead.niche);
+      const url = await generateMockup(lead.businessName, lead.niche, lead.id);
       setImageUrl(url);
-      saveAsset('IMAGE', `Mockup_4K_${lead.businessName}`, url);
+      // Asset saved internally by generateMockup call with leadId
     } catch (e) {
       console.error(e);
     } finally {

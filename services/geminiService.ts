@@ -37,6 +37,7 @@ export interface AssetRecord {
   data: string; // Base64 or URL
   timestamp: string | number;
   content?: string; 
+  leadId?: string; // NEW: Precise Asset Linking
 }
 
 const STORAGE_KEY_VAULT = 'pomelli_media_vault_v1';
@@ -53,7 +54,7 @@ try {
 export const SESSION_ASSETS: AssetRecord[] = persistedAssets;
 
 // Core Auto-Save Function
-export const saveAsset = (type: AssetRecord['type'], title: string, data: string, module: SubModule = 'MEDIA_VAULT') => {
+export const saveAsset = (type: AssetRecord['type'], title: string, data: string, module: SubModule = 'MEDIA_VAULT', leadId?: string) => {
   const asset: AssetRecord = {
     id: `ASSET-${Date.now().toString().slice(-6)}`,
     type,
@@ -61,7 +62,8 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
     data, // For text, this is the content. For media, this is base64/url.
     timestamp: new Date().toLocaleTimeString(),
     content: data, // Compatibility
-    module
+    module,
+    leadId
   };
 
   // Add to beginning
@@ -75,7 +77,7 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
   // Persist
   try {
     localStorage.setItem(STORAGE_KEY_VAULT, JSON.stringify(SESSION_ASSETS));
-    pushLog(`VAULT SECURED: ${title} [${type}]`);
+    pushLog(`VAULT SECURED: ${title} [${type}]${leadId ? ` (Linked: ${leadId})` : ''}`);
   } catch (e) {
     console.warn("Vault Storage Full - Could not persist to disk, kept in memory.", e);
     pushLog(`VAULT MEMORY ONLY: Storage Quota Exceeded`);
@@ -284,7 +286,7 @@ Schema: { "entityName": "", "missionSummary": "", "visualStack": [{"label":"", "
 
   // AUTO SAVE REPORT
   if (rawData.deepArchitecture) {
-    saveAsset('TEXT', `INTEL_${moduleType}_${lead.businessName.substring(0,10)}`, `DEEP ARCHITECTURE:\n\n${rawData.deepArchitecture}\n\nSUMMARY: ${rawData.missionSummary}`, moduleType as SubModule);
+    saveAsset('TEXT', `INTEL_${moduleType}_${lead.businessName.substring(0,10)}`, `DEEP ARCHITECTURE:\n\n${rawData.deepArchitecture}\n\nSUMMARY: ${rawData.missionSummary}`, moduleType as SubModule, lead.id);
   }
 
   return {
@@ -389,7 +391,7 @@ export const critiqueVideoPresence = async (lead: Lead): Promise<string> => {
     ai: getAI(), module: "VIDEO_AI", model: "gemini-3-pro-preview", modelClass: "PRO",
     reasoningDepth: "HIGH", isClientFacing: true, contents: prompt, config: { tools: [{ googleSearch: {} }] },
   });
-  if (text) saveAsset('TEXT', `VIDEO_AUDIT_${lead.businessName}`, text, 'VIDEO_AI');
+  if (text) saveAsset('TEXT', `VIDEO_AUDIT_${lead.businessName}`, text, 'VIDEO_AI', lead.id);
   return text || "Audit failed.";
 };
 
@@ -410,7 +412,7 @@ export const architectPitchDeck = async (lead: Lead): Promise<any[]> => {
     reasoningDepth: "HIGH", isClientFacing: true, contents: prompt, config: { thinkingConfig: { thinkingBudget: 4000 } },
   });
   const data = extractJSON(text || "[]") || [];
-  if (data.length > 0) saveAsset('TEXT', `DECK_ARCH_${lead.businessName}`, JSON.stringify(data, null, 2), 'DECK_ARCH');
+  if (data.length > 0) saveAsset('TEXT', `DECK_ARCH_${lead.businessName}`, JSON.stringify(data, null, 2), 'DECK_ARCH', lead.id);
   return data;
 };
 
@@ -421,7 +423,7 @@ export const generateOutreachSequence = async (lead: Lead): Promise<any[]> => {
     reasoningDepth: "HIGH", isClientFacing: true, contents: prompt, config: { thinkingConfig: { thinkingBudget: 4000 } },
   });
   const data = extractJSON(text || "[]") || [];
-  if (data.length > 0) saveAsset('TEXT', `SEQ_DATA_${lead.businessName}`, JSON.stringify(data, null, 2), 'SEQUENCER');
+  if (data.length > 0) saveAsset('TEXT', `SEQ_DATA_${lead.businessName}`, JSON.stringify(data, null, 2), 'SEQUENCER', lead.id);
   return data;
 };
 
@@ -432,7 +434,7 @@ export const architectFunnel = async (lead: Lead): Promise<any[]> => {
     reasoningDepth: "HIGH", isClientFacing: true, contents: prompt, config: { thinkingConfig: { thinkingBudget: 4000 }, responseMimeType: "application/json" },
   });
   const data = extractJSON(text || "[]") || [];
-  if (data.length > 0) saveAsset('TEXT', `FUNNEL_${lead.businessName}`, JSON.stringify(data, null, 2), 'FUNNEL_MAP');
+  if (data.length > 0) saveAsset('TEXT', `FUNNEL_${lead.businessName}`, JSON.stringify(data, null, 2), 'FUNNEL_MAP', lead.id);
   return data;
 };
 
@@ -514,20 +516,20 @@ export const generateNurtureDialogue = async (lead: Lead, scenario: string): Pro
 export const generateMotionLabConcept = async (lead: Lead): Promise<any> => { 
   const text = await loggedGenerateContent({ ai: getAI(), module: "MOTION_LAB", model: "gemini-3-flash-preview", modelClass: "FLASH", reasoningDepth: "MEDIUM", isClientFacing: true, contents: `Storyboard for ${lead.businessName}. Return JSON {title, hook, scenes:[{time, visual, text}]}.` });
   const json = extractJSON(text || "{}") || {}; 
-  if (json.hook) saveAsset('TEXT', `STORYBOARD_${lead.businessName}`, `TITLE: ${json.title}\nHOOK: ${json.hook}`, 'MOTION_LAB');
+  if (json.hook) saveAsset('TEXT', `STORYBOARD_${lead.businessName}`, `TITLE: ${json.title}\nHOOK: ${json.hook}`, 'MOTION_LAB', lead.id);
   return json;
 };
 
 export const generateFlashSparks = async (lead: Lead): Promise<string[]> => { 
   const text = await loggedGenerateContent({ ai: getAI(), module: "FLASH_SPARK", model: "gemini-3-flash-preview", modelClass: "FLASH", reasoningDepth: "LOW", isClientFacing: true, contents: `6 hooks for ${lead.businessName}. Return JSON array strings.` });
   const data = extractJSON(text || "[]") || []; 
-  if (data.length) saveAsset('TEXT', `SPARKS_${lead.businessName}`, data.join('\n'), 'FLASH_SPARK');
+  if (data.length) saveAsset('TEXT', `SPARKS_${lead.businessName}`, data.join('\n'), 'FLASH_SPARK', lead.id);
   return data;
 };
 
 export const simulateSandbox = async (lead: Lead, ltv: number, volume: number): Promise<string> => { 
   const text = await loggedGenerateContent({ ai: getAI(), module: "DEMO_SANDBOX", model: "gemini-3-pro-preview", modelClass: "PRO", reasoningDepth: "HIGH", isClientFacing: true, contents: `ROI for ${lead.businessName} (LTV:${ltv}, Vol:${volume}).`, config: { thinkingConfig: { thinkingBudget: 16000 } } });
-  if (text) saveAsset('TEXT', `SIMULATION_${lead.businessName}`, text, 'DEMO_SANDBOX');
+  if (text) saveAsset('TEXT', `SIMULATION_${lead.businessName}`, text, 'DEMO_SANDBOX', lead.id);
   return text || "Error."; 
 };
 
@@ -539,23 +541,23 @@ export const performFactCheck = async (lead: Lead, claim: string): Promise<any> 
 export const synthesizeProduct = async (lead: Lead): Promise<any> => { 
   const text = await loggedGenerateContent({ ai: getAI(), module: "PRODUCT_SYNTH", model: "gemini-3-pro-preview", modelClass: "PRO", reasoningDepth: "HIGH", isClientFacing: true, contents: `Product for ${lead.businessName}. Return JSON {productName, tagline, pricePoint, features: []}.`, config: { thinkingConfig: { thinkingBudget: 16000 } } });
   const data = extractJSON(text || "{}") || {}; 
-  if (data.productName) saveAsset('TEXT', `PRODUCT_${lead.businessName}`, `NAME: ${data.productName}\nTAG: ${data.tagline}\nPRICE: ${data.pricePoint}`, 'PRODUCT_SYNTH');
+  if (data.productName) saveAsset('TEXT', `PRODUCT_${lead.businessName}`, `NAME: ${data.productName}\nTAG: ${data.tagline}\nPRICE: ${data.pricePoint}`, 'PRODUCT_SYNTH', lead.id);
   return data;
 };
 
 export const generatePitch = async (lead: Lead): Promise<string> => { 
   const text = await loggedGenerateContent({ ai: getAI(), module: "PITCH_GEN", model: "gemini-3-pro-preview", modelClass: "PRO", reasoningDepth: "MEDIUM", isClientFacing: true, contents: `30s pitch for ${lead.businessName}.`, config: { thinkingConfig: { thinkingBudget: 16000 } } });
-  if (text) saveAsset('TEXT', `PITCH_${lead.businessName}`, text, 'PITCH_GEN');
+  if (text) saveAsset('TEXT', `PITCH_${lead.businessName}`, text, 'PITCH_GEN', lead.id);
   return text || "Error."; 
 };
 
 export const generateProposalDraft = async (lead: Lead): Promise<string> => { 
   const text = await loggedGenerateContent({ ai: getAI(), module: "PROPOSALS", model: "gemini-3-pro-preview", modelClass: "PRO", reasoningDepth: "HIGH", isClientFacing: true, contents: `Proposal for ${lead.businessName}.`, config: { thinkingConfig: { thinkingBudget: 32000 } } });
-  if (text) saveAsset('TEXT', `PROPOSAL_${lead.businessName}`, text, 'PROPOSALS');
+  if (text) saveAsset('TEXT', `PROPOSAL_${lead.businessName}`, text, 'PROPOSALS', lead.id);
   return text || "Error."; 
 };
 
-export const generateMockup = async (businessName: string, niche: string): Promise<string> => { 
+export const generateMockup = async (businessName: string, niche: string, leadId?: string): Promise<string> => { 
   const ai = getAI(); 
   try {
     const resp = await ai.models.generateContent({ 
@@ -569,12 +571,12 @@ export const generateMockup = async (businessName: string, niche: string): Promi
         logId: uuidLike(), timestamp: new Date().toISOString(), userId: "anonymous", userRole: "FOUNDER", module: "MOCKUPS_4K", isClientFacing: true, model: "gemini-2.5-flash-image", modelClass: "FLASH", reasoningDepth: "LOW", moduleWeight: getModuleWeight("MOCKUPS_4K"), effectiveWeight: getModuleWeight("MOCKUPS_4K"), latencyMs: 0, status: "SUCCESS"
     });
     
-    if (data) saveAsset('IMAGE', `MOCKUP_${businessName}`, data, 'MOCKUPS_4K');
+    if (data) saveAsset('IMAGE', `MOCKUP_${businessName}`, data, 'MOCKUPS_4K', leadId);
     return data;
   } catch (e) { console.error(e); return ""; }
 };
 
-export const generateVideoPayload = async (prompt: string): Promise<string> => { 
+export const generateVideoPayload = async (prompt: string, leadId?: string): Promise<string> => { 
   const ai = getAI(); 
   let op = await ai.models.generateVideos({ model: 'veo-3.1-fast-generate-preview', prompt }); 
   
@@ -587,11 +589,11 @@ export const generateVideoPayload = async (prompt: string): Promise<string> => {
     op = await ai.operations.getVideosOperation({ operation: op }); 
   } 
   const url = (op.response?.generatedVideos?.[0]?.video?.uri ?? '') + `&key=${process.env.API_KEY}`;
-  if (url) saveAsset('VIDEO', `VEO_PAYLOAD_${Date.now()}`, url, 'VIDEO_PITCH');
+  if (url) saveAsset('VIDEO', `VEO_PAYLOAD_${Date.now()}`, url, 'VIDEO_PITCH', leadId);
   return url; 
 };
 
-export const generateAudioPitch = async (text: string, voice: string = 'Kore'): Promise<string> => { 
+export const generateAudioPitch = async (text: string, voice: string = 'Kore', leadId?: string): Promise<string> => { 
   const ai = getAI(); 
   const resp = await ai.models.generateContent({ 
       model: "gemini-2.5-flash-preview-tts", 
@@ -604,7 +606,7 @@ export const generateAudioPitch = async (text: string, voice: string = 'Kore'): 
   });
 
   const base64 = resp.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
-  if (base64) saveAsset('AUDIO', `SONIC_PITCH_${Date.now()}`, `data:audio/pcm;base64,${base64}`, 'SONIC_STUDIO');
+  if (base64) saveAsset('AUDIO', `SONIC_PITCH_${Date.now()}`, `data:audio/pcm;base64,${base64}`, 'SONIC_STUDIO', leadId);
   return base64; 
 };
 
@@ -621,7 +623,7 @@ export const analyzeVisual = async (base64Data: string, mimeType: string, prompt
   return text || "Visual analysis failed.";
 };
 
-export const generateVisual = async (prompt: string): Promise<string> => {
+export const generateVisual = async (prompt: string, leadId?: string): Promise<string> => {
   pushLog("GENERATING ASSET (IMAGEN)...");
   const ai = getAI();
   const model = "gemini-2.5-flash-image";
@@ -633,19 +635,19 @@ export const generateVisual = async (prompt: string): Promise<string> => {
       const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
       if (part?.inlineData?.data) {
         const url = `data:image/png;base64,${part.inlineData.data}`;
-        saveAsset('IMAGE', `VISUAL_${Date.now()}`, url, 'VISUAL_STUDIO');
+        saveAsset('IMAGE', `VISUAL_${Date.now()}`, url, 'VISUAL_STUDIO', leadId);
         return url;
       }
       throw new Error("No image data returned");
   } catch(e) { console.error(e); return ""; }
 };
 
-export const analyzeVideoUrl = async (url: string, prompt: string): Promise<string> => {
+export const analyzeVideoUrl = async (url: string, prompt: string, leadId?: string): Promise<string> => {
   pushLog(`ANALYZING VIDEO URL: ${url}`);
   const text = await loggedGenerateContent({
     ai: getAI(), module: "CINEMA_INTEL", model: "gemini-3-pro-preview", modelClass: "PRO", reasoningDepth: "HIGH", isClientFacing: true, contents: `Analyze this video URL: ${url}. \n\nMission: ${prompt}\n\nUse Google Search Grounding to find metadata, transcripts, or summaries of this video to perform the analysis.`, config: { tools: [{ googleSearch: {} }] }
   });
-  if (text) saveAsset('TEXT', `VIDEO_ANALYSIS_${Date.now()}`, text, 'CINEMA_INTEL');
+  if (text) saveAsset('TEXT', `VIDEO_ANALYSIS_${Date.now()}`, text, 'CINEMA_INTEL', leadId);
   return text || "Video analysis unavailable.";
 };
 

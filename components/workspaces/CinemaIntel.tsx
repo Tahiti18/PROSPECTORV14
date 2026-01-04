@@ -17,7 +17,7 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
     if (!url) return;
     setIsLoading(true);
     try {
-      const result = await analyzeVideoUrl(url, prompt);
+      const result = await analyzeVideoUrl(url, prompt, lead?.id);
       setAnalysis(result);
     } catch (e) {
       console.error(e);

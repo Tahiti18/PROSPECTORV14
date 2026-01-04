@@ -26,9 +26,9 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
     setIsGenerating(true);
     try {
       await checkAndOpenKey();
-      const url = await generateVideoPayload(prompt);
+      const url = await generateVideoPayload(prompt, lead?.id);
       setVideoUrl(url);
-      saveAsset('VIDEO', `Veo_Payload_${Date.now()}`, url);
+      // Asset saved internally by generateVideoPayload with leadId
     } catch (e) {
       console.error(e);
       alert("Video generation requires a paid API key and valid permissions.");
