@@ -334,7 +334,9 @@ export const fetchTokenStats = async (): Promise<any> => ({ balance: 4250000, co
 export const fetchBillingStats = async (): Promise<any> => ({ tokenUsage: 1420500, estimatedCost: 12.45, projectedRevenueLift: 154000, activeTheaters: 4 });
 export const testModelPerformance = async (modelName: string, prompt: string): Promise<string> => { const ai = getAI(); const resp = await ai.models.generateContent({ model: modelName, contents: prompt }); return resp.text || "No response."; };
 
-// UPGRADED TO PRO + SEARCH FOR DEEP VIDEO AUDIT
+// --- UPGRADED INTELLIGENCE NODES (LEVEL 5) ---
+
+// 1. VIDEO_AI: Upgraded to Pro + Search Grounding
 export const critiqueVideoPresence = async (lead: Lead): Promise<string> => { 
   const ai = getAI(); 
   const resp = await ai.models.generateContent({ 
@@ -344,6 +346,52 @@ export const critiqueVideoPresence = async (lead: Lead): Promise<string> => {
   }); 
   return resp.text || "Audit failed."; 
 };
+
+// 2. ARTICLE_INTEL: Upgraded to Pro + Search for Executive Synthesis
+export const synthesizeArticle = async (source: string, mode: string): Promise<string> => {
+  const ai = getAI();
+  const resp = await ai.models.generateContent({ 
+    model: "gemini-3-pro-preview", 
+    contents: `Audit ${source} in ${mode}. Provide executive-level insights and competitive leverage points.`, 
+    config: { tools: [{ googleSearch: {} }] } 
+  });
+  return resp.text || "Failed.";
+};
+
+// 3. DECK_ARCH: Upgraded to Pro with Thinking Budget for Narrative Logic
+export const architectPitchDeck = async (lead: Lead): Promise<any[]> => { 
+  const ai = getAI(); 
+  const resp = await ai.models.generateContent({ 
+    model: "gemini-3-pro-preview", 
+    contents: `Architect a 5-slide sales deck for ${lead.businessName} focusing on high-ticket AI transformation. Return JSON [{title, narrativeGoal, keyVisuals}].`,
+    config: { thinkingConfig: { thinkingBudget: 4000 } }
+  }); 
+  return extractJSON(resp.text || "[]") || []; 
+};
+
+// 4. SEQUENCER: Upgraded to Pro with Thinking for High-EQ Copywriting
+export const generateOutreachSequence = async (lead: Lead): Promise<any[]> => { 
+  const ai = getAI(); 
+  const resp = await ai.models.generateContent({ 
+    model: "gemini-3-pro-preview", 
+    contents: `Design a 5-day multi-channel outreach sequence for ${lead.businessName}. Focus on their specific gap: "${lead.socialGap}". Return JSON [{day, channel, purpose, content}].`,
+    config: { thinkingConfig: { thinkingBudget: 4000 } }
+  }); 
+  return extractJSON(resp.text || "[]") || []; 
+};
+
+// 5. FUNNEL_MAP: Upgraded to Pro for Conversion Architecture
+export const architectFunnel = async (lead: Lead): Promise<any[]> => { 
+  const ai = getAI(); 
+  const resp = await ai.models.generateContent({ 
+    model: "gemini-3-pro-preview", 
+    contents: `Design a 4-stage conversion funnel for ${lead.businessName}. Return JSON [{stage, title, description, conversionGoal}].`,
+    config: { thinkingConfig: { thinkingBudget: 4000 } }
+  }); 
+  return extractJSON(resp.text || "[]") || []; 
+};
+
+// --- STANDARD OPERATIONAL NODES ---
 
 export const translateTactical = async (text: string, targetLang: string): Promise<string> => { const ai = getAI(); const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Translate: ${text} to ${targetLang}` }); return resp.text || "Failed."; };
 
@@ -362,17 +410,6 @@ export const generateMotionLabConcept = async (lead: Lead): Promise<any> => {
 export const generateFlashSparks = async (lead: Lead): Promise<string[]> => { 
   const ai = getAI(); 
   const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `6 hooks for ${lead.businessName}. Return JSON array strings.` }); 
-  return extractJSON(resp.text || "[]") || []; 
-};
-
-// UPGRADED TO PRO FOR CREATIVE STRUCTURE
-export const architectPitchDeck = async (lead: Lead): Promise<any[]> => { 
-  const ai = getAI(); 
-  const resp = await ai.models.generateContent({ 
-    model: "gemini-3-pro-preview", 
-    contents: `5-slide deck for ${lead.businessName}. Return JSON [{title, narrativeGoal, keyVisuals}].`,
-    config: { thinkingConfig: { thinkingBudget: 4000 } }
-  }); 
   return extractJSON(resp.text || "[]") || []; 
 };
 
@@ -400,17 +437,6 @@ export const generatePitch = async (lead: Lead): Promise<string> => {
   return resp.text || "Error."; 
 };
 
-// UPGRADED TO PRO FOR STRATEGIC CONVERSION LOGIC
-export const architectFunnel = async (lead: Lead): Promise<any[]> => { 
-  const ai = getAI(); 
-  const resp = await ai.models.generateContent({ 
-    model: "gemini-3-pro-preview", 
-    contents: `4-stage funnel for ${lead.businessName}. Return JSON [{stage, title, description, conversionGoal}].`,
-    config: { thinkingConfig: { thinkingBudget: 4000 } }
-  }); 
-  return extractJSON(resp.text || "[]") || []; 
-};
-
 export const generateProposalDraft = async (lead: Lead): Promise<string> => { 
   const ai = getAI(); 
   const resp = await ai.models.generateContent({ model: "gemini-3-pro-preview", contents: `Proposal for ${lead.businessName}.`, config: { thinkingConfig: { thinkingBudget: 32000 } } }); 
@@ -422,17 +448,6 @@ export const generateMockup = async (businessName: string, niche: string): Promi
   const resp = await ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: [{ text: `4k website mockup for ${businessName} (${niche})` }] } }); 
   const part = resp.candidates?.[0]?.content?.parts?.find(p => p.inlineData); 
   return part?.inlineData?.data ? `data:image/png;base64,${part.inlineData.data}` : ""; 
-};
-
-// UPGRADED TO PRO FOR HIGH-EQ COPYWRITING
-export const generateOutreachSequence = async (lead: Lead): Promise<any[]> => { 
-  const ai = getAI(); 
-  const resp = await ai.models.generateContent({ 
-    model: "gemini-3-pro-preview", 
-    contents: `5-day outreach for ${lead.businessName}. Return JSON [{day, channel, purpose, content}].`,
-    config: { thinkingConfig: { thinkingBudget: 4000 } }
-  }); 
-  return extractJSON(resp.text || "[]") || []; 
 };
 
 export const generateVideoPayload = async (prompt: string): Promise<string> => { 
@@ -456,19 +471,6 @@ export const generateTaskMatrix = async (lead: Lead): Promise<any[]> => {
   const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Tasks for ${lead.businessName}. Return JSON [{id, task, status}].` }); 
   return extractJSON(resp.text || "[]") || []; 
 };
-
-// UPGRADED TO PRO FOR EXECUTIVE BRIEFING
-export const synthesizeArticle = async (source: string, mode: string): Promise<string> => {
-  const ai = getAI();
-  const resp = await ai.models.generateContent({ 
-    model: "gemini-3-pro-preview", 
-    contents: `Audit ${source} in ${mode}.`, 
-    config: { tools: [{ googleSearch: {} }] } 
-  });
-  return resp.text || "Failed.";
-};
-
-// --- NEW FUNCTIONAL MODULES ---
 
 export const analyzeVisual = async (base64Data: string, mimeType: string, prompt: string): Promise<string> => {
   pushLog("ANALYZING VISUAL ASSET...");
@@ -594,8 +596,6 @@ export const generateAffiliateProgram = async (niche: string): Promise<any> => {
     return { programName: "PARTNER_NET", tiers: [], recruitScript: "Error generating." };
   }
 };
-
-// --- NEW INTELLIGENCE FUNCTIONS ---
 
 export const generateROIReport = async (ltv: number, volume: number, conv: number): Promise<string> => {
   pushLog("GENERATING ROI NARRATIVE...");
