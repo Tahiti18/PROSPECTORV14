@@ -9,7 +9,7 @@ import { SellWorkspace } from './components/workspaces/SellWorkspace';
 import { ControlWorkspace } from './components/workspaces/ControlWorkspace';
 import { RadarRecon } from './components/workspaces/RadarRecon';
 import { TargetList } from './components/workspaces/TargetList';
-import { WarRoom } from './components/WarRoom';
+import { WarRoom } from './components/workspaces/WarRoom'; // Corrected path
 import { CommandPalette } from './components/CommandPalette';
 import { SonicStudio } from './components/workspaces/SonicStudio';
 import { VisionLab } from './components/workspaces/VisionLab';
@@ -81,7 +81,6 @@ const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const didInitRef = useRef(false);
 
-  // Initialize Data & Automation Resume
   useEffect(() => {
     const savedLeads = localStorage.getItem(STORAGE_KEY_LEADS);
     const savedTheater = localStorage.getItem(STORAGE_KEY_THEATER);
@@ -110,7 +109,6 @@ const App: React.FC = () => {
     return () => { unsubscribe(); };
   }, []);
 
-  // Theme Sync
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
@@ -121,7 +119,6 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY_THEME, theme);
   }, [theme]);
 
-  // Auto-save
   useEffect(() => {
     if (!isHydrated) return;
     localStorage.setItem(STORAGE_KEY_THEATER, theater);

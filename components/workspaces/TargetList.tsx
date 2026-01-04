@@ -20,9 +20,10 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
 
     return [...filtered].sort((a, b) => {
       // @ts-ignore
-      const aVal = a[sortConfig.key] || '';
+      // Fix: Use nullish coalescing to allow 0 as a valid value
+      const aVal = a[sortConfig.key] ?? '';
       // @ts-ignore
-      const bVal = b[sortConfig.key] || '';
+      const bVal = b[sortConfig.key] ?? '';
       
       if (aVal === bVal) return 0;
       

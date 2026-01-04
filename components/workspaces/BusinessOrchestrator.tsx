@@ -31,10 +31,18 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   // Filter Vault for selected lead
   const targetLead = leads.find(l => l.id === selectedLeadId);
   
+  // FIX: Force poll assets every second to catch updates from other modules
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshKey(k => k + 1);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+  
   const leadAssets = useMemo(() => {
     if (!targetLead) return [];
     
-    // Dependency on refreshKey forces re-calc after upload
+    // Dependency on refreshKey forces re-calc after upload/poll
     const _ = refreshKey; 
 
     return SESSION_ASSETS.filter(a => {
