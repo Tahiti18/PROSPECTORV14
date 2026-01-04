@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { EngineResult, Lead, SubModule } from "../types";
 import { trackCall } from "./computeTracker";
@@ -55,7 +56,13 @@ export const SESSION_ASSETS: AssetRecord[] = persistedAssets;
 // Core Auto-Save Function
 export const saveAsset = (type: AssetRecord['type'], title: string, data: string, module: SubModule = 'MEDIA_VAULT', leadId?: string) => {
   // Guardrail B: Collision-resistant ID
-  const uniqueId = `ASSET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  // Use crypto.randomUUID if available, else robust fallback
+  let uniqueId: string;
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    uniqueId = `ASSET-${crypto.randomUUID()}`;
+  } else {
+    uniqueId = `ASSET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
   
   const asset: AssetRecord = {
     id: uniqueId,
