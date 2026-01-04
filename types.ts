@@ -28,8 +28,8 @@ export type OutreachStatus = 'cold' | 'queued' | 'sent' | 'opened' | 'replied' |
 export interface OutreachLog {
   id: string;
   timestamp: number;
-  type: 'EMAIL' | 'LINKEDIN' | 'CALL'; // Legacy channel field
-  channel?: 'EMAIL' | 'LINKEDIN' | 'CALL'; // Explicit channel
+  type: 'EMAIL' | 'LINKEDIN' | 'CALL';
+  channel?: 'EMAIL' | 'LINKEDIN' | 'CALL';
   contentSnippet: string;
   subject?: string;
   status: 'SENT' | 'FAILED';
@@ -71,11 +71,11 @@ export interface Lead {
   notes?: string;
   tags?: string[];
   
-  // Automation Locking Fields (Strict Numeric Timestamps)
+  // Automation Locking Fields
   locked?: boolean;
-  lockedAt?: number;       // ms since epoch
-  lockedByRunId?: string;  // ID of the run holding the lock
-  lockExpiresAt?: number;  // ms since epoch
+  lockedAt?: number;
+  lockedByRunId?: string;
+  lockExpiresAt?: number;
 }
 
 export interface OutreachAssets {

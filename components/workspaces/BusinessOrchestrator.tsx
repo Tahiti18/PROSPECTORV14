@@ -141,8 +141,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     const saved = dossierStorage.save(targetLead, packageData, leadAssets.map(a => a.id));
     
     // Safety Assertion: Ensure we aren't saving heavy blobs in the dossier record
-    // Cast to any to avoid TypeScript errors with missing Vite types
-    if ((import.meta as any).env?.DEV) {
+    const DEV = (import.meta as any)?.env?.DEV === true;
+    if (DEV) {
       const s = JSON.stringify(saved);
       if (s.includes("data:image") || (s.includes("base64") && s.length > 20000)) {
         console.warn("CRITICAL WARNING: Dossier snapshot contains heavy payload. Verify asset linking.");
