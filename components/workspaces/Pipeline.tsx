@@ -9,8 +9,8 @@ interface PipelineProps {
 
 const STAGES: { id: Lead['status']; label: string; count: number }[] = [
   { id: 'cold', label: 'THEATER RECON', count: 18 },
-  { id: 'analyzed', label: 'INTEL AUDIT', count: 8 },
-  { id: 'outreached', label: 'PAYLOAD FORGE', count: 0 },
+  { id: 'queued', label: 'INTEL AUDIT', count: 8 },
+  { id: 'sent', label: 'PAYLOAD FORGE', count: 0 },
   { id: 'converted', label: 'SIGNAL DIST.', count: 0 },
 ];
 

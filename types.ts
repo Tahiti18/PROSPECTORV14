@@ -22,6 +22,16 @@ export interface ComputeStats {
   flashCalls: number;
 }
 
+export type OutreachStatus = 'cold' | 'queued' | 'sent' | 'opened' | 'replied' | 'meeting_booked' | 'converted' | 'dead';
+
+export interface OutreachLog {
+  id: string;
+  timestamp: number;
+  type: 'EMAIL' | 'LINKEDIN' | 'CALL';
+  contentSnippet: string;
+  status: 'SENT' | 'FAILED';
+}
+
 export interface Lead {
   id: string;
   rank: number;
@@ -37,12 +47,17 @@ export interface Lead {
   visualProof: string;
   bestAngle: string;
   personalizedHook: string;
-  status: 'cold' | 'analyzed' | 'outreached' | 'converted';
+  status: OutreachStatus; // Updated type
   instagram?: string;
   tiktok?: string;
   youtube?: string;
   contactUrl?: string;
   groundingSources?: Array<{ title?: string; uri?: string }>;
+  
+  // Outreach CRM Data
+  outreachHistory?: OutreachLog[];
+  lastContactAt?: number;
+  nextFollowUp?: number;
   
   // Automation Locking Fields (Strict Numeric Timestamps)
   locked?: boolean;

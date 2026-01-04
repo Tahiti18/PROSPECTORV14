@@ -1,3 +1,4 @@
+
 import { AutomationRun, RunStep, AutomationArtifact, RunStatus } from './types';
 import { db } from './db';
 import { Steps } from './steps';
@@ -250,7 +251,7 @@ export class AutomationOrchestrator {
               const idx = finalLeads.findIndex(l => l.id === run!.leadId);
               if (idx !== -1) {
                 finalLeads[idx].locked = false; 
-                finalLeads[idx].status = 'analyzed';
+                finalLeads[idx].status = 'queued';
                 finalLeads[idx].lockedByRunId = undefined;
                 finalLeads[idx].lockExpiresAt = undefined;
                 db.saveLeads(finalLeads);
