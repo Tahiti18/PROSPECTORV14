@@ -33,9 +33,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     // Priority 2: Fuzzy Title Match (Legacy Fallback)
     const searchTerms = targetLead.businessName.toLowerCase().split(' ');
     
-    // We depend on refreshKey to re-evaluate this when an upload happens
-    const _ = refreshKey; 
-
     return SESSION_ASSETS.filter(a => {
       // Precise Match
       if (a.leadId && a.leadId === targetLead.id) return true;
@@ -134,6 +131,13 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     const file = e.target.files?.[0];
     if (!file || !targetLead) return;
 
+    // Guardrail: Size Check (Max 25MB for LocalStorage safety)
+    const MAX_MB = 25;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      alert(`File too large (${Math.round(file.size / 1024 / 1024)}MB). Max ${MAX_MB}MB for V1.`);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (ev) => {
       const result = ev.target?.result as string;
@@ -145,18 +149,17 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       else type = 'TEXT';
 
       // For non-text, result is base64 data URL. For text, it's the content.
-      // We'll trust the user to upload valid assets.
       saveAsset(type, `UPLOAD: ${file.name}`, result, 'MEDIA_VAULT', targetLead.id);
       setRefreshKey(prev => prev + 1); // Trigger re-render of asset list
     };
 
-    if (file.type.startsWith('text/')) {
+    if (file.type.startsWith('text/') || file.type === 'application/json') {
         reader.readAsText(file);
     } else {
         reader.readAsDataURL(file);
     }
     
-    // Reset input
+    // Reset input to allow re-uploading same file
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -274,7 +277,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                         ref={fileInputRef} 
                         onChange={handleFileUpload} 
                         className="hidden" 
-                        accept="image/*,video/*,audio/*,text/plain"
+                        accept="image/*,video/*,audio/*,text/plain,application/json"
                       />
                       <button 
                         onClick={() => fileInputRef.current?.click()}
