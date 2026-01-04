@@ -179,6 +179,65 @@ export const extractJSON = (text: string) => {
   }
 };
 
+// --- AUDIO HELPERS (PCM to WAV) ---
+function writeString(view: DataView, offset: number, string: string) {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
+function pcmToWav(base64PCM: string, sampleRate: number = 24000): string {
+  const binaryString = atob(base64PCM);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  const wavHeader = new ArrayBuffer(44);
+  const view = new DataView(wavHeader);
+
+  // RIFF identifier
+  writeString(view, 0, 'RIFF');
+  // file length
+  view.setUint32(4, 36 + len, true);
+  // RIFF type
+  writeString(view, 8, 'WAVE');
+  // format chunk identifier
+  writeString(view, 12, 'fmt ');
+  // format chunk length
+  view.setUint32(16, 16, true);
+  // sample format (raw)
+  view.setUint16(20, 1, true);
+  // channel count
+  view.setUint16(22, 1, true); // Mono
+  // sample rate
+  view.setUint32(24, sampleRate, true);
+  // byte rate (sampleRate * blockAlign)
+  view.setUint32(28, sampleRate * 2, true);
+  // block align (channel count * bytes per sample)
+  view.setUint16(32, 2, true);
+  // bits per sample
+  view.setUint16(34, 16, true);
+  // data chunk identifier
+  writeString(view, 36, 'data');
+  // data chunk length
+  view.setUint32(40, len, true);
+
+  const wavBytes = new Uint8Array(wavHeader.byteLength + len);
+  wavBytes.set(new Uint8Array(wavHeader), 0);
+  wavBytes.set(bytes, wavHeader.byteLength);
+
+  let binary = '';
+  const wavLen = wavBytes.byteLength;
+  // Use a chunked approach for large strings to avoid stack overflow
+  const chunk = 8192;
+  for (let i = 0; i < wavLen; i += chunk) {
+    binary += String.fromCharCode.apply(null, Array.from(wavBytes.slice(i, i + chunk)));
+  }
+  return btoa(binary);
+}
+
 // ===============================
 // LOGGED WRAPPER
 // ===============================
@@ -320,8 +379,6 @@ Schema: { "entityName": "", "missionSummary": "", "visualStack": [{"label":"", "
 
 export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> => fetchLiveIntel(lead, "BENCHMARK");
 
-// ... existing helpers ...
-
 export const orchestrateBusinessPackage = async (lead: Lead, assets: AssetRecord[]): Promise<any> => {
   pushLog(`ORCHESTRATING BUSINESS PACKAGE FOR ${lead.businessName}`);
   
@@ -388,7 +445,6 @@ export const orchestrateBusinessPackage = async (lead: Lead, assets: AssetRecord
   return extractJSON(text || "{}");
 };
 
-// ... remaining existing functions ...
 export const runFlashPrompt = async (prompt: string): Promise<string> => {
   const text = await loggedGenerateContent({
     ai: getAI(), module: "PROMPT_AI", model: "gemini-3-flash-preview", modelClass: "FLASH",
@@ -617,9 +673,18 @@ export const generateAudioPitch = async (text: string, voice: string = 'Kore', l
     logId: uuidLike(), timestamp: new Date().toISOString(), userId: "anonymous", userRole: "FOUNDER", module: "SONIC_STUDIO", isClientFacing: true, model: "gemini-2.5-flash-preview-tts", modelClass: "FLASH", reasoningDepth: "LOW", moduleWeight: getModuleWeight("SONIC_STUDIO"), effectiveWeight: getModuleWeight("SONIC_STUDIO"), latencyMs: 0, status: "SUCCESS"
   });
 
-  const base64 = resp.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
-  if (base64) saveAsset('AUDIO', `SONIC_PITCH_${Date.now()}`, `data:audio/pcm;base64,${base64}`, 'SONIC_STUDIO', leadId);
-  return base64; 
+  // RAW PCM 24kHz Mono
+  const pcmBase64 = resp.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
+  if (!pcmBase64) throw new Error("Audio generation failed: No data returned.");
+
+  // Convert raw PCM to WAV container for browser playback
+  const wavBase64 = pcmToWav(pcmBase64, 24000);
+  const dataUri = `data:audio/wav;base64,${wavBase64}`;
+
+  // Save playable WAV to vault
+  if (dataUri) saveAsset('AUDIO', `SONIC_PITCH_${Date.now()}`, dataUri, 'SONIC_STUDIO', leadId);
+  
+  return dataUri; 
 };
 
 export const generateTaskMatrix = async (lead: Lead): Promise<any[]> => { 

@@ -15,15 +15,17 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   const handleGenerate = async () => {
     if (!text) return;
     setIsGenerating(true);
+    setAudioUrl(null);
     try {
-      const base64 = await generateAudioPitch(text, 'Kore', lead?.id);
-      if (base64) {
-        const url = `data:audio/pcm;base64,${base64}`;
-        setAudioUrl(url); // Note: Browsers handle base64 audio src well
-        // Asset saved internally by generateAudioPitch with leadId
+      const url = await generateAudioPitch(text, 'Kore', lead?.id);
+      if (url) {
+        setAudioUrl(url); 
+      } else {
+        alert("Generation failed silently. Check logs.");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert(`Audio Generation Error: ${e?.message || 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -53,7 +55,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
             disabled={isGenerating}
             className="flex-1 bg-indigo-600 hover:bg-indigo-500 py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border border-indigo-400/20 disabled:opacity-50"
           >
-            {isGenerating ? 'SYNTHESIZING...' : 'GENERATE AUDIO PAYLOAD'}
+            {isGenerating ? 'SYNTHESIZING WAV...' : 'GENERATE AUDIO PAYLOAD'}
           </button>
         </div>
 
@@ -67,8 +69,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                       <p className="text-[8px] text-slate-500 font-bold uppercase mt-1 tracking-widest">SAVED TO VAULT</p>
                    </div>
                 </div>
-                {/* Note: Raw PCM usually needs decoding, but for this demo assuming the service might return wav or handled via simple src for simplicity, or we let user download to play. */}
-                <audio src={audioUrl} controls className="h-8 opacity-50 hover:opacity-100 transition-opacity" />
+                <audio src={audioUrl} controls className="h-8 opacity-90 hover:opacity-100 transition-opacity" />
              </div>
           </div>
         )}
