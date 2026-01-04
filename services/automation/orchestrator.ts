@@ -12,9 +12,6 @@ export class AutomationOrchestrator {
   // Guardrail 5: In-memory lock (Single Tab Safety)
   private activeRunIds = new Set<string>();
 
-  // Guardrail 6: Cross-Tab Identity
-  private ownerId = uuidLike();
-
   private constructor() {}
 
   static getInstance(): AutomationOrchestrator {
@@ -24,54 +21,12 @@ export class AutomationOrchestrator {
     return AutomationOrchestrator.instance;
   }
 
-  // --- LEASE LOCKING PRIMITIVES (Cross-Tab Safety) ---
-  private lockKey(runId: string) { return `pomelli_run_lease_${runId}`; }
-
-  private acquireLease(runId: string, ttlMs: number): boolean {
-    const key = this.lockKey(runId);
-    const now = Date.now();
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const lock = JSON.parse(raw);
-        // If locked by another tab and not expired, reject
-        if (lock.expiresAt > now && lock.ownerId !== this.ownerId) return false;
-      }
-      // Acquire lease
-      localStorage.setItem(key, JSON.stringify({ ownerId: this.ownerId, expiresAt: now + ttlMs }));
-      return true;
-    } catch { return true; } // Degrade gracefully if storage fails
-  }
-
-  private renewLease(runId: string, ttlMs: number) {
-    const key = this.lockKey(runId);
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const lock = JSON.parse(raw);
-        if (lock.ownerId === this.ownerId) {
-          localStorage.setItem(key, JSON.stringify({ ownerId: this.ownerId, expiresAt: Date.now() + ttlMs }));
-        }
-      }
-    } catch {}
-  }
-
-  private releaseLease(runId: string) {
-    const key = this.lockKey(runId);
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const lock = JSON.parse(raw);
-        if (lock.ownerId === this.ownerId) localStorage.removeItem(key);
-      }
-    } catch {}
-  }
-
   // --- PUBLIC API ---
 
   async startRun(): Promise<AutomationRun> {
     const runId = uuidLike();
     
+    // Check global mutex (handled by DB/external lock)
     const hasLock = await db.acquireMutex(runId, 5000);
     if (!hasLock) {
       throw new Error("System busy. Another automation is initializing. Please retry in 5 seconds.");
@@ -168,6 +123,7 @@ export class AutomationOrchestrator {
     }
 
     // Guardrail 2: Strict resume filter
+    // Fixed: Removed redundant check causing TS narrowing error
     const interrupted = all.filter(r => 
       r.status === 'running' && 
       !r.completedAt && 
@@ -198,14 +154,7 @@ export class AutomationOrchestrator {
   private async processRun(runId: string) {
     // Guardrail 5: In-memory dedupe
     if (this.activeRunIds.has(runId)) return;
-
-    // Guardrail 6: Cross-tab lease
-    if (!this.acquireLease(runId, 30000)) return;
-
     this.activeRunIds.add(runId);
-    
-    // Maintain lease
-    const heartbeat = setInterval(() => this.renewLease(runId, 30000), 10000);
 
     try {
       let run = db.getRun(runId);
@@ -336,9 +285,7 @@ export class AutomationOrchestrator {
     } catch (e) {
       console.error("Run loop error", e);
     } finally {
-      clearInterval(heartbeat);
       this.activeRunIds.delete(runId);
-      this.releaseLease(runId);
     }
   }
 
