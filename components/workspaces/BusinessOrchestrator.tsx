@@ -3,7 +3,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Lead } from '../../types';
 import { SESSION_ASSETS, orchestrateBusinessPackage } from '../../services/geminiService';
 import { dossierStorage, StrategicDossier } from '../../services/dossierStorage';
-import { OutreachModal } from './OutreachModal';
 
 interface BusinessOrchestratorProps {
   leads: Lead[];
@@ -17,7 +16,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   const [history, setHistory] = useState<StrategicDossier[]>([]);
   const [isOrchestrating, setIsOrchestrating] = useState(false);
   const [activeTab, setActiveTab] = useState<'strategy' | 'narrative' | 'content' | 'outreach'>('strategy');
-  const [isOutreachOpen, setIsOutreachOpen] = useState(false);
 
   // Filter Vault for selected lead
   const targetLead = leads.find(l => l.id === selectedLeadId);
@@ -322,20 +320,14 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
                     {/* Footer Actions */}
                     <div className="border-t border-slate-800 p-6 flex justify-between items-center bg-[#05091a]">
-                       <div className="flex gap-4">
-                          <button 
-                            onClick={handleExportMarkdown}
-                            className="flex items-center gap-2 text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
-                          >
-                             <span>↓</span> EXPORT MARKDOWN
-                          </button>
-                       </div>
-                       
+                       <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                          DOSSIER ID: {currentDossier.id}
+                       </p>
                        <button 
-                         onClick={() => setIsOutreachOpen(true)}
-                         className="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
+                         onClick={handleExportMarkdown}
+                         className="flex items-center gap-2 text-[9px] font-black text-emerald-400 hover:text-white uppercase tracking-widest transition-colors"
                        >
-                          <span>🚀</span> LAUNCH CAMPAIGN
+                          <span>↓</span> EXPORT MARKDOWN
                        </button>
                     </div>
                  </div>
@@ -344,16 +336,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
         </div>
 
       </div>
-
-      {currentDossier && targetLead && (
-        <OutreachModal 
-          isOpen={isOutreachOpen}
-          onClose={() => setIsOutreachOpen(false)}
-          dossier={currentDossier}
-          lead={targetLead}
-          onSent={() => window.location.reload()} // Quick dirty refresh to show status update
-        />
-      )}
     </div>
   );
 };

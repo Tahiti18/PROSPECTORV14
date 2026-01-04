@@ -70,7 +70,7 @@ export const dossierStorage = {
   getAllByLead: (leadId: string): StrategicDossier[] => {
     return getDb()
       .filter(d => d.leadId === leadId)
-      .sort((a, b) => b.version - a.version);
+      .sort((a, b) => b.version - a.version); // Descending version
   },
 
   exportToMarkdown: (dossier: StrategicDossier): string => {
@@ -92,6 +92,15 @@ export const dossierStorage = {
     md += `## 3. OUTREACH SEQUENCE\n`;
     data.outreach?.emailSequence.forEach((e: any, i: number) => {
       md += `### Email ${i+1}\n**Subject:** ${e.subject}\n\n${e.body}\n\n`;
+    });
+    
+    if (data.outreach?.linkedin) {
+        md += `### LinkedIn Message\n${data.outreach.linkedin}\n\n`;
+    }
+
+    md += `## 4. CONTENT PACK\n`;
+    data.contentPack?.forEach((c: any, i: number) => {
+        md += `### Post ${i+1} (${c.platform})\n**Type:** ${c.type}\n**Caption:** ${c.caption}\n\n`;
     });
 
     return md;
