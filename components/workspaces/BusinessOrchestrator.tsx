@@ -146,7 +146,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
       // For non-text, result is base64 data URL. For text, it's the content.
       // We'll trust the user to upload valid assets.
-      saveAsset(type, file.name, result, 'MEDIA_VAULT', targetLead.id);
+      saveAsset(type, `UPLOAD: ${file.name}`, result, 'MEDIA_VAULT', targetLead.id);
       setRefreshKey(prev => prev + 1); // Trigger re-render of asset list
     };
 
