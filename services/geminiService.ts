@@ -93,14 +93,22 @@ export const pushLog = (msg: string) => {
 // --- Utility: Extract JSON safely from model output ---
 export const extractJSON = (text: string) => {
   try {
+    // 1. Try finding a JSON Object
     let match = text.match(/\{[\s\S]*\}/);
     if (match) {
-        return JSON.parse(match[0]);
+        try { return JSON.parse(match[0]); } catch (e) { /* continue */ }
     }
+    // 2. Try finding a JSON Array
+    match = text.match(/\[[\s\S]*\]/);
+    if (match) {
+        try { return JSON.parse(match[0]); } catch (e) { /* continue */ }
+    }
+    // 3. Try finding Markdown block
     match = text.match(/```json([\s\S]*)```/);
     if (match) {
-        return JSON.parse(match[1]);
+        try { return JSON.parse(match[1]); } catch (e) { /* continue */ }
     }
+    // 4. Raw parse attempt
     return JSON.parse(text);
   } catch (e) {
     return null;
@@ -597,7 +605,10 @@ RULES:
     reasoningDepth: "HIGH",
     isClientFacing: true,
     contents: prompt,
-    config: { thinkingConfig: { thinkingBudget: 4000 } },
+    config: { 
+        thinkingConfig: { thinkingBudget: 4000 },
+        responseMimeType: "application/json" 
+    },
   });
 
   return extractJSON(text || "[]") || [];
