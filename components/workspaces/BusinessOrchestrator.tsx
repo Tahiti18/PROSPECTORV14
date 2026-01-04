@@ -20,7 +20,11 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   const [isOrchestrating, setIsOrchestrating] = useState(false);
   const [activeTab, setActiveTab] = useState<'strategy' | 'narrative' | 'content' | 'outreach'>('strategy');
   const [isOutreachOpen, setIsOutreachOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0); // Forces asset list refresh
+  
+  // Vault Injection State
+  const [refreshKey, setRefreshKey] = useState(0); 
+  const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [uploadError, setUploadError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter Vault for selected lead
@@ -29,15 +33,15 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   const leadAssets = useMemo(() => {
     if (!targetLead) return [];
     
-    // Priority 1: Exact Lead ID Match (The Patch)
-    // Priority 2: Fuzzy Title Match (Legacy Fallback)
-    const searchTerms = targetLead.businessName.toLowerCase().split(' ');
-    
+    // Dependency on refreshKey forces re-calc after upload
+    const _ = refreshKey; 
+
     return SESSION_ASSETS.filter(a => {
-      // Precise Match
+      // Precise Match (Primary)
       if (a.leadId && a.leadId === targetLead.id) return true;
       
-      // Fuzzy Match (Fallback)
+      // Fuzzy Match (Legacy Fallback)
+      const searchTerms = targetLead.businessName.toLowerCase().split(' ');
       const titleLower = a.title.toLowerCase();
       return searchTerms.some(term => term.length > 3 && titleLower.includes(term));
     });
@@ -57,7 +61,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       setHistory(savedDossiers);
       
       if (savedDossiers.length > 0) {
-        // Auto-load the latest
         setCurrentDossier(savedDossiers[0]);
         setPackageData(savedDossiers[0].data);
       } else {
@@ -74,6 +77,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       const result = await orchestrateBusinessPackage(targetLead, leadAssets);
       
       // PERSISTENCE LAYER: Auto-Save
+      // Only save IDs, not blobs
       const saved = dossierStorage.save(targetLead, result, leadAssets.map(a => a.id));
       
       setPackageData(result);
@@ -106,16 +110,37 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     document.body.removeChild(a);
   };
 
-  const handleCopyMarkdown = () => {
+  const handleCopyMarkdown = async () => {
     if (!currentDossier) return;
     const md = dossierStorage.exportToMarkdown(currentDossier);
-    navigator.clipboard.writeText(md);
-    alert("Full dossier markdown copied to clipboard.");
+    try {
+      await navigator.clipboard.writeText(md);
+      alert("Full dossier markdown copied to clipboard.");
+    } catch (e) {
+      // Fallback for older browsers or strict permissions
+      const ta = document.createElement("textarea");
+      ta.value = md;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      alert("Copied (fallback mode) ✓");
+    }
   };
 
   const handleSaveSnapshot = () => {
     if (!targetLead || !packageData) return;
     const saved = dossierStorage.save(targetLead, packageData, leadAssets.map(a => a.id));
+    
+    // Safety Assertion: Ensure we aren't saving heavy blobs in the dossier record
+    // This protects LocalStorage quota
+    if (process.env.NODE_ENV !== "production") {
+      const s = JSON.stringify(saved);
+      if (s.includes("data:image") || (s.includes("base64") && s.length > 20000)) {
+        console.warn("CRITICAL WARNING: Dossier snapshot contains heavy payload. Verify asset linking.");
+      }
+    }
+
     setHistory(prev => [saved, ...prev]);
     setCurrentDossier(saved);
     alert(`Snapshot v${saved.version} saved successfully.`);
@@ -131,26 +156,46 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     const file = e.target.files?.[0];
     if (!file || !targetLead) return;
 
-    // Guardrail: Size Check (Max 25MB for LocalStorage safety)
+    setUploadError("");
+    setUploadStatus("Reading file...");
+
+    // Guardrail A: Size Check
     const MAX_MB = 25;
     if (file.size > MAX_MB * 1024 * 1024) {
-      alert(`File too large (${Math.round(file.size / 1024 / 1024)}MB). Max ${MAX_MB}MB for V1.`);
+      setUploadError(`File too large (${Math.round(file.size / 1024 / 1024)}MB). Max ${MAX_MB}MB.`);
+      setUploadStatus("");
       return;
     }
 
     const reader = new FileReader();
+    
     reader.onload = (ev) => {
-      const result = ev.target?.result as string;
-      let type: AssetRecord['type'] = 'TEXT';
-      
-      if (file.type.startsWith('image/')) type = 'IMAGE';
-      else if (file.type.startsWith('video/')) type = 'VIDEO';
-      else if (file.type.startsWith('audio/')) type = 'AUDIO';
-      else type = 'TEXT';
+      try {
+        const result = ev.target?.result as string;
+        let type: AssetRecord['type'] = 'TEXT';
+        
+        if (file.type.startsWith('image/')) type = 'IMAGE';
+        else if (file.type.startsWith('video/')) type = 'VIDEO';
+        else if (file.type.startsWith('audio/')) type = 'AUDIO';
+        
+        setUploadStatus("Encrypting to Vault...");
+        
+        // This pushes to SESSION_ASSETS (Vault) - Base64 is allowed here
+        saveAsset(type, `UPLOAD: ${file.name}`, result, 'MEDIA_VAULT', targetLead.id);
+        
+        setRefreshKey(prev => prev + 1); // Force asset list refresh
+        setUploadStatus(`Uploaded ✓ ${file.name}`);
+        
+        setTimeout(() => setUploadStatus(""), 3000);
+      } catch (err) {
+        setUploadError("Vault Write Failed: Storage Full?");
+        setUploadStatus("");
+      }
+    };
 
-      // For non-text, result is base64 data URL. For text, it's the content.
-      saveAsset(type, `UPLOAD: ${file.name}`, result, 'MEDIA_VAULT', targetLead.id);
-      setRefreshKey(prev => prev + 1); // Trigger re-render of asset list
+    reader.onerror = () => {
+        setUploadError("File Read Error");
+        setUploadStatus("");
     };
 
     if (file.type.startsWith('text/') || file.type === 'application/json') {
@@ -281,15 +326,19 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                       />
                       <button 
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all mb-4"
+                        className="w-full bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all mb-2 flex items-center justify-center gap-2"
                       >
-                        + QUICK UPLOAD ASSET
+                        <span>⬆️</span> QUICK UPLOAD ASSET
                       </button>
+                      
+                      {/* Upload Status Feedback */}
+                      {uploadStatus && <div className="text-[9px] text-emerald-400 font-bold text-center mb-2 animate-pulse">{uploadStatus}</div>}
+                      {uploadError && <div className="text-[9px] text-rose-500 font-bold text-center mb-2">{uploadError}</div>}
 
                       <button 
                         onClick={handleOrchestrate}
                         disabled={isOrchestrating}
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800"
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800 mt-2"
                       >
                         {isOrchestrating ? 'SYNTHESIZING...' : (currentDossier ? 'GENERATE NEW VERSION' : 'ASSEMBLE DOSSIER')}
                       </button>
