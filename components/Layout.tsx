@@ -107,6 +107,7 @@ export const Layout: React.FC<LayoutProps> = ({
       { id: 'MEDIA_VAULT', label: 'MEDIA VAULT', icon: '🔒' },
     ],
     SELL: [
+      { id: 'BUSINESS_ORCHESTRATOR', label: 'BUSINESS ORCHESTRATOR', icon: '🎼' },
       { id: 'PROPOSALS', label: 'PROPOSALS', icon: '📝' },
       { id: 'ROI_CALC', label: 'ROI CALC', icon: '💰' },
       { id: 'SEQUENCER', label: 'SEQUENCER', icon: '⛓️' },

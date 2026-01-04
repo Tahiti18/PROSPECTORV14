@@ -95,10 +95,6 @@ export const importVault = (externalAssets: AssetRecord[]) => {
       addedCount++;
     }
   });
-
-  // Re-sort by timestamp descending (assuming id contains timestamp or relying on order)
-  // Since IDs aren't strictly chronological in all cases, we just keep them appended or unshifted.
-  // For simplicity, we'll sort based on insert time (simulated)
   
   try {
     localStorage.setItem(STORAGE_KEY_VAULT, JSON.stringify(SESSION_ASSETS));
@@ -310,6 +306,75 @@ Schema: { "entityName": "", "missionSummary": "", "visualStack": [{"label":"", "
 
 export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> => fetchLiveIntel(lead, "BENCHMARK");
 
+// ... existing helpers ...
+
+export const orchestrateBusinessPackage = async (lead: Lead, assets: AssetRecord[]): Promise<any> => {
+  pushLog(`ORCHESTRATING BUSINESS PACKAGE FOR ${lead.businessName}`);
+  
+  // Prepare Context
+  const textContext = assets
+    .filter(a => a.type === 'TEXT')
+    .map(a => `[ASSET: ${a.title}] (${a.module}): ${a.data}`)
+    .join('\n\n');
+    
+  const mediaContext = assets
+    .filter(a => a.type !== 'TEXT')
+    .map(a => `[${a.type} ASSET]: ${a.title} (Available in Vault)`)
+    .join('\n');
+
+  const prompt = `
+    You are the Chief Strategy Orchestrator for a High-Ticket AI Agency.
+    
+    TARGET CLIENT: ${lead.businessName} (${lead.niche})
+    LOCATION: ${lead.city}
+    SOCIAL GAP: ${lead.socialGap}
+    
+    AVAILABLE INTELLIGENCE VAULT ASSETS:
+    ${textContext}
+    
+    AVAILABLE MEDIA ASSETS:
+    ${mediaContext}
+    
+    MISSION:
+    Synthesize all available intelligence and assets into a cohesive "Final Delivery Package".
+    You must weave the text insights together and reference the existence of media assets where appropriate in the strategy.
+    
+    RETURN JSON STRUCTURE:
+    {
+      "presentation": {
+        "title": "Main Deck Title",
+        "slides": [
+          { "title": "Slide Title", "bullets": ["Point 1", "Point 2"], "visualRef": "Description of visual to use" }
+        ]
+      },
+      "narrative": "A compelling 2-paragraph executive summary pitch weaving the assets together.",
+      "contentPack": [
+        { "platform": "Instagram", "type": "Reel", "caption": "Caption text...", "assetRef": "Reference to a Vault asset if applicable" }
+      ],
+      "outreach": {
+        "emailSequence": [
+          { "subject": "Subject line", "body": "Email body..." }
+        ],
+        "linkedin": "Connection note text..."
+      }
+    }
+  `;
+
+  const text = await loggedGenerateContent({
+    ai: getAI(),
+    module: "BUSINESS_ORCHESTRATOR",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: "application/json", thinkingConfig: { thinkingBudget: 16000 } }
+  });
+
+  return extractJSON(text || "{}");
+};
+
+// ... remaining existing functions ...
 export const runFlashPrompt = async (prompt: string): Promise<string> => {
   const text = await loggedGenerateContent({
     ai: getAI(), module: "PROMPT_AI", model: "gemini-3-flash-preview", modelClass: "FLASH",

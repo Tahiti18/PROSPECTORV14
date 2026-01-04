@@ -31,7 +31,7 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'OPERATE', mod: 'VIDEO_AI', label: 'VIDEO AI', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'FACT_CHECK', label: 'FACT CHECK', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'TRANSLATOR', label: 'TRANSLATOR', zone: 'OPERATE ZONE' },
-  // CREATE ZONE (ROSE - Screenshot 17)
+  // CREATE ZONE (ROSE)
   { mode: 'CREATE', mod: 'VIDEO_PITCH', label: 'VIDEO PITCH', zone: 'CREATE ZONE' },
   { mode: 'CREATE', mod: 'VISUAL_STUDIO', label: 'VISUAL STUDIO', zone: 'CREATE ZONE' },
   { mode: 'CREATE', mod: 'MOCKUPS_4K', label: '4K MOCKUPS', zone: 'CREATE ZONE' },
@@ -40,7 +40,8 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'CREATE', mod: 'MOTION_LAB', label: 'MOTION LAB', zone: 'CREATE ZONE' },
   { mode: 'CREATE', mod: 'FLASH_SPARK', label: 'FLASH SPARK', zone: 'CREATE ZONE' },
   { mode: 'CREATE', mod: 'MEDIA_VAULT', label: 'MEDIA VAULT', zone: 'CREATE ZONE' },
-  // SELL ZONE (EMERALD - Screenshot 18)
+  // SELL ZONE (EMERALD)
+  { mode: 'SELL', mod: 'BUSINESS_ORCHESTRATOR', label: 'BUSINESS ORCHESTRATOR', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'PROPOSALS', label: 'PROPOSALS', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'ROI_CALC', label: 'ROI CALC', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'SEQUENCER', label: 'SEQUENCER', zone: 'SELL ZONE' },
@@ -52,7 +53,7 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'SELL', mod: 'AI_CONCIERGE', label: 'AI CONCIERGE', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'PITCH_GEN', label: 'PITCH GEN', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'FUNNEL_MAP', label: 'FUNNEL MAP', zone: 'SELL ZONE' },
-  // CONTROL ZONE (AMBER - Screenshot 19)
+  // CONTROL ZONE (AMBER)
   { mode: 'CONTROL', mod: 'PLAYBOOK', label: 'PLAYBOOK', zone: 'CONTROL ZONE' },
   { mode: 'CONTROL', mod: 'BILLING', label: 'BILLING', zone: 'CONTROL ZONE' },
   { mode: 'CONTROL', mod: 'AFFILIATE', label: 'AFFILIATE', zone: 'CONTROL ZONE' },

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MainMode, SubModule, Lead, ComputeStats } from './types';
 import { Layout } from './components/Layout';
@@ -60,6 +59,7 @@ import { ArticleIntel } from './components/workspaces/ArticleIntel';
 import { CinemaIntel } from './components/workspaces/CinemaIntel';
 import { ROICalc } from './components/workspaces/ROICalc';
 import { VisualStudio } from './components/workspaces/VisualStudio';
+import { BusinessOrchestrator } from './components/workspaces/BusinessOrchestrator';
 import { subscribeToCompute } from './services/computeTracker';
 
 const STORAGE_KEY_LEADS = 'pomelli_os_leads_v14_final';
@@ -98,7 +98,7 @@ const App: React.FC = () => {
 
     const unsubscribe = subscribeToCompute(setCompute);
 
-    // Safe Resume Logic (uses internal duplicate guard)
+    // Safe Resume Logic
     if (!didInitRef.current) {
       didInitRef.current = true;
       import('./services/automation/orchestrator').then(({ AutomationOrchestrator }) => {
@@ -120,17 +120,12 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY_THEME, theme);
   }, [theme]);
 
-  // Auto-save Theater
+  // Auto-save
   useEffect(() => {
     if (!isHydrated) return;
     localStorage.setItem(STORAGE_KEY_THEATER, theater);
-  }, [theater, isHydrated]);
-
-  // Auto-save Leads
-  useEffect(() => {
-    if (!isHydrated) return;
     localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
-  }, [leads, isHydrated]);
+  }, [leads, theater, isHydrated]);
 
   const lockedLead = useMemo(() => leads.find(l => l.id === lockedLeadId), [leads, lockedLeadId]);
   const handleUpdateStatus = (id: string, status: Lead['status']) => { setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l)); };
@@ -165,14 +160,8 @@ const App: React.FC = () => {
     if (activeMode === 'OPERATE') {
       switch (activeModule) {
         case 'COMMAND': return <MissionControl leads={leads} theater={theater} onNavigate={navigate} />;
-        case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(newLeads) => { 
-          // APPEND ONLY - Accumulate intelligence
-          setLeads(prev => [...prev, ...newLeads]); 
-          navigate('OPERATE', 'TARGET_LIST'); 
-        }} />;
-        case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => {
-          setLeads(prev => [...prev, ...newL]);
-        }} />;
+        case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(newLeads) => { setLeads(prev => [...prev, ...newLeads]); navigate('OPERATE', 'TARGET_LIST'); }} />;
+        case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => setLeads(prev => [...prev, ...newL])} />;
         case 'TARGET_LIST': return <TargetList leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('OPERATE', 'WAR_ROOM'); }} />;
         case 'WAR_ROOM': return <WarRoom lead={lockedLead} />;
         case 'PIPELINE': return <Pipeline leads={leads} onUpdateStatus={handleUpdateStatus} />;
@@ -208,6 +197,7 @@ const App: React.FC = () => {
     }
     if (activeMode === 'SELL') {
       switch (activeModule) {
+        case 'BUSINESS_ORCHESTRATOR': return <BusinessOrchestrator leads={leads} lockedLead={lockedLead} />;
         case 'PROPOSALS': return <SellWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
         case 'SEQUENCER': return <Sequencer lead={lockedLead} />;
         case 'VOICE_STRAT': return <VoiceStrat lead={lockedLead} />;
@@ -325,4 +315,5 @@ const App: React.FC = () => {
     </div>
   );
 };
+
 export default App;
