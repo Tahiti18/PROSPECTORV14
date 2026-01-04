@@ -62,23 +62,26 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
 
     MISSION:
     1. Analyze the target URL using Google Search to identify their actual business model, tech stack, and branding.
-    2. If the URL is inaccessible, blocked, or new, INFER the likely profile based on the business name and niche ("${lead.niche}"). 
-    3. IMPORTANT: DO NOT RETURN EMPTY DATA. If data is missing, SIMULATE a highly plausible, professional profile.
-    4. "deepArchitecture" must be a long, multi-paragraph technical breakdown (at least 300 words).
+    2. STRICT GROUNDING PROTOCOL: 
+       - You must ONLY use verifiable information found via Google Search.
+       - DO NOT GUESS. DO NOT INFER. DO NOT SIMULATE. 
+       - If the website content cannot be verified or found, return "DATA_UNAVAILABLE" for that specific field.
+       - Do not make up a "marketing agency" profile if the site is about something else.
+    3. Construct a deep technical and strategic report based ONLY on facts.
 
     OUTPUT FORMAT:
     Return ONLY a raw JSON object. No markdown formatting. No preamble.
     
     JSON SCHEMA:
     {
-      "entityName": "Verified Business Name",
-      "missionSummary": "Executive summary of their market position.",
+      "entityName": "Verified Business Name (Or 'Unknown')",
+      "missionSummary": "Executive summary of their market position (based on search results).",
       "visualStack": [ {"label": "Tech/Style", "description": "e.g. React, WebGL, Minimalist"} ],
       "sonicStack": [ {"label": "Tone/Audio", "description": "e.g. Corporate Synth, Voice Over"} ],
-      "featureGap": "Critical missing opportunity (e.g. No AI Chatbot).",
-      "businessModel": "How they make money.",
+      "featureGap": "Critical missing opportunity (based on actual site audit).",
+      "businessModel": "How they make money (Verified).",
       "designSystem": "Visual identity analysis.",
-      "deepArchitecture": "Long form technical analysis."
+      "deepArchitecture": "Technical analysis based on search grounding."
     }
   `;
 
@@ -88,7 +91,7 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        // Drastically increased thinking budget for Elite nodes to ensure quality
+        // High budget for Pro model to process search results, but strict instruction prevents hallucination
         thinkingConfig: isElite ? { thinkingBudget: 16000 } : undefined,
       }
     });
@@ -105,7 +108,7 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
 
     return {
       entityName: rawData.entityName || lead.businessName,
-      missionSummary: rawData.missionSummary || "Intelligence extraction in progress.",
+      missionSummary: rawData.missionSummary || "No verifiable intelligence found.",
       visualStack: rawData.visualStack || [],
       sonicStack: rawData.sonicStack || [],
       featureGap: rawData.featureGap || "Tactical gap analysis pending.",
@@ -116,16 +119,16 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
     };
   } catch (error) {
     pushLog(`INTEL_FETCH_FAILURE: ${error instanceof Error ? error.message : 'Unknown Connection Error'}`);
-    // Return a graceful failure object so the UI doesn't crash
+    // Return explicit failure so user knows it failed rather than seeing fake data
     return {
         entityName: lead.businessName,
-        missionSummary: "TARGET_LOCKED: SIGNAL_INTERFERENCE. MANUAL RECON ADVISED.",
-        visualStack: [{ label: "Error", description: "Connection reset by peer" }],
+        missionSummary: "TARGET_LOCKED: SIGNAL_LOST. MANUAL RECON ADVISED.",
+        visualStack: [{ label: "Error", description: "Target not indexed or blocked." }],
         sonicStack: [],
         featureGap: "DATA_UNAVAILABLE",
         businessModel: "UNKNOWN",
         designSystem: "UNKNOWN",
-        deepArchitecture: "The automated reconnaissance unit encountered a firewall or empty response vector. Proceed with manual inspection.",
+        deepArchitecture: "The automated reconnaissance unit could not verify this target via public indices. No hallucination generated.",
         sources: []
     };
   }
