@@ -156,10 +156,13 @@ const App: React.FC = () => {
     if (activeMode === 'OPERATE') {
       switch (activeModule) {
         case 'COMMAND': return <MissionControl leads={leads} theater={theater} onNavigate={navigate} />;
-        case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(l) => { setLeads(l); navigate('OPERATE', 'TARGET_LIST'); }} />;
+        case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(newLeads) => { 
+          // APPEND ONLY - Accumulate intelligence
+          setLeads(prev => [...prev, ...newLeads]); 
+          navigate('OPERATE', 'TARGET_LIST'); 
+        }} />;
         case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => {
           setLeads(prev => [...prev, ...newL]);
-          // Optional: Show a quick toast or log here if needed, but the UI updates automatically.
         }} />;
         case 'TARGET_LIST': return <TargetList leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('OPERATE', 'WAR_ROOM'); }} />;
         case 'WAR_ROOM': return <WarRoom lead={lockedLead} />;
@@ -256,8 +259,20 @@ const App: React.FC = () => {
           try { 
             const data = JSON.parse(ev.target?.result as string);
             if (Array.isArray(data)) {
-               setLeads(data);
-               alert(`SUCCESS: ${data.length} TARGETS IMPORTED.`);
+               // CRITICAL FIX: Append instead of replace. Also filter duplicates by ID to prevent key errors.
+               setLeads(prev => {
+                 // Create a map of existing IDs for O(1) lookup
+                 const existingIds = new Set(prev.map(p => p.id));
+                 // Only add leads that don't already exist in the ledger
+                 const uniqueNewLeads = data.filter((d: any) => !existingIds.has(d.id));
+                 
+                 // If all imports are duplicates, we might want to warn, but safe behavior is to just keep existing.
+                 // Alternatively, regenerate IDs for imports to allow duplicates if desired (commented out below).
+                 // const sanitizedImports = data.map((d: any, i: number) => ({ ...d, id: `imp-${Date.now()}-${i}` }));
+                 
+                 return [...prev, ...uniqueNewLeads];
+               });
+               alert(`SUCCESS: IMPORTED TARGETS MERGED INTO LEDGER.`);
             } else {
                alert("IMPORT ERROR: FILE MUST BE A VALID JSON ARRAY.");
             }
