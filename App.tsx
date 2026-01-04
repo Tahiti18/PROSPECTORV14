@@ -119,7 +119,6 @@ const App: React.FC = () => {
   // Auto-save Leads
   useEffect(() => {
     if (!isHydrated) return;
-    // Always sync leads to local storage, even if empty (to allow clearing)
     localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
   }, [leads, isHydrated]);
 
@@ -222,11 +221,11 @@ const App: React.FC = () => {
         case 'AFFILIATE': return <AffiliateNode />;
         case 'SETTINGS': return <SettingsNode />;
         case 'CIPHER_NODE': return <CipherNode />;
-        case 'NEXUS_GRAPH': return <NexusGraph />;
+        case 'NEXUS_GRAPH': return <NexusGraph leads={leads} />;
         case 'CHRONOS': return <ChronosNode />;
         case 'TASKS': return <TasksNode lead={lockedLead} />;
         case 'EXPORT_DATA': return <ExportNode leads={leads} />;
-        case 'CALENDAR': return <CalendarNode />;
+        case 'CALENDAR': return <CalendarNode leads={leads} />;
         case 'PROD_LOG': return <ProdLog />;
         case 'THEME': return <ThemeNode />;
         case 'TOKENS': return <TokenNode />;
@@ -259,17 +258,9 @@ const App: React.FC = () => {
           try { 
             const data = JSON.parse(ev.target?.result as string);
             if (Array.isArray(data)) {
-               // CRITICAL FIX: Append instead of replace. Also filter duplicates by ID to prevent key errors.
                setLeads(prev => {
-                 // Create a map of existing IDs for O(1) lookup
                  const existingIds = new Set(prev.map(p => p.id));
-                 // Only add leads that don't already exist in the ledger
                  const uniqueNewLeads = data.filter((d: any) => !existingIds.has(d.id));
-                 
-                 // If all imports are duplicates, we might want to warn, but safe behavior is to just keep existing.
-                 // Alternatively, regenerate IDs for imports to allow duplicates if desired (commented out below).
-                 // const sanitizedImports = data.map((d: any, i: number) => ({ ...d, id: `imp-${Date.now()}-${i}` }));
-                 
                  return [...prev, ...uniqueNewLeads];
                });
                alert(`SUCCESS: IMPORTED TARGETS MERGED INTO LEDGER.`);

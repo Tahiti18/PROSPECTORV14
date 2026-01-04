@@ -1,9 +1,25 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { generatePlaybookStrategy } from '../../services/geminiService';
 
 export const ScoringRubricView: React.FC = () => {
+  const [strategy, setStrategy] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleGenerate = async () => {
+    setIsLoading(true);
+    try {
+      const data = await generatePlaybookStrategy('High-Ticket SaaS'); // Default for now
+      setStrategy(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="space-y-16 max-w-[1400px] mx-auto py-12 px-6 pb-32">
+    <div className="space-y-16 max-w-[1400px] mx-auto py-12 px-6 pb-32 animate-in fade-in duration-700">
       <div className="text-center space-y-4">
         <h1 className="text-7xl font-black italic tracking-tighter text-white uppercase leading-none">THE POMELLI <span className="text-indigo-600 not-italic">PLAYBOOK</span></h1>
         <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.6em] italic">Master Methodology & Scoring Rubric</h2>
@@ -39,58 +55,50 @@ export const ScoringRubricView: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column - Asset Grading */}
+        {/* Right Column - Asset Grading / Strategy */}
         <div className="lg:col-span-5 space-y-10 flex flex-col">
-          <div className="bg-[#0b1021]/80 border border-slate-800 rounded-[56px] p-16 flex-1 shadow-2xl relative overflow-hidden">
+          <div className="bg-[#0b1021]/80 border border-slate-800 rounded-[56px] p-12 flex-1 shadow-2xl relative overflow-hidden flex flex-col">
              <div className="absolute bottom-0 right-0 w-48 h-48 bg-emerald-500/5 blur-[80px] rounded-full -mr-24 -mb-24"></div>
-             <h3 className="text-lg font-black text-slate-200 uppercase tracking-[0.4em] italic mb-14 relative z-10">Asset Grading Protocol</h3>
-             <div className="space-y-12 relative z-10">
-               {[
-                 { grade: 'A', title: 'ELITE TARGET', sub: 'Exceptional premium visuals + weak funnel. Massive upside and immediate ROI potential.', color: 'emerald' },
-                 { grade: 'B', title: 'VIABLE TARGET', sub: 'Solid visuals + room for improvement. Viable prospect with clear conversion lift.', color: 'indigo' },
-                 { grade: 'C', title: 'SECONDARY TARGET', sub: 'Borderline. Potentially profitable but requires significant foundational work.', color: 'slate' },
-               ].map((g, i) => (
-                 <div key={i} className="flex gap-8 items-start group">
-                   <div className={`w-20 h-20 rounded-3xl bg-${g.color === 'emerald' ? 'emerald' : g.color === 'indigo' ? 'indigo' : 'slate'}-500/10 border border-${g.color === 'emerald' ? 'emerald' : g.color === 'indigo' ? 'indigo' : 'slate'}-500/20 flex items-center justify-center font-black text-3xl text-${g.color === 'emerald' ? 'emerald' : g.color === 'indigo' ? 'indigo' : 'slate'}-400 group-hover:scale-110 group-hover:bg-${g.color}-500/20 transition-all shadow-lg`}>
-                     {g.grade}
-                   </div>
-                   <div className="space-y-2 pt-1">
-                     <h4 className="text-[11px] font-black text-slate-100 uppercase tracking-[0.2em] group-hover:text-white transition-colors">{g.title}</h4>
-                     <p className="text-[10px] text-slate-500 font-bold uppercase leading-relaxed tracking-widest">{g.sub}</p>
-                   </div>
-                 </div>
-               ))}
-             </div>
-          </div>
+             
+             {!strategy && !isLoading && (
+                <div className="flex-1 flex flex-col items-center justify-center space-y-8">
+                   <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter text-center">STRATEGY FORGE</h3>
+                   <button 
+                     onClick={handleGenerate}
+                     className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                   >
+                     GENERATE MARKET PROTOCOL
+                   </button>
+                </div>
+             )}
 
-          <div className="bg-[#0b1021]/50 border border-slate-800 rounded-[48px] p-12 flex flex-col items-center justify-center text-center space-y-6 shadow-xl relative overflow-hidden group">
-             <div className="absolute inset-0 bg-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-             <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.5em] relative z-10">Quick Objective</span>
-             <p className="text-sm font-black text-slate-400 italic max-w-sm leading-relaxed relative z-10 px-4 group-hover:text-slate-300 transition-colors">
-               "WE BUILD FOR THE FUTURE BY EXPLOITING THE GAPS OF THE PRESENT. SECURE THE VISUAL, BRIDGE THE SOCIAL, CLOSE THE DEAL."
-             </p>
+             {isLoading && (
+                <div className="flex-1 flex flex-col items-center justify-center space-y-6">
+                   <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                   <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest animate-pulse">Architecting Sales Logic...</p>
+                </div>
+             )}
+
+             {strategy && (
+                <div className="space-y-8 relative z-10 animate-in fade-in duration-700">
+                   <h3 className="text-lg font-black text-emerald-400 uppercase tracking-[0.2em] italic mb-6">{strategy.strategyName}</h3>
+                   <div className="space-y-6">
+                      {strategy.steps?.map((s: any, i: number) => (
+                        <div key={i} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl">
+                           <div className="flex gap-4">
+                              <span className="text-emerald-500 font-black italic text-xl">{i+1}</span>
+                              <div>
+                                 <h4 className="text-[11px] font-black text-white uppercase tracking-widest">{s.title}</h4>
+                                 <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">{s.tactic}</p>
+                              </div>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+             )}
           </div>
         </div>
-      </div>
-
-      {/* Steps at the bottom */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8">
-        {[
-          { step: 'STEP 1: GROUNDING', desc: 'IDENTIFY THE GRADE-A VISUAL GAPS.' },
-          { step: 'STEP 2: PRODUCTION', desc: 'BUILD THE 4K MOCKUP AND VEO PITCH.' },
-          { step: 'STEP 3: OUTREACH', desc: 'SEND THE MAGIC LINK AND CLOSE.' }
-        ].map((s, i) => (
-          <div key={i} className="bg-[#0b1021]/40 border border-slate-800/60 p-12 rounded-[40px] flex flex-col items-start gap-4 group hover:border-slate-700 transition-all">
-            <h4 className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.3em]">{s.step}</h4>
-            <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">{s.desc}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex justify-center pt-20">
-         <button className="px-12 py-5 bg-slate-900 border border-slate-800 rounded-3xl text-[11px] font-black uppercase tracking-[0.4em] text-slate-500 hover:text-white hover:border-slate-600 transition-all shadow-xl active:scale-95">
-           RESTART INDOCTRINATION TOUR
-         </button>
       </div>
     </div>
   );

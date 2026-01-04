@@ -14,8 +14,8 @@ const getAI = () => {
 export const PRODUCTION_LOGS: string[] = [];
 const pushLog = (msg: string) => {
   console.log(`[SYSTEM_LOG] ${msg}`);
-  PRODUCTION_LOGS.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
-  if (PRODUCTION_LOGS.length > 100) PRODUCTION_LOGS.shift();
+  PRODUCTION_LOGS.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
+  if (PRODUCTION_LOGS.length > 100) PRODUCTION_LOGS.pop();
 };
 
 const extractJSON = (text: string) => {
@@ -480,5 +480,48 @@ export const analyzeVideoUrl = async (url: string, prompt: string): Promise<stri
   } catch (e) {
     console.error(e);
     return "Failed to analyze video URL.";
+  }
+};
+
+// --- NEW STRATEGIC & IDENTITY MODULES ---
+
+export const generateAgencyIdentity = async (niche: string, region: string): Promise<any> => {
+  pushLog(`FORGING AGENCY IDENTITY FOR ${niche} IN ${region}`);
+  const ai = getAI();
+  const prompt = `Create a high-end, futuristic AI Agency Brand Identity targeting ${niche} in ${region}.
+  Return valid JSON: { "name": "Name", "tagline": "Tagline", "manifesto": "Short manifesto", "colors": ["Hex1", "Hex2"] }`;
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: { responseMimeType: "application/json" }
+    });
+    return JSON.parse(response.text || "{}");
+  } catch (e) {
+    console.error(e);
+    return { name: "COGNITIVE CORE", tagline: "System Failure Backup", manifesto: "Manual Override Required.", colors: ["#000", "#FFF"] };
+  }
+};
+
+export const generatePlaybookStrategy = async (theater: string): Promise<any> => {
+  pushLog(`ARCHITECTING PLAYBOOK FOR ${theater}`);
+  const ai = getAI();
+  const prompt = `Write a 3-step high-ticket AI sales playbook for the ${theater} market.
+  Return valid JSON: { "strategyName": "Title", "steps": [{ "title": "Step 1", "tactic": "Detail" }, ...] }`;
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-pro-preview",
+      contents: prompt,
+      config: { 
+        responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 8000 }
+      }
+    });
+    return JSON.parse(response.text || "{}");
+  } catch (e) {
+    console.error(e);
+    return { strategyName: "DEFAULT PROTOCOL", steps: [] };
   }
 };
