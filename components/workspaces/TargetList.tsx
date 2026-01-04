@@ -39,62 +39,106 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
   };
 
   return (
-    <div className="space-y-8 py-6 max-w-[1550px] mx-auto relative px-4 pb-24 animate-in fade-in duration-700">
+    <div className="space-y-8 py-6 max-w-[1600px] mx-auto relative px-6 pb-24 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
-        <h3 className="text-5xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase leading-none">TARGET <span className="text-indigo-600 not-italic opacity-50">LEDGER</span></h3>
+        <h3 className="text-6xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl">
+          TARGET <span className="text-indigo-600 not-italic">LEDGER</span>
+        </h3>
         <button 
           onClick={handleOneClickRun}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-600/30 transition-all active:scale-95 border-b-4 border-indigo-700 flex items-center gap-3"
+          className="bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-4 rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-600/30 transition-all active:scale-95 border-b-4 border-indigo-800 flex items-center gap-3"
         >
           <span className="text-xl">⚡</span>
           RUN BEST LEAD (AUTO)
         </button>
       </div>
 
-      <div className="bg-white dark:bg-[#0b1021]/95 border border-slate-300 dark:border-slate-800 rounded-[32px] overflow-hidden shadow-2xl relative transition-colors">
+      <div className="bg-[#0b1021] border border-slate-800 rounded-[40px] overflow-hidden shadow-2xl relative ring-1 ring-white/5">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-[#080d1e]">
-                <th onClick={() => handleSort('rank')} className="cursor-pointer px-8 py-6 text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-[0.2em] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors select-none whitespace-nowrap">
-                  RANK {sortConfig.key === 'rank' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+              <tr className="border-b border-slate-800 bg-[#05091a]">
+                <th 
+                  onClick={() => handleSort('rank')} 
+                  className="cursor-pointer px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-colors select-none whitespace-nowrap group"
+                >
+                  <div className="flex items-center gap-2">
+                    RANK 
+                    <span className={`text-indigo-500 transition-opacity ${sortConfig.key === 'rank' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                      {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                    </span>
+                  </div>
                 </th>
-                <th onClick={() => handleSort('businessName')} className="cursor-pointer px-8 py-6 text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-[0.2em] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors select-none whitespace-nowrap">
-                  IDENTITY {sortConfig.key === 'businessName' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                <th 
+                  onClick={() => handleSort('businessName')} 
+                  className="cursor-pointer px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-colors select-none whitespace-nowrap group"
+                >
+                  <div className="flex items-center gap-2">
+                    IDENTITY
+                    <span className={`text-indigo-500 transition-opacity ${sortConfig.key === 'businessName' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                      {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                    </span>
+                  </div>
                 </th>
-                <th onClick={() => handleSort('assetGrade')} className="cursor-pointer px-8 py-6 text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-[0.2em] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors select-none text-center whitespace-nowrap">
-                  GRADE {sortConfig.key === 'assetGrade' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                <th 
+                  onClick={() => handleSort('assetGrade')} 
+                  className="cursor-pointer px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-colors select-none text-center whitespace-nowrap group"
+                >
+                  <div className="flex items-center gap-2 justify-center">
+                    GRADE
+                    <span className={`text-indigo-500 transition-opacity ${sortConfig.key === 'assetGrade' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                      {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                    </span>
+                  </div>
                 </th>
-                <th className="hidden lg:table-cell px-8 py-6 text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-[0.2em] select-none whitespace-nowrap">
+                <th className="px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] select-none whitespace-nowrap">
                   SOCIAL GAP / SIGNAL
                 </th>
-                <th onClick={() => handleSort('leadScore')} className="cursor-pointer px-8 py-6 text-[10px] font-black text-slate-700 dark:text-slate-400 uppercase tracking-[0.2em] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors select-none text-right whitespace-nowrap">
-                  SCORE {sortConfig.key === 'leadScore' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                <th 
+                  onClick={() => handleSort('leadScore')} 
+                  className="cursor-pointer px-8 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-colors select-none text-right whitespace-nowrap group"
+                >
+                  <div className="flex items-center gap-2 justify-end">
+                    SCORE
+                    <span className={`text-indigo-500 transition-opacity ${sortConfig.key === 'leadScore' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                      {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                    </span>
+                  </div>
                 </th>
                 <th className="w-40 px-8 py-6"></th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-800/50">
               {sortedLeads.map((lead) => (
-                <tr key={lead.id} className={`group hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-all border-b border-slate-100 dark:border-slate-800/50 last:border-0 ${lead.locked ? 'opacity-60 bg-slate-50 dark:bg-slate-900/30' : ''}`}>
+                <tr key={lead.id} className={`group hover:bg-white/5 transition-all ${lead.locked ? 'opacity-50 bg-slate-900/50' : 'bg-[#0b1021]'}`}>
                   
                   {/* RANK */}
-                  <td className="px-8 py-6 text-xl font-black text-slate-800 dark:text-slate-200 italic group-hover:text-indigo-600 transition-colors">
-                    #{lead.rank}
+                  <td className="px-8 py-6">
+                    <span className="text-2xl font-black text-slate-600 italic group-hover:text-indigo-500 transition-colors">
+                      #{lead.rank}
+                    </span>
                   </td>
                   
                   {/* IDENTITY */}
                   <td className="px-8 py-6">
                     <div className="flex flex-col">
-                      <span className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight group-hover:text-indigo-600 transition-colors leading-tight">
+                      <span 
+                        onClick={() => onInspect(lead.id)}
+                        className="text-xl font-black text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors leading-none cursor-pointer"
+                      >
                         {lead.businessName}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
-                        {lead.city} • {lead.niche}
-                      </span>
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900 px-2 py-1 rounded">
+                          {lead.city}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          {lead.niche}
+                        </span>
+                      </div>
                       {lead.locked && (
-                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mt-2 flex items-center gap-1">
-                          🔒 LOCKED BY RUN {lead.lockedByRunId?.slice(0,4)}
+                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mt-2 flex items-center gap-2 animate-pulse">
+                          <span>🔒</span> LOCKED BY PROTOCOL {lead.lockedByRunId?.slice(0,4)}
                         </span>
                       )}
                     </div>
@@ -102,28 +146,28 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
 
                   {/* GRADE */}
                   <td className="px-8 py-6 text-center">
-                    <span className={`inline-flex items-center justify-center w-10 h-10 rounded-xl text-sm font-black border-2 ${
-                      lead.assetGrade === 'A' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
-                      lead.assetGrade === 'B' ? 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400' :
-                      'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500'
+                    <span className={`inline-flex items-center justify-center w-12 h-12 rounded-xl text-lg font-black border-2 shadow-lg ${
+                      lead.assetGrade === 'A' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10' :
+                      lead.assetGrade === 'B' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 shadow-blue-500/10' :
+                      'bg-slate-800 border-slate-700 text-slate-500'
                     }`}>
                       {lead.assetGrade}
                     </span>
                   </td>
 
                   {/* SOCIAL GAP */}
-                  <td className="hidden lg:table-cell px-8 py-6 max-w-xs">
-                    <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400 line-clamp-2 italic leading-relaxed">
+                  <td className="px-8 py-6 max-w-sm">
+                    <p className="text-[12px] font-medium text-slate-400 line-clamp-2 italic leading-relaxed border-l-2 border-indigo-500/30 pl-4">
                       "{lead.socialGap}"
                     </p>
                   </td>
 
                   {/* SCORE */}
                   <td className="px-8 py-6 text-right">
-                    <span className={`text-4xl font-black italic opacity-80 group-hover:opacity-100 transition-all ${
+                    <span className={`text-5xl font-black italic tracking-tighter ${
                       lead.leadScore >= 80 ? 'text-emerald-500' : 
                       lead.leadScore >= 60 ? 'text-indigo-500' : 
-                      'text-slate-400'
+                      'text-slate-600'
                     }`}>
                       {lead.leadScore}
                     </span>
@@ -133,7 +177,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                   <td className="px-8 py-6 text-right">
                     <button 
                       onClick={() => onInspect(lead.id)} 
-                      className="px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 dark:hover:bg-indigo-400 dark:hover:text-white transition-all shadow-lg active:scale-95"
+                      className="px-8 py-4 bg-white text-black hover:bg-indigo-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
                     >
                       WAR ROOM
                     </button>
@@ -142,8 +186,9 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
               ))}
               {sortedLeads.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-20 text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">NO TARGETS INDEXED</p>
+                  <td colSpan={6} className="py-32 text-center bg-[#0b1021]">
+                    <span className="text-6xl block mb-4 grayscale opacity-20">📂</span>
+                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-[0.4em]">LEDGER EMPTY // INITIATE SCAN</p>
                   </td>
                 </tr>
               )}
