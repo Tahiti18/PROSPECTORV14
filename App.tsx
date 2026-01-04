@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MainMode, SubModule, Lead, ComputeStats } from './types';
 import { Layout } from './components/Layout';
@@ -197,7 +198,7 @@ const App: React.FC = () => {
     }
     if (activeMode === 'SELL') {
       switch (activeModule) {
-        case 'BUSINESS_ORCHESTRATOR': return <BusinessOrchestrator leads={leads} lockedLead={lockedLead} />;
+        case 'BUSINESS_ORCHESTRATOR': return <BusinessOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={setLockedLeadId} />;
         case 'PROPOSALS': return <SellWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
         case 'SEQUENCER': return <Sequencer lead={lockedLead} />;
         case 'VOICE_STRAT': return <VoiceStrat lead={lockedLead} />;

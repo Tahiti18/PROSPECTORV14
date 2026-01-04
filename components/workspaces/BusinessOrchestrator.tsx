@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Lead } from '../../types';
+import { Lead, MainMode, SubModule } from '../../types';
 import { SESSION_ASSETS, orchestrateBusinessPackage } from '../../services/geminiService';
 import { dossierStorage, StrategicDossier } from '../../services/dossierStorage';
 import { OutreachModal } from './OutreachModal';
@@ -8,9 +8,11 @@ import { OutreachModal } from './OutreachModal';
 interface BusinessOrchestratorProps {
   leads: Lead[];
   lockedLead?: Lead;
+  onNavigate: (mode: MainMode, mod: SubModule) => void;
+  onLockLead: (id: string) => void;
 }
 
-export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ leads, lockedLead }) => {
+export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ leads, lockedLead, onNavigate, onLockLead }) => {
   const [selectedLeadId, setSelectedLeadId] = useState<string>(lockedLead?.id || '');
   const [packageData, setPackageData] = useState<any>(null);
   const [currentDossier, setCurrentDossier] = useState<StrategicDossier | null>(null);
@@ -102,6 +104,12 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     document.body.removeChild(a);
   };
 
+  const handleGenerateShortcut = (module: SubModule) => {
+    if (!targetLead) return;
+    onLockLead(targetLead.id);
+    onNavigate('CREATE', module);
+  };
+
   return (
     <div className="max-w-[1600px] mx-auto py-8 space-y-10 animate-in fade-in duration-700">
       
@@ -176,9 +184,22 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
                    <div className="grid grid-cols-2 gap-4">
                       {Object.entries(assetCounts).map(([type, count]) => (
-                        <div key={type} className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
+                        <div key={type} className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl flex justify-between items-center group">
                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{type}</span>
-                           <span className={`text-xl font-black italic ${count > 0 ? 'text-emerald-400' : 'text-slate-700'}`}>{count}</span>
+                           {count > 0 ? (
+                             <span className="text-xl font-black italic text-emerald-400">{count}</span>
+                           ) : (
+                             <button 
+                               onClick={() => {
+                                 if (type === 'IMAGE') handleGenerateShortcut('MOCKUPS_4K');
+                                 if (type === 'VIDEO') handleGenerateShortcut('VIDEO_PITCH');
+                                 if (type === 'AUDIO') handleGenerateShortcut('SONIC_STUDIO');
+                               }}
+                               className="text-[8px] font-black uppercase tracking-widest bg-slate-800 text-slate-400 px-2 py-1 rounded hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                             >
+                               FORGE
+                             </button>
+                           )}
                         </div>
                       ))}
                    </div>
