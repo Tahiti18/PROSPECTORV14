@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { EngineResult, Lead, SubModule } from "../types";
 import { trackCall } from "./computeTracker";
@@ -55,8 +54,11 @@ export const SESSION_ASSETS: AssetRecord[] = persistedAssets;
 
 // Core Auto-Save Function
 export const saveAsset = (type: AssetRecord['type'], title: string, data: string, module: SubModule = 'MEDIA_VAULT', leadId?: string) => {
+  // Guardrail B: Collision-resistant ID
+  const uniqueId = `ASSET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
   const asset: AssetRecord = {
-    id: `ASSET-${Date.now().toString().slice(-6)}`,
+    id: uniqueId,
     type,
     title,
     data, // For text, this is the content. For media, this is base64/url.
@@ -82,6 +84,8 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
     console.warn("Vault Storage Full - Could not persist to disk, kept in memory.", e);
     pushLog(`VAULT MEMORY ONLY: Storage Quota Exceeded`);
   }
+  
+  return asset;
 };
 
 // Import / Merge Utility

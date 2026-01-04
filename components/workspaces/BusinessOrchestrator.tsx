@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Lead, MainMode, SubModule } from '../../types';
 import { SESSION_ASSETS, orchestrateBusinessPackage, saveAsset, AssetRecord } from '../../services/geminiService';
@@ -142,8 +141,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     const saved = dossierStorage.save(targetLead, packageData, leadAssets.map(a => a.id));
     
     // Safety Assertion: Ensure we aren't saving heavy blobs in the dossier record
-    const DEV = (import.meta as any)?.env?.DEV === true;
-    if (DEV) {
+    const isDev = !!(import.meta as any).env?.DEV;
+    if (isDev) {
       const s = JSON.stringify(saved);
       if (s.includes("data:image") || (s.includes("base64") && s.length > 20000)) {
         console.warn("CRITICAL WARNING: Dossier snapshot contains heavy payload. Verify asset linking.");
