@@ -1,12 +1,16 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Lead } from '../../types';
+import { analyzeLedger } from '../../services/geminiService';
 
 interface AnalyticsHubProps {
   leads: Lead[];
 }
 
 export const AnalyticsHub: React.FC<AnalyticsHubProps> = ({ leads }) => {
+  const [analysis, setAnalysis] = useState<{ risk: string; opportunity: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
   // Real calculations based on current ledger
   const stats = useMemo(() => {
     const totalLeads = leads.length;
@@ -31,6 +35,23 @@ export const AnalyticsHub: React.FC<AnalyticsHubProps> = ({ leads }) => {
       leakage: (leakage / 1000000).toFixed(1),
       dominance: avgScore
     };
+  }, [leads]);
+
+  useEffect(() => {
+    if (leads.length > 0 && !analysis) {
+      const runAnalysis = async () => {
+        setIsLoading(true);
+        try {
+          const result = await analyzeLedger(leads);
+          setAnalysis(result);
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      runAnalysis();
+    }
   }, [leads]);
 
   const metrics = [
@@ -87,18 +108,22 @@ export const AnalyticsHub: React.FC<AnalyticsHubProps> = ({ leads }) => {
         </div>
 
         <div className="lg:col-span-5 bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl space-y-12">
-           <h3 className="text-lg font-black italic text-white uppercase tracking-widest">MARKET RISK ANALYSIS</h3>
+           <h3 className="text-lg font-black italic text-white uppercase tracking-widest">AI MARKET RISK ANALYSIS</h3>
            <div className="space-y-6">
               <div className="bg-[#020617] border border-slate-800 p-8 rounded-3xl flex gap-8 group hover:border-rose-500/30 transition-all">
-                 <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-all text-xl font-bold italic">!</div>
+                 <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-all text-xl font-bold italic">
+                    {isLoading ? <div className="w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin"></div> : '!'}
+                 </div>
                  <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">
-                   {stats.totalLeads > 10 ? 'LOCAL SATURATION INCREASING. TARGET HIGH-END LUXURY SECTORS FOR HIGHEST CONVERSION.' : 'THEATER RECON INCOMPLETE. DATA DENSITY BELOW OPTIMAL THRESHOLD.'}
+                   {isLoading ? "CALCULATING RISK VECTOR..." : analysis?.risk || "DATA INSUFFICIENT FOR RISK ANALYSIS."}
                  </p>
               </div>
               <div className="bg-[#020617] border border-slate-800 p-8 rounded-3xl flex gap-8 group hover:border-emerald-500/30 transition-all">
-                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all text-xl font-bold">✓</div>
+                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all text-xl font-bold">
+                    {isLoading ? <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div> : '✓'}
+                 </div>
                  <p className="text-[11px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">
-                   HIGH POTENTIAL FOR MULTI-LINGUAL AI CONCIERGE INTEGRATION TO RECOVER MISSED INTERNATIONAL INQUIRIES.
+                   {isLoading ? "IDENTIFYING OPPORTUNITY..." : analysis?.opportunity || "DATA INSUFFICIENT FOR OPPORTUNITY."}
                  </p>
               </div>
            </div>

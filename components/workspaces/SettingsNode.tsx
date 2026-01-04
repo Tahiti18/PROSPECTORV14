@@ -1,9 +1,24 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export const SettingsNode: React.FC = () => {
   const [sensitivity, setSensitivity] = useState(75);
   const [autoRecon, setAutoRecon] = useState(true);
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    const savedSens = localStorage.getItem('pomelli_os_sensitivity');
+    const savedRecon = localStorage.getItem('pomelli_os_auto_recon');
+    if (savedSens) setSensitivity(parseInt(savedSens));
+    if (savedRecon) setAutoRecon(savedRecon === 'true');
+  }, []);
+
+  const handleSave = () => {
+    localStorage.setItem('pomelli_os_sensitivity', sensitivity.toString());
+    localStorage.setItem('pomelli_os_auto_recon', autoRecon.toString());
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2000);
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
@@ -60,8 +75,11 @@ export const SettingsNode: React.FC = () => {
             </div>
 
             <div className="pt-10">
-               <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-6 rounded-2xl text-[12px] font-black uppercase tracking-[0.4em] shadow-2xl shadow-indigo-600/20 active:scale-95 transition-all">
-                  SAVE SYSTEM STATE
+               <button 
+                 onClick={handleSave}
+                 className={`w-full text-white py-6 rounded-2xl text-[12px] font-black uppercase tracking-[0.4em] shadow-2xl transition-all ${isSaved ? 'bg-emerald-600' : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20 active:scale-95'}`}
+               >
+                  {isSaved ? 'CONFIGURATION LOCKED' : 'SAVE SYSTEM STATE'}
                </button>
             </div>
          </div>

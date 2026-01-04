@@ -71,7 +71,6 @@ export interface BenchmarkReport {
 export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<BenchmarkReport> => {
   pushLog(`ENGAGING MODULE: ${moduleType} for ${lead.businessName}`);
   const ai = getAI();
-  // ALWAYS use Pro for Benchmark to ensure depth
   const model = "gemini-3-pro-preview";
   
   const prompt = `
@@ -123,7 +122,6 @@ export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<Be
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        // MAXIMUM THINKING BUDGET FOR DEEP FORENSICS
         thinkingConfig: { thinkingBudget: 32000 },
       }
     });
@@ -439,8 +437,6 @@ export const synthesizeArticle = async (source: string, mode: string): Promise<s
   return resp.text || "Failed.";
 };
 
-// --- NEW FUNCTIONAL MODULES ---
-
 export const analyzeVisual = async (base64Data: string, mimeType: string, prompt: string): Promise<string> => {
   pushLog("ANALYZING VISUAL ASSET...");
   const ai = getAI();
@@ -502,8 +498,6 @@ export const analyzeVideoUrl = async (url: string, prompt: string): Promise<stri
   }
 };
 
-// --- NEW STRATEGIC & IDENTITY MODULES ---
-
 export const generateAgencyIdentity = async (niche: string, region: string): Promise<any> => {
   pushLog(`FORGING AGENCY IDENTITY FOR ${niche} IN ${region}`);
   const ai = getAI();
@@ -545,7 +539,6 @@ export const generatePlaybookStrategy = async (theater: string): Promise<any> =>
   }
 };
 
-// --- NEW AFFILIATE STRATEGY ---
 export const generateAffiliateProgram = async (niche: string): Promise<any> => {
   pushLog(`ARCHITECTING AFFILIATE MATRIX FOR ${niche}`);
   const ai = getAI();
@@ -566,5 +559,57 @@ export const generateAffiliateProgram = async (niche: string): Promise<any> => {
   } catch (e) {
     console.error(e);
     return { programName: "PARTNER_NET", tiers: [], recruitScript: "Error generating." };
+  }
+};
+
+// --- NEW INTELLIGENCE FUNCTIONS ---
+
+export const generateROIReport = async (ltv: number, volume: number, conv: number): Promise<string> => {
+  pushLog("GENERATING ROI NARRATIVE...");
+  const ai = getAI();
+  try {
+    const revenue = (volume * (conv / 100)) * ltv;
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Act as a Chief Financial Officer for an AI Agency.
+      Data: 
+      - Client LTV: $${ltv}
+      - Monthly Lead Volume: ${volume}
+      - AI Conversion Lift: ${conv}%
+      - Projected Monthly Revenue Increase: $${revenue.toFixed(2)}
+
+      Write a short, punchy, executive summary explaining WHY this AI implementation is a "no-brainer" investment. Focus on compound growth and competitive advantage. Keep it under 150 words.`,
+    });
+    return response.text || "ROI Analysis Unavailable.";
+  } catch (e) {
+    console.error(e);
+    return "Error generating ROI report.";
+  }
+};
+
+export const analyzeLedger = async (leads: Lead[]): Promise<{ risk: string; opportunity: string }> => {
+  pushLog("ANALYZING LEDGER DATA...");
+  const ai = getAI();
+  try {
+    const summary = leads.slice(0, 15).map(l => `${l.businessName} (${l.niche} in ${l.city}) - Score: ${l.leadScore}`).join('\n');
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Analyze this list of sales leads and provide 2 distinct insights.
+      
+      LEADS:
+      ${summary}
+
+      OUTPUT JSON:
+      {
+        "risk": "A short, sharp warning about market saturation or lead quality based on the data.",
+        "opportunity": "A short, sharp specific opportunity or angle to attack this specific list."
+      }
+      `,
+      config: { responseMimeType: "application/json" }
+    });
+    return JSON.parse(response.text || '{"risk": "Data insufficient.", "opportunity": "Gather more intel."}');
+  } catch (e) {
+    console.error(e);
+    return { risk: "Ledger Analysis Failed", opportunity: "Retry analysis." };
   }
 };
