@@ -14,7 +14,8 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
   const sortedLeads = useMemo(() => {
     let filtered = leads;
     if (statusFilter !== 'ALL') {
-      filtered = leads.filter(l => l.status === statusFilter);
+      // Fix: Use outreachStatus preference with strict fallback to legacy status or 'cold'
+      filtered = leads.filter(l => (l.outreachStatus ?? l.status ?? 'cold') === statusFilter);
     }
 
     return [...filtered].sort((a, b) => {
@@ -134,82 +135,86 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {sortedLeads.map((lead) => (
-                <tr key={lead.id} className={`group hover:bg-white/5 transition-all ${lead.locked ? 'opacity-50 bg-slate-900/50' : 'bg-[#0b1021]'}`}>
-                  
-                  {/* RANK */}
-                  <td className="px-8 py-6">
-                    <span className="text-2xl font-black text-slate-600 italic group-hover:text-indigo-500 transition-colors">
-                      #{lead.rank}
-                    </span>
-                  </td>
-                  
-                  {/* IDENTITY */}
-                  <td className="px-8 py-6">
-                    <div className="flex flex-col">
-                      <span 
-                        onClick={() => onInspect(lead.id)}
-                        className="text-xl font-black text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors leading-none cursor-pointer"
-                      >
-                        {lead.businessName}
+              {sortedLeads.map((lead) => {
+                // Resolve display status
+                const displayStatus = lead.outreachStatus ?? lead.status ?? 'cold';
+                return (
+                  <tr key={lead.id} className={`group hover:bg-white/5 transition-all ${lead.locked ? 'opacity-50 bg-slate-900/50' : 'bg-[#0b1021]'}`}>
+                    
+                    {/* RANK */}
+                    <td className="px-8 py-6">
+                      <span className="text-2xl font-black text-slate-600 italic group-hover:text-indigo-500 transition-colors">
+                        #{lead.rank}
                       </span>
-                      <div className="flex items-center gap-3 mt-2">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900 px-2 py-1 rounded">
-                          {lead.city}
+                    </td>
+                    
+                    {/* IDENTITY */}
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col">
+                        <span 
+                          onClick={() => onInspect(lead.id)}
+                          className="text-xl font-black text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors leading-none cursor-pointer"
+                        >
+                          {lead.businessName}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                          {lead.niche}
-                        </span>
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900 px-2 py-1 rounded">
+                            {lead.city}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                            {lead.niche}
+                          </span>
+                        </div>
+                        {lead.locked && (
+                          <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mt-2 flex items-center gap-2 animate-pulse">
+                            <span>🔒</span> LOCKED BY PROTOCOL {lead.lockedByRunId?.slice(0,4)}
+                          </span>
+                        )}
                       </div>
-                      {lead.locked && (
-                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mt-2 flex items-center gap-2 animate-pulse">
-                          <span>🔒</span> LOCKED BY PROTOCOL {lead.lockedByRunId?.slice(0,4)}
-                        </span>
-                      )}
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* STATUS */}
-                  <td className="px-8 py-6 text-center">
-                    <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[9px] font-black border uppercase tracking-widest ${
-                      lead.status === 'cold' ? 'bg-slate-800 border-slate-700 text-slate-500' :
-                      lead.status === 'sent' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' :
-                      lead.status === 'won' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                      'bg-slate-800 border-slate-700 text-slate-300'
-                    }`}>
-                      {lead.status}
-                    </span>
-                  </td>
+                    {/* STATUS */}
+                    <td className="px-8 py-6 text-center">
+                      <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[9px] font-black border uppercase tracking-widest ${
+                        displayStatus === 'cold' ? 'bg-slate-800 border-slate-700 text-slate-500' :
+                        displayStatus === 'sent' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' :
+                        displayStatus === 'won' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                        'bg-slate-800 border-slate-700 text-slate-300'
+                      }`}>
+                        {displayStatus}
+                      </span>
+                    </td>
 
-                  {/* SOCIAL GAP */}
-                  <td className="px-8 py-6 max-w-sm">
-                    <p className="text-[12px] font-medium text-slate-400 line-clamp-2 italic leading-relaxed border-l-2 border-indigo-500/30 pl-4">
-                      "{lead.socialGap}"
-                    </p>
-                  </td>
+                    {/* SOCIAL GAP */}
+                    <td className="px-8 py-6 max-w-sm">
+                      <p className="text-[12px] font-medium text-slate-400 line-clamp-2 italic leading-relaxed border-l-2 border-indigo-500/30 pl-4">
+                        "{lead.socialGap}"
+                      </p>
+                    </td>
 
-                  {/* SCORE */}
-                  <td className="px-8 py-6 text-right">
-                    <span className={`text-5xl font-black italic tracking-tighter ${
-                      lead.leadScore >= 80 ? 'text-emerald-500' : 
-                      lead.leadScore >= 60 ? 'text-indigo-500' : 
-                      'text-slate-600'
-                    }`}>
-                      {lead.leadScore}
-                    </span>
-                  </td>
+                    {/* SCORE */}
+                    <td className="px-8 py-6 text-right">
+                      <span className={`text-5xl font-black italic tracking-tighter ${
+                        lead.leadScore >= 80 ? 'text-emerald-500' : 
+                        lead.leadScore >= 60 ? 'text-indigo-500' : 
+                        'text-slate-600'
+                      }`}>
+                        {lead.leadScore}
+                      </span>
+                    </td>
 
-                  {/* ACTIONS */}
-                  <td className="px-8 py-6 text-right">
-                    <button 
-                      onClick={() => onInspect(lead.id)} 
-                      className="px-8 py-4 bg-white text-black hover:bg-indigo-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
-                    >
-                      WAR ROOM
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    {/* ACTIONS */}
+                    <td className="px-8 py-6 text-right">
+                      <button 
+                        onClick={() => onInspect(lead.id)} 
+                        className="px-8 py-4 bg-white text-black hover:bg-indigo-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
+                      >
+                        WAR ROOM
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
               {sortedLeads.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-32 text-center bg-[#0b1021]">

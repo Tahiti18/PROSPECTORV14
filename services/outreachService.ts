@@ -1,56 +1,61 @@
 
-import { Lead, OutreachLog, OutreachStatus } from '../types';
-import { db } from './automation/db'; // Re-use the existing DB logic for persistence
+import { Lead, OutreachLog } from '../types';
+
+const LOG_STORAGE_KEY = 'pomelli_outreach_log_v1';
 
 export const outreachService = {
   
-  // Log an interaction and update lead status
-  logInteraction: (leadId: string, type: OutreachLog['type'], contentSnippet: string): Lead | null => {
-    const leads = db.getLeads();
-    const leadIndex = leads.findIndex(l => l.id === leadId);
-    
-    if (leadIndex === -1) return null;
-    
+  // Log interactions to a global persistent log (System of Record)
+  logInteraction: (leadId: string, type: OutreachLog['type'], contentSnippet: string): OutreachLog => {
     const log: OutreachLog = {
-      id: `log-${Date.now()}`,
+      id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       timestamp: Date.now(),
       type,
-      contentSnippet: contentSnippet.slice(0, 50) + '...',
+      contentSnippet: contentSnippet.slice(0, 100) + '...',
       status: 'SENT'
     };
 
-    const updatedLead = { ...leads[leadIndex] };
-    
-    // Init history array if missing
-    if (!updatedLead.outreachHistory) updatedLead.outreachHistory = [];
-    
-    updatedLead.outreachHistory.unshift(log);
-    updatedLead.status = 'sent'; // Auto-move pipeline stage
-    updatedLead.lastContactAt = Date.now();
-    
-    // Set default follow-up to 3 days
-    updatedLead.nextFollowUp = Date.now() + (3 * 24 * 60 * 60 * 1000);
+    try {
+      const raw = localStorage.getItem(LOG_STORAGE_KEY);
+      const history: OutreachLog[] = raw ? JSON.parse(raw) : [];
+      history.unshift(log);
+      // Keep last 500 logs globally
+      if (history.length > 500) history.pop();
+      localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(history));
+    } catch (e) {
+      console.error("Failed to persist outreach log", e);
+    }
 
-    leads[leadIndex] = updatedLead;
-    db.saveLeads(leads);
-    
-    return updatedLead;
+    return log;
   },
 
-  // Generate a mailto link for V1 quick sending
   generateMailto: (email: string, subject: string, body: string): string => {
     const encSubject = encodeURIComponent(subject);
     const encBody = encodeURIComponent(body);
     return `mailto:${email}?subject=${encSubject}&body=${encBody}`;
   },
 
-  // Update status manually (e.g., if user marked as Replied)
-  updateStatus: (leadId: string, status: OutreachStatus) => {
-    const leads = db.getLeads();
-    const idx = leads.findIndex(l => l.id === leadId);
-    if (idx !== -1) {
-      leads[idx].status = status;
-      db.saveLeads(leads);
+  copyToClipboard: async (text: string): Promise<boolean> => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      // Fallback
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed"; 
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        return true;
+      } catch (err) {
+        document.body.removeChild(ta);
+        return false;
+      }
     }
   }
 };

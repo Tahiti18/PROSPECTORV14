@@ -53,7 +53,11 @@ export interface Lead {
   visualProof: string;
   bestAngle: string;
   personalizedHook: string;
-  status: OutreachStatus;
+  
+  // CRM Status Contract
+  status?: OutreachStatus; // Legacy support (Optional)
+  outreachStatus?: OutreachStatus; // Canonical CRM Field (Source of Truth)
+  
   instagram?: string;
   tiktok?: string;
   youtube?: string;
@@ -63,7 +67,8 @@ export interface Lead {
   // Outreach CRM Data
   outreachHistory?: OutreachLog[];
   lastContactAt?: number;
-  nextFollowUp?: number; // legacy alias for nextFollowUpAt
+  lastContactedAt?: number; // Alias for safety
+  nextFollowUp?: number; // Legacy alias
   nextFollowUpAt?: number;
   
   // Phase 1 CRM Fields

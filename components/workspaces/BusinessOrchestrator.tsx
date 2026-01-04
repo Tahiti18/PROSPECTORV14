@@ -10,9 +10,10 @@ interface BusinessOrchestratorProps {
   lockedLead?: Lead;
   onNavigate: (mode: MainMode, mod: SubModule) => void;
   onLockLead: (id: string) => void;
+  onUpdateLead: (id: string, updates: Partial<Lead>) => void;
 }
 
-export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ leads, lockedLead, onNavigate, onLockLead }) => {
+export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ leads, lockedLead, onNavigate, onLockLead, onUpdateLead }) => {
   const [selectedLeadId, setSelectedLeadId] = useState<string>(lockedLead?.id || '');
   const [packageData, setPackageData] = useState<any>(null);
   const [currentDossier, setCurrentDossier] = useState<StrategicDossier | null>(null);
@@ -522,7 +523,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
           onClose={() => setIsOutreachOpen(false)}
           dossier={currentDossier}
           lead={targetLead}
-          onSent={() => window.location.reload()} // Quick dirty refresh to show status update
+          onUpdateLead={onUpdateLead}
+          onSent={() => {}} 
         />
       )}
     </div>

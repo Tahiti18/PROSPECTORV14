@@ -82,15 +82,15 @@ export const dossierStorage = {
     md += `## 1. EXECUTIVE NARRATIVE\n${data.narrative}\n\n`;
 
     md += `## 2. STRATEGY DECK\n`;
-    data.presentation?.slides.forEach((s: any, i: number) => {
+    data.presentation?.slides?.forEach((s: any, i: number) => {
       md += `### Slide ${i+1}: ${s.title}\n`;
-      s.bullets.forEach((b: string) => md += `- ${b}\n`);
+      s.bullets?.forEach((b: string) => md += `- ${b}\n`);
       if(s.visualRef) md += `*Visual Directive: ${s.visualRef}*\n`;
       md += `\n`;
     });
 
     md += `## 3. OUTREACH SEQUENCE\n`;
-    data.outreach?.emailSequence.forEach((e: any, i: number) => {
+    data.outreach?.emailSequence?.forEach((e: any, i: number) => {
       md += `### Email ${i+1}\n**Subject:** ${e.subject}\n\n${e.body}\n\n`;
     });
     

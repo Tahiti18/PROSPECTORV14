@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { MainMode, SubModule, Lead, ComputeStats } from './types';
+import { MainMode, SubModule, Lead, ComputeStats, OutreachStatus } from './types';
 import { Layout } from './components/Layout';
 import { MissionControl } from './components/workspaces/MissionControl';
 import { ScoringRubricView } from './components/workspaces/ScoringRubricView';
@@ -130,8 +130,9 @@ const App: React.FC = () => {
 
   const lockedLead = useMemo(() => leads.find(l => l.id === lockedLeadId), [leads, lockedLeadId]);
   
-  const handleUpdateStatus = (id: string, status: Lead['status']) => { 
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, status } : l)); 
+  // CRM FIX: Sync both status and outreachStatus
+  const handleUpdateStatus = (id: string, status: OutreachStatus) => { 
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, status, outreachStatus: status } : l)); 
   };
 
   const handleUpdateLead = (id: string, updates: Partial<Lead>) => {
@@ -206,7 +207,7 @@ const App: React.FC = () => {
     }
     if (activeMode === 'SELL') {
       switch (activeModule) {
-        case 'BUSINESS_ORCHESTRATOR': return <BusinessOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={setLockedLeadId} />;
+        case 'BUSINESS_ORCHESTRATOR': return <BusinessOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={setLockedLeadId} onUpdateLead={handleUpdateLead} />;
         case 'PROPOSALS': return <SellWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
         case 'SEQUENCER': return <Sequencer lead={lockedLead} />;
         case 'VOICE_STRAT': return <VoiceStrat lead={lockedLead} />;

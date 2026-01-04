@@ -43,6 +43,16 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
     onUpdateLead(lead.id, { tags: currentTags.filter(t => t !== tagToRemove) });
   };
 
+  // Status handler writing to both legacy and new fields
+  const handleStatusChange = (newStatus: OutreachStatus) => {
+    if (lead && onUpdateLead) {
+      onUpdateLead(lead.id, { 
+        status: newStatus, 
+        outreachStatus: newStatus 
+      });
+    }
+  };
+
   if (!lead) {
     return (
       <div className="h-96 flex flex-col items-center justify-center text-slate-500 bg-slate-900/50 border border-slate-800 rounded-2xl">
@@ -52,6 +62,9 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
       </div>
     );
   }
+
+  // Fallback for current status display
+  const currentStatus = lead.outreachStatus ?? lead.status ?? 'cold';
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-500">
@@ -184,8 +197,8 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
              <div className="space-y-2 mb-6">
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mission Status</p>
                 <select 
-                  value={lead.status} 
-                  onChange={(e) => onUpdateLead && onUpdateLead(lead.id, { status: e.target.value as OutreachStatus })}
+                  value={currentStatus} 
+                  onChange={(e) => handleStatusChange(e.target.value as OutreachStatus)}
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-indigo-500 focus:outline-none uppercase"
                 >
                    {STATUS_OPTIONS.map(s => (
