@@ -45,7 +45,7 @@ export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, 
     { label: 'API NODES', status: 'STABLE', icon: <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />, color: 'emerald', desc: "The connection to the AI Brain (Gemini) is working perfectly." },
     { label: 'IDENTIFIED', status: `${leads.length} TARGETS`, icon: <ControlIcon type="IDENTIFIED" />, color: 'indigo', desc: "The total number of potential clients you have found and saved so far." },
     { label: 'THREAT SCAN', status: 'OPTIMAL', icon: <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />, color: 'cyan', desc: "No system errors detected. The engine is running at full speed." },
-    { label: 'OS VERSION', status: 'V13.1.2', icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, color: 'slate', desc: "The current version of the Pomelli software you are running." },
+    { label: 'OS VERSION', status: 'V13.1.2', icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, color: 'violet', desc: "The current version of the Pomelli software you are running." },
   ];
 
   const actions = [
@@ -72,7 +72,7 @@ export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, 
         {stats.map((node, i) => (
           <Tooltip key={i} content={node.desc} side="bottom">
             <div className="bg-[#0b1021]/60 border border-slate-800/80 p-5 rounded-2xl flex flex-col items-center group hover:border-indigo-500/40 transition-all cursor-default w-full">
-              <svg className="w-5 h-5 mb-2.5 opacity-40 group-hover:opacity-100 group-hover:text-indigo-400 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <svg className={`w-5 h-5 mb-2.5 text-${node.color}-500 transition-all`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 {node.icon}
               </svg>
               <span className="text-[8px] font-black text-slate-600 tracking-[0.2em] uppercase mb-1">{node.label}</span>
@@ -87,15 +87,15 @@ export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, 
           <Tooltip key={i} content={action.help} side="bottom">
             <div 
               onClick={() => onNavigate(action.mode, action.id as SubModule)}
-              className="bg-[#0b1021] border border-slate-800/80 p-10 rounded-[48px] relative overflow-hidden group hover:border-indigo-600/40 transition-all cursor-pointer shadow-xl hover:bg-slate-900/40 group flex flex-col items-center text-center w-full"
+              className={`bg-[#0b1021] border border-slate-800/80 p-10 rounded-[48px] relative overflow-hidden group hover:border-${action.theme}-500/40 transition-all cursor-pointer shadow-xl hover:bg-slate-900/40 group flex flex-col items-center text-center w-full`}
             >
               <div className={`absolute inset-0 bg-${action.theme}-600/5 opacity-0 group-hover:opacity-100 transition-opacity`}></div>
-              <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center text-indigo-400 mb-6 group-hover:scale-110 transition-transform shadow-inner group-hover:border-indigo-500/50">
+              <div className={`w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center text-${action.theme}-500 mb-6 group-hover:scale-110 transition-transform shadow-inner group-hover:border-${action.theme}-500/50`}>
                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   {action.icon}
                 </svg>
               </div>
-              <h2 className="text-xl font-black italic text-white tracking-tighter mb-1 uppercase group-hover:text-indigo-400 transition-colors">{action.title}</h2>
+              <h2 className={`text-xl font-black italic text-white tracking-tighter mb-1 uppercase group-hover:text-${action.theme}-400 transition-colors`}>{action.title}</h2>
               <p className="text-[9px] font-black text-slate-600 tracking-[0.4em] uppercase">{action.desc}</p>
               
               <div className="absolute top-8 left-8 w-4 h-4 border-t border-l border-slate-800/50 group-hover:border-indigo-500/30 transition-colors"></div>

@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
     define: {
       // This allows process.env.API_KEY to work in the browser.
       // We prioritize the loaded env var, then fallback to system process.env, then the provided key.
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY || 'AlzaSyBycr-MQDqAC2btyxKDQ5H-srHwzR5bLk0'),
+      'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY || '2f30b2e5cdf012a40e82f10d7c30cb7f'),
     },
     server: {
       host: '0.0.0.0',

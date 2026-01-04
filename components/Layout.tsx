@@ -143,6 +143,18 @@ export const Layout: React.FC<LayoutProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // SMART DEFAULT NAVIGATOR
+  const handleModeClick = (mode: MainMode) => {
+    setActiveMode(mode);
+    switch (mode) {
+      case 'OPERATE': setActiveModule('COMMAND'); break;
+      case 'CREATE': setActiveModule('VISUAL_STUDIO'); break;
+      case 'STUDIO': setActiveModule('VIDEO_PITCH'); break;
+      case 'SELL': setActiveModule('BUSINESS_ORCHESTRATOR'); break;
+      case 'CONTROL': setActiveModule('PROD_LOG'); break;
+    }
+  };
+
   const subModules: Record<MainMode, { id: SubModule; label: string; icon: React.ReactNode; desc: string }[]> = {
     OPERATE: [
       { id: 'COMMAND', label: 'COMMAND', icon: Icons.Command, desc: "Central mission hub. Overview of active targets, system status, and recent intelligence." },
@@ -171,7 +183,7 @@ export const Layout: React.FC<LayoutProps> = ({
       { id: 'MEDIA_VAULT', label: 'MEDIA VAULT', icon: Icons.Lock, desc: "Secure asset reservoir. Manage and export all generated media and intelligence files." },
     ],
     STUDIO: [
-      { id: 'VIDEO_PITCH', label: 'VEO FORGE', icon: Icons.Video, desc: "Veo cinematic forge. Generate high-end video intros and mood boards." },
+      { id: 'VIDEO_PITCH', label: 'VIDEO FAST', icon: Icons.Video, desc: "Rapid prototype video generation. Create 4-5 iterations of a visual hook." },
       { id: 'VIDEO_AI', label: 'VIDEO AUDIT', icon: Icons.Scan, desc: "Video content auditor. Analyze target's existing video strategy for weaknesses." },
       { id: 'CINEMA_INTEL', label: 'CINEMA INTEL', icon: Icons.Film, desc: "Deep video decoding. Extract psychological hooks and metadata from video URLs." },
       { id: 'MOTION_LAB', label: 'MOTION LAB', icon: Icons.Move, desc: "Dynamic storyboard architect. Plan complex motion sequences and video narratives." },
@@ -220,43 +232,44 @@ export const Layout: React.FC<LayoutProps> = ({
       return theme === 'dark' ? 'text-slate-200 hover:text-white' : 'text-slate-500 hover:text-slate-800';
     }
     switch (mode) {
-      case 'OPERATE': return 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20';
-      case 'CREATE': return 'bg-violet-600 text-white shadow-lg shadow-violet-600/20';
-      case 'STUDIO': return 'bg-amber-600 text-white shadow-lg shadow-amber-600/20';
-      case 'SELL': return 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20';
-      case 'CONTROL': return 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20';
-      default: return 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20';
+      case 'OPERATE': return 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'; 
+      case 'CREATE': return 'bg-violet-500 text-white shadow-lg shadow-violet-500/20';
+      case 'STUDIO': return 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'; // Amber
+      case 'SELL': return 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20';
+      case 'CONTROL': return 'bg-slate-500 text-white shadow-lg shadow-slate-500/20';
+      default: return 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20';
     }
   };
 
   // HELPER: SUB-MODULE BUTTON STYLES
   const getSubModuleStyles = (mode: MainMode, isActive: boolean) => {
      if (!isActive) {
-        return theme === 'dark' ? 'border-transparent text-slate-200 hover:text-white hover:bg-slate-800' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200';
+        return theme === 'dark' 
+          ? 'bg-slate-900/50 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white' 
+          : 'bg-white border-slate-300 text-slate-600 hover:border-slate-400 hover:text-slate-900';
      }
      
-     // Set text color to off-white/neutral regardless of category
      const activeText = theme === 'dark' ? 'text-slate-100' : 'text-slate-900';
 
      switch (mode) {
-      case 'OPERATE': return `bg-indigo-600/20 border-indigo-500/50 ${activeText} shadow-sm`;
-      case 'CREATE': return `bg-violet-600/20 border-violet-500/50 ${activeText} shadow-sm`;
-      case 'STUDIO': return `bg-amber-600/20 border-amber-500/50 ${activeText} shadow-sm`;
-      case 'SELL': return `bg-emerald-600/20 border-emerald-500/50 ${activeText} shadow-sm`;
-      case 'CONTROL': return `bg-cyan-600/20 border-cyan-500/50 ${activeText} shadow-sm`;
-      default: return `bg-indigo-600/20 border-indigo-500/50 ${activeText} shadow-sm`;
+      case 'OPERATE': return `bg-indigo-600/20 border-indigo-500 ${activeText} shadow-sm`;
+      case 'CREATE': return `bg-violet-600/20 border-violet-500 ${activeText} shadow-sm`;
+      case 'STUDIO': return `bg-amber-600/20 border-amber-500 ${activeText} shadow-sm`; // Amber
+      case 'SELL': return `bg-emerald-600/20 border-emerald-500 ${activeText} shadow-sm`;
+      case 'CONTROL': return `bg-slate-600/20 border-slate-500 ${activeText} shadow-sm`;
+      default: return `bg-indigo-600/20 border-indigo-500 ${activeText} shadow-sm`;
      }
   };
   
   // HELPER: SUB-MODULE ICON COLOR
   const getSubModuleIconColor = (mode: MainMode, isActive: boolean) => {
-      if (!isActive) return ''; // Inherit parent opacity logic
+      if (!isActive) return '';
       switch (mode) {
           case 'OPERATE': return 'text-indigo-400';
           case 'CREATE': return 'text-violet-400';
-          case 'STUDIO': return 'text-amber-400';
+          case 'STUDIO': return 'text-amber-400'; // Amber
           case 'SELL': return 'text-emerald-400';
-          case 'CONTROL': return 'text-cyan-400';
+          case 'CONTROL': return 'text-slate-400';
           default: return 'text-indigo-400';
       }
   }
@@ -280,7 +293,7 @@ export const Layout: React.FC<LayoutProps> = ({
           {(['OPERATE', 'CREATE', 'STUDIO', 'SELL', 'CONTROL'] as MainMode[]).map(mode => (
             <button
               key={mode}
-              onClick={() => setActiveMode(mode)}
+              onClick={() => handleModeClick(mode)}
               className={`flex items-center gap-2 px-5 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${getModeStyles(mode, activeMode === mode)}`}
             >
               {mode === 'OPERATE' && Icons.Operate}

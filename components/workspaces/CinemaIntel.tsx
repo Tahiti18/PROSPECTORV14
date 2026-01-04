@@ -31,7 +31,7 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
       <div className="flex justify-between items-start">
         <div className="space-y-2">
           <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter flex items-center gap-3">
-            <span className="text-rose-500 uppercase">CINEMA</span> INTEL HUB
+            <span className="text-amber-500 uppercase">CINEMA</span> INTEL HUB
             <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-500 font-black">i</span>
           </h1>
           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">
@@ -48,7 +48,7 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
                  <input 
                    value={url}
                    onChange={(e) => setUrl(e.target.value)}
-                   className="w-full bg-slate-50 border-none rounded-[24px] px-8 py-6 text-sm font-bold text-slate-800 placeholder-slate-400 focus:ring-1 focus:ring-rose-500/20"
+                   className="w-full bg-slate-50 border-none rounded-[24px] px-8 py-6 text-sm font-bold text-slate-800 placeholder-slate-400 focus:ring-1 focus:ring-amber-500/20"
                    placeholder="Paste YouTube or Vimeo Link..."
                  />
               </div>
@@ -58,14 +58,14 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
                  <textarea 
                    value={prompt}
                    onChange={(e) => setPrompt(e.target.value)}
-                   className="w-full bg-slate-50 border-none rounded-3xl p-8 text-sm font-medium text-slate-700 h-40 resize-none placeholder-slate-300 italic focus:ring-1 focus:ring-rose-500/20"
+                   className="w-full bg-slate-50 border-none rounded-3xl p-8 text-sm font-medium text-slate-700 h-40 resize-none placeholder-slate-300 italic focus:ring-1 focus:ring-amber-500/20"
                  />
               </div>
 
               <button 
                 onClick={handleAnalyze}
                 disabled={isLoading || !url}
-                className="w-full bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white py-6 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all active:scale-95 shadow-xl shadow-rose-600/20"
+                className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black py-6 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all active:scale-95 shadow-xl shadow-amber-500/20"
               >
                 {isLoading ? 'DECODING STREAM...' : 'ANALYZE VIDEO'}
               </button>
@@ -75,8 +75,8 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
         <div className="lg:col-span-7">
            <div className="bg-[#0b1021] border border-slate-800 rounded-[64px] h-full min-h-[700px] flex flex-col shadow-2xl overflow-hidden relative">
               <div className="p-12 border-b border-slate-800/40 flex items-center gap-6">
-                 <div className="w-14 h-14 bg-rose-600 rounded-3xl flex items-center justify-center shadow-xl">
-                    <span className="text-2xl">🎬</span>
+                 <div className="w-14 h-14 bg-amber-500 rounded-3xl flex items-center justify-center shadow-xl">
+                    <span className="text-2xl text-black">🎬</span>
                  </div>
                  <div>
                     <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter">INTELLIGENCE OUTPUT</h3>
@@ -87,8 +87,8 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
               <div className="flex-1 p-16 relative overflow-y-auto custom-scrollbar">
                  {isLoading ? (
                    <div className="h-full flex flex-col items-center justify-center space-y-6">
-                      <div className="w-16 h-16 border-4 border-rose-900 border-t-rose-500 rounded-full animate-spin"></div>
-                      <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest animate-pulse">SEARCHING VIDEO METADATA...</p>
+                      <div className="w-16 h-16 border-4 border-amber-900 border-t-amber-500 rounded-full animate-spin"></div>
+                      <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest animate-pulse">SEARCHING VIDEO METADATA...</p>
                    </div>
                  ) : analysis ? (
                    <div className="prose prose-invert max-w-none text-slate-300 font-sans leading-relaxed whitespace-pre-wrap">

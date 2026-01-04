@@ -11,7 +11,7 @@ interface CommandPaletteProps {
 
 // FULL 54-MODULE REGISTRY MAPPED TO NEW COLOR ZONES
 const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string; icon: string }[] = [
-  // --- OPERATE ZONE (INDIGO: INTELLIGENCE & LOGIC) ---
+  // --- OPERATE ZONE (INDIGO) ---
   { mode: 'OPERATE', mod: 'COMMAND', label: 'MISSION CONTROL', zone: 'OPERATE ZONE', icon: '📊' },
   { mode: 'OPERATE', mod: 'RADAR_RECON', label: 'RADAR RECON', zone: 'OPERATE ZONE', icon: '📡' },
   { mode: 'OPERATE', mod: 'AUTO_CRAWL', label: 'AUTO CRAWL SWARM', zone: 'OPERATE ZONE', icon: '🕷️' },
@@ -32,22 +32,22 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'OPERATE', mod: 'FACT_CHECK', label: 'FACT CHECKER', zone: 'OPERATE ZONE', icon: '✅' },
   { mode: 'OPERATE', mod: 'TRANSLATOR', label: 'TACTICAL TRANSLATOR', zone: 'OPERATE ZONE', icon: '🌐' },
 
-  // --- CREATE ZONE (VIOLET: IMAGINATION & SYNTHESIS) ---
+  // --- CREATE ZONE (VIOLET) ---
   { mode: 'CREATE', mod: 'VISUAL_STUDIO', label: 'VISUAL STUDIO', zone: 'CREATE ZONE', icon: '🎨' },
   { mode: 'CREATE', mod: 'MOCKUPS_4K', label: '4K MOCKUP FORGE', zone: 'CREATE ZONE', icon: '🖥️' },
   { mode: 'CREATE', mod: 'PRODUCT_SYNTH', label: 'PRODUCT SYNTH', zone: 'CREATE ZONE', icon: '🧬' },
   { mode: 'CREATE', mod: 'FLASH_SPARK', label: 'FLASH SPARK', zone: 'CREATE ZONE', icon: '⚡' },
   { mode: 'CREATE', mod: 'MEDIA_VAULT', label: 'MEDIA VAULT', zone: 'CREATE ZONE', icon: '🔒' },
 
-  // --- STUDIO ZONE (AMBER: PRODUCTION & MOTION) ---
-  { mode: 'STUDIO', mod: 'VIDEO_PITCH', label: 'VEO FORGE', zone: 'STUDIO ZONE', icon: '📹' },
+  // --- STUDIO ZONE (AMBER) ---
+  { mode: 'STUDIO', mod: 'VIDEO_PITCH', label: 'VIDEO FAST', zone: 'STUDIO ZONE', icon: '📹' },
   { mode: 'STUDIO', mod: 'VIDEO_AI', label: 'VIDEO AUDIT', zone: 'STUDIO ZONE', icon: '🎥' },
   { mode: 'STUDIO', mod: 'CINEMA_INTEL', label: 'CINEMA INTEL', zone: 'STUDIO ZONE', icon: '🎬' },
   { mode: 'STUDIO', mod: 'MOTION_LAB', label: 'MOTION LAB', zone: 'STUDIO ZONE', icon: '🏃' },
   { mode: 'STUDIO', mod: 'SONIC_STUDIO', label: 'SONIC STUDIO', zone: 'STUDIO ZONE', icon: '🎵' },
   { mode: 'STUDIO', mod: 'LIVE_SCRIBE', label: 'LIVE SCRIBE', zone: 'STUDIO ZONE', icon: '✍️' },
 
-  // --- SELL ZONE (EMERALD: REVENUE & STRATEGY) ---
+  // --- SELL ZONE (EMERALD) ---
   { mode: 'SELL', mod: 'BUSINESS_ORCHESTRATOR', label: 'BUSINESS ORCHESTRATOR', zone: 'SELL ZONE', icon: '🎼' },
   { mode: 'SELL', mod: 'PROPOSALS', label: 'PROPOSAL ARCHITECT', zone: 'SELL ZONE', icon: '📝' },
   { mode: 'SELL', mod: 'ROI_CALC', label: 'ROI CALCULATOR', zone: 'SELL ZONE', icon: '💰' },
@@ -60,7 +60,7 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'SELL', mod: 'PITCH_GEN', label: 'PITCH GENERATOR', zone: 'SELL ZONE', icon: '📢' },
   { mode: 'SELL', mod: 'FUNNEL_MAP', label: 'FUNNEL MAPPER', zone: 'SELL ZONE', icon: '🗺️' },
 
-  // --- CONTROL ZONE (CYAN: SYSTEM & INFRA) ---
+  // --- CONTROL ZONE (SLATE) ---
   { mode: 'CONTROL', mod: 'PLAYBOOK', label: 'AGENCY PLAYBOOK', zone: 'CONTROL ZONE', icon: '📖' },
   { mode: 'CONTROL', mod: 'BILLING', label: 'THEATER BILLING', zone: 'CONTROL ZONE', icon: '💳' },
   { mode: 'CONTROL', mod: 'AFFILIATE', label: 'AFFILIATE MATRIX', zone: 'CONTROL ZONE', icon: '🤝' },
@@ -78,7 +78,7 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'CONTROL', mod: 'TOKENS', label: 'TOKEN VAULT', zone: 'CONTROL ZONE', icon: '🎟️' },
 ];
 
-// REFINED COLOR SYSTEM (NO RED)
+// REFINED PASTEL PALETTE SYSTEM
 const ZONE_STYLES: Record<string, { headerBg: string; headerText: string; hoverBg: string; hoverText: string; iconBg: string; border: string }> = {
   'OPERATE ZONE': {
     headerBg: 'bg-indigo-950/80',
@@ -96,15 +96,15 @@ const ZONE_STYLES: Record<string, { headerBg: string; headerText: string; hoverB
     iconBg: 'group-hover:bg-violet-600 group-hover:text-white',
     border: 'border-violet-500/30'
   },
-  'STUDIO ZONE': { // REPLACED RED WITH AMBER/ORANGE
+  'STUDIO ZONE': { // AMBER (Replaces Rose/Red)
     headerBg: 'bg-amber-950/80',
     headerText: 'text-amber-400',
     hoverBg: 'hover:bg-amber-600/10',
     hoverText: 'group-hover:text-amber-400',
-    iconBg: 'group-hover:bg-amber-600 group-hover:text-white',
+    iconBg: 'group-hover:bg-amber-500 group-hover:text-black',
     border: 'border-amber-500/30'
   },
-  'SELL ZONE': {
+  'SELL ZONE': { // EMERALD (Kept green but matches layout)
     headerBg: 'bg-emerald-950/80',
     headerText: 'text-emerald-400',
     hoverBg: 'hover:bg-emerald-600/10',
@@ -112,13 +112,13 @@ const ZONE_STYLES: Record<string, { headerBg: string; headerText: string; hoverB
     iconBg: 'group-hover:bg-emerald-600 group-hover:text-white',
     border: 'border-emerald-500/30'
   },
-  'CONTROL ZONE': {
-    headerBg: 'bg-cyan-950/80',
-    headerText: 'text-cyan-400',
-    hoverBg: 'hover:bg-cyan-600/10',
-    hoverText: 'group-hover:text-cyan-400',
-    iconBg: 'group-hover:bg-cyan-600 group-hover:text-white',
-    border: 'border-cyan-500/30'
+  'CONTROL ZONE': { // SLATE (Replaces Cyan)
+    headerBg: 'bg-slate-950/80',
+    headerText: 'text-slate-400',
+    hoverBg: 'hover:bg-slate-600/10',
+    hoverText: 'group-hover:text-slate-400',
+    iconBg: 'group-hover:bg-slate-600 group-hover:text-white',
+    border: 'border-slate-500/30'
   }
 };
 

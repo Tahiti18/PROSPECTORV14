@@ -39,138 +39,149 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
 
   const SUGGESTIONS = [
     {
-      category: "CINEMATIC & LUXURY",
+      category: "NANO CLIPS",
       prompts: [
-        "Cinematic drone shot flying over a futuristic glass mansion on a cliff edge at sunset, 4k, highly detailed.",
-        "Close-up macro shot of a diamond rotating in a void with refractive light dispersion, luxury aesthetic.",
-        "Slow motion footage of a vintage 1960s sports car driving along a coastal highway, golden hour.",
-        "A sleek, modern architectural interior with floor-to-ceiling windows overlooking a cyber-city at night.",
-        "Liquid gold pouring over a matte black surface, forming abstract shapes, high contrast."
+        "A fast-paced 5-second loop of a futuristic neon city with glitched text overlay saying 'AI REVOLUTION'.",
+        "Rapid zoom into a digital eye, transitioning to binary code rain.",
+        "Quick montage of modern office workflow, high energy, blue and white color palette.",
+        "Spinning 3D logo of a generic tech company with sparks flying, transparent background style.",
+        "Time-lapse of a flower blooming instantly into a robotic structure."
+      ]
+    },
+    {
+      category: "VIRAL HOOKS",
+      prompts: [
+        "POV shot of someone holding a smartphone that projects a hologram, shocking reaction.",
+        "Split screen comparison: Old boring office vs. New AI-powered futuristic office.",
+        "Text bubble popping up on screen saying 'STOP SCROLLING' with a glitch effect.",
+        "A satisfying hydraulic press crushing a pile of paperwork, revealing a clean desk.",
+        "A person snapping their fingers and the background instantly changes to a luxury villa."
       ]
     },
     {
       category: "HIGH-TECH & AI",
       prompts: [
         "Abstract data visualization of a neural network glowing blue and purple in a dark void.",
-        "A futuristic holographic interface floating in mid-air, displaying complex financial charts and graphs.",
-        "Cybernetic eye opening to reveal digital code streaming within the iris, 8k resolution.",
-        "Server room with infinite rows of blinking lights, camera dolly zoom, matrix green color palette.",
-        "Nanobots assembling a complex mechanical structure, macro photography style."
-      ]
-    },
-    {
-      category: "SOCIAL & VIRAL",
-      prompts: [
-        "Fast-paced POV shot of running through a neon-lit Tokyo street at night, motion blur.",
-        "A satisfying loop of colorful kinetic sand being sliced by a knife, ASMR visual.",
-        "Stop-motion animation of office supplies rearranging themselves into a robot.",
-        "A cute robot mascot dancing on a desk, Pixar style animation.",
-        "Time-lapse of a busy city intersection turning from day to night in 5 seconds."
-      ]
-    },
-    {
-      category: "CORPORATE & BIZ",
-      prompts: [
-        "Diverse team of professionals brainstorming at a glass whiteboard in a sunlit office.",
-        "Handshake between two executives in slow motion with a lens flare background.",
-        "Low-angle shot of skyscrapers with clouds moving fast, symbolizing growth and stability.",
-        "A modern clean desk setup with a laptop, coffee, and plant, soft natural lighting.",
-        "Typing on a backlit mechanical keyboard, close-up with shallow depth of field."
-      ]
-    },
-    {
-      category: "ATMOSPHERIC & TEXTURE",
-      prompts: [
-        "Heavy rain falling on a window pane with blurred city lights in the background, lo-fi vibe.",
-        "Thick fog rolling over a dark forest, moody and cinematic.",
-        "Ink swirling in water, slow motion, 4k, vibrant colors.",
-        "Fire crackling in a fireplace, cozy atmosphere, close-up.",
-        "Stars rotating in the night sky, time-lapse astrophotography."
+        "Cinematic drone shot flying through a server room where the servers are glowing crystal blocks.",
+        "A robot hand shaking a human hand, highly detailed, realistic texture, 4k.",
+        "A close up of a microchip with liquid gold flowing through the circuits.",
+        "A futuristic dashboard interface floating in mid-air, being manipulated by invisible hands."
       ]
     }
   ];
 
+  if (!lead) {
+    return (
+      <div className="h-96 flex flex-col items-center justify-center text-slate-500 bg-slate-900/30 border border-slate-800 rounded-[48px] border-dashed">
+        <p className="text-[10px] font-black uppercase tracking-[0.5em]">Target Required for Veo Video Forge</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
+    <div className="max-w-[1600px] mx-auto py-6 space-y-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">VEO <span className="text-indigo-600 not-italic">FORGE</span></h1>
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic italic">Cinematic Payload Generation</p>
+          <h1 className="text-6xl font-black italic text-white uppercase tracking-tighter leading-none">
+            VIDEO <span className="text-amber-500 not-italic">PITCH</span>
+          </h1>
+          <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.5em] mt-4 italic">Veo 3.1 Generative Video Core</p>
+        </div>
+        <div className="flex items-center gap-3">
+           <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+           <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">VEO ENGINE ONLINE</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 space-y-6 shadow-2xl">
-            <div className="bg-indigo-600/5 border border-indigo-500/20 p-4 rounded-xl">
-               <p className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest leading-relaxed">
-                 VEO-3.1 FAST REQUIRES A PAID API KEY SELECTION. CLICK GENERATE TO INITIATE PROTOCOL.
-               </p>
-            </div>
-            <div className="space-y-2">
-               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cinematic Directive</label>
-               <textarea 
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
+        <div className="lg:col-span-4 space-y-8">
+          <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-12 shadow-2xl space-y-10">
+            <div className="space-y-4">
+              <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] ml-1">DIRECTOR'S PROMPT</h3>
+              <textarea 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-5 text-[11px] font-bold text-slate-300 focus:outline-none focus:border-indigo-500 h-48 resize-none shadow-xl italic"
-                placeholder="Describe the cinematic intro..."
-               />
+                className="w-full bg-[#020617] border border-slate-800 rounded-[32px] p-8 text-sm font-bold text-slate-300 focus:outline-none focus:border-amber-500 h-64 resize-none shadow-xl placeholder-slate-700 italic leading-relaxed"
+                placeholder="Describe the video asset (e.g. 'Cinematic drone shot of...')"
+              />
             </div>
+            
             <button 
               onClick={handleForge}
               disabled={isGenerating}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border border-indigo-400/20"
+              className="w-full bg-amber-500 hover:bg-amber-400 text-black py-6 rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-amber-500/20 active:scale-95 border-b-4 border-amber-600 disabled:opacity-50"
             >
-              {isGenerating ? 'FORGING CINEMATIC...' : 'GENERATE VEO PAYLOAD'}
+              {isGenerating ? 'RENDERING VIDEO...' : 'GENERATE VEO ASSET'}
             </button>
+          </div>
+
+          <div className="bg-slate-900/50 border border-slate-800 rounded-[40px] p-8 space-y-6">
+             <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest">RAPID PROMPT LIBRARY</h4>
+             <div className="space-y-3 h-64 overflow-y-auto custom-scrollbar pr-2">
+                {SUGGESTIONS.map((cat, i) => (
+                  <div key={i} className="space-y-2">
+                     <p className="text-[8px] font-black text-amber-500 uppercase tracking-widest sticky top-0 bg-slate-900/90 py-1">{cat.category}</p>
+                     {cat.prompts.map((p, j) => (
+                       <button 
+                         key={j}
+                         onClick={() => setPrompt(p)}
+                         className="w-full text-left p-3 rounded-xl bg-slate-950 border border-slate-800 text-[10px] text-slate-400 hover:text-white hover:border-amber-500/30 transition-all truncate"
+                         title={p}
+                       >
+                         {p}
+                       </button>
+                     ))}
+                  </div>
+                ))}
+             </div>
           </div>
         </div>
 
         <div className="lg:col-span-8">
-          <div className="bg-[#05091a] border border-slate-800 rounded-[48px] h-full min-h-[500px] relative overflow-hidden flex items-center justify-center shadow-2xl border-dashed">
-             {videoUrl ? (
-               <video src={videoUrl} controls autoPlay loop className="w-full h-full object-cover animate-in zoom-in-95 duration-700" />
-             ) : (
-               <div className="text-center space-y-4 opacity-30 group">
-                  <span className="text-6xl group-hover:scale-110 transition-transform block">🎬</span>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em]">Input Directive to Start Veo Forge</p>
-               </div>
-             )}
-             {isGenerating && (
-               <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center space-y-8 p-12 text-center">
-                  <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-                  <div className="space-y-3">
-                    <p className="text-[12px] font-black text-white uppercase tracking-[0.4em] animate-pulse">Initializing VEO-3.1 Neural Engine...</p>
-                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest max-w-xs">High-fidelity video synthesis can take up to 2 minutes. Do not disconnect.</p>
+          <div className="bg-[#05091a] border border-slate-800 rounded-[84px] h-full min-h-[700px] flex flex-col items-center justify-center relative overflow-hidden shadow-2xl group">
+            
+            {/* Background Ambient Effect */}
+            <div className="absolute inset-0 bg-amber-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+
+            {videoUrl ? (
+              <div className="relative w-full h-full flex flex-col">
+                 <div className="absolute top-8 right-8 z-20">
+                    <span className="bg-black/50 backdrop-blur-md text-white px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10">1080P PREVIEW</span>
+                 </div>
+                 <video 
+                   src={videoUrl} 
+                   className="w-full h-full object-cover animate-in zoom-in-95 duration-1000" 
+                   controls 
+                   autoPlay 
+                   loop 
+                   muted
+                 />
+              </div>
+            ) : (
+              <div className="relative z-10 flex flex-col items-center text-center space-y-8 px-20 opacity-30">
+                 <div className="w-32 h-32 rounded-full border-4 border-slate-800 flex items-center justify-center">
+                    <span className="text-6xl grayscale">🎥</span>
+                 </div>
+                 <h4 className="text-4xl font-black italic text-slate-700 uppercase tracking-tighter">VEO STANDBY</h4>
+                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] max-w-md leading-relaxed">
+                   INPUT A DIRECTIVE TO INITIATE GENERATIVE VIDEO SYNTHESIS.
+                 </p>
+              </div>
+            )}
+
+            {isGenerating && (
+               <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center space-y-8 z-30">
+                  <div className="relative">
+                     <div className="w-24 h-24 border-4 border-slate-800 rounded-full"></div>
+                     <div className="absolute inset-0 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <div className="text-center space-y-2">
+                     <p className="text-[12px] font-black text-amber-500 uppercase tracking-[0.4em] animate-pulse">VEO MODEL PROCESSING...</p>
+                     <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">ESTIMATED TIME: 30-60 SECONDS</p>
                   </div>
                </div>
-             )}
+            )}
           </div>
-        </div>
-      </div>
-
-      <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-700 delay-200">
-        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 border-b border-slate-800/50 pb-4">
-          <span className="text-lg">💡</span> Neural Directives (Click to Apply)
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {SUGGESTIONS.map((cat, i) => (
-             <div key={i} className="space-y-4">
-                <h4 className="text-[8px] font-black text-indigo-400 uppercase tracking-[0.3em]">{cat.category}</h4>
-                <div className="space-y-2">
-                  {cat.prompts.map((p, j) => (
-                    <button 
-                      key={j}
-                      onClick={() => setPrompt(p)}
-                      className="w-full text-left p-3 rounded-xl bg-slate-900/50 border border-slate-800 hover:border-indigo-500/30 hover:bg-slate-900 transition-all text-[9px] text-slate-400 hover:text-slate-200 font-bold leading-relaxed line-clamp-3 hover:line-clamp-none active:scale-95"
-                      title={p}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-             </div>
-          ))}
         </div>
       </div>
     </div>
