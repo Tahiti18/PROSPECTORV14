@@ -21,25 +21,30 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'OPERATE', mod: 'WORKSPACE', label: 'WORKSPACE', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'VIRAL_PULSE', label: 'VIRAL PULSE', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'VISION_LAB', label: 'VISION LAB', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'CINEMA_INTEL', label: 'CINEMA INTEL', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'ARTICLE_INTEL', label: 'ARTICLE INTEL', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'BENCHMARK', label: 'BENCHMARK', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'ANALYTICS', label: 'ANALYTICS', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'HEATMAP', label: 'HEATMAP', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'PROMPT_AI', label: 'PROMPT AI', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'MODEL_TEST', label: 'MODEL TEST', zone: 'OPERATE ZONE' },
-  { mode: 'OPERATE', mod: 'VIDEO_AI', label: 'VIDEO AI', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'FACT_CHECK', label: 'FACT CHECK', zone: 'OPERATE ZONE' },
   { mode: 'OPERATE', mod: 'TRANSLATOR', label: 'TRANSLATOR', zone: 'OPERATE ZONE' },
-  // CREATE ZONE (ROSE)
-  { mode: 'CREATE', mod: 'VIDEO_PITCH', label: 'VIDEO PITCH', zone: 'CREATE ZONE' },
+  
+  // STUDIO ZONE (ROSE) - New Dedicated Video/Audio Hub
+  { mode: 'STUDIO', mod: 'VIDEO_PITCH', label: 'VEO FORGE', zone: 'STUDIO ZONE' },
+  { mode: 'STUDIO', mod: 'VIDEO_AI', label: 'VIDEO AUDIT', zone: 'STUDIO ZONE' },
+  { mode: 'STUDIO', mod: 'CINEMA_INTEL', label: 'CINEMA INTEL', zone: 'STUDIO ZONE' },
+  { mode: 'STUDIO', mod: 'MOTION_LAB', label: 'MOTION LAB', zone: 'STUDIO ZONE' },
+  { mode: 'STUDIO', mod: 'SONIC_STUDIO', label: 'SONIC STUDIO', zone: 'STUDIO ZONE' },
+  { mode: 'STUDIO', mod: 'LIVE_SCRIBE', label: 'LIVE SCRIBE', zone: 'STUDIO ZONE' },
+
+  // CREATE ZONE (CYAN/ROSE) - Static Assets
   { mode: 'CREATE', mod: 'VISUAL_STUDIO', label: 'VISUAL STUDIO', zone: 'CREATE ZONE' },
   { mode: 'CREATE', mod: 'MOCKUPS_4K', label: '4K MOCKUPS', zone: 'CREATE ZONE' },
-  { mode: 'CREATE', mod: 'SONIC_STUDIO', label: 'SONIC STUDIO', zone: 'CREATE ZONE' },
   { mode: 'CREATE', mod: 'PRODUCT_SYNTH', label: 'PRODUCT SYNTH', zone: 'CREATE ZONE' },
-  { mode: 'CREATE', mod: 'MOTION_LAB', label: 'MOTION LAB', zone: 'CREATE ZONE' },
   { mode: 'CREATE', mod: 'FLASH_SPARK', label: 'FLASH SPARK', zone: 'CREATE ZONE' },
   { mode: 'CREATE', mod: 'MEDIA_VAULT', label: 'MEDIA VAULT', zone: 'CREATE ZONE' },
+  
   // SELL ZONE (EMERALD)
   { mode: 'SELL', mod: 'BUSINESS_ORCHESTRATOR', label: 'BUSINESS ORCHESTRATOR', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'PROPOSALS', label: 'PROPOSALS', zone: 'SELL ZONE' },
@@ -49,10 +54,10 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'SELL', mod: 'DEMO_SANDBOX', label: 'DEMO SANDBOX', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'DRAFTING', label: 'DRAFTING', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'VOICE_STRAT', label: 'VOICE STRAT', zone: 'SELL ZONE' },
-  { mode: 'SELL', mod: 'LIVE_SCRIBE', label: 'LIVE SCRIBE', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'AI_CONCIERGE', label: 'AI CONCIERGE', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'PITCH_GEN', label: 'PITCH GEN', zone: 'SELL ZONE' },
   { mode: 'SELL', mod: 'FUNNEL_MAP', label: 'FUNNEL MAP', zone: 'SELL ZONE' },
+  
   // CONTROL ZONE (AMBER)
   { mode: 'CONTROL', mod: 'PLAYBOOK', label: 'PLAYBOOK', zone: 'CONTROL ZONE' },
   { mode: 'CONTROL', mod: 'BILLING', label: 'BILLING', zone: 'CONTROL ZONE' },
@@ -73,14 +78,16 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
 
 const ZONE_COLORS: Record<string, string> = {
   'OPERATE ZONE': 'text-indigo-400 border-indigo-500/30',
-  'CREATE ZONE': 'text-rose-400 border-rose-500/30',
+  'STUDIO ZONE': 'text-rose-400 border-rose-500/30',
+  'CREATE ZONE': 'text-cyan-400 border-cyan-500/30',
   'SELL ZONE': 'text-emerald-400 border-emerald-500/30',
   'CONTROL ZONE': 'text-amber-400 border-amber-500/30',
 };
 
 const ZONE_BG_HOVERS: Record<string, string> = {
   'OPERATE ZONE': 'hover:bg-indigo-500/10 group-hover:text-indigo-400',
-  'CREATE ZONE': 'hover:bg-rose-500/10 group-hover:text-rose-400',
+  'STUDIO ZONE': 'hover:bg-rose-500/10 group-hover:text-rose-400',
+  'CREATE ZONE': 'hover:bg-cyan-500/10 group-hover:text-cyan-400',
   'SELL ZONE': 'hover:bg-emerald-500/10 group-hover:text-emerald-400',
   'CONTROL ZONE': 'hover:bg-amber-500/10 group-hover:text-amber-400',
 };
@@ -134,7 +141,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-9 h-9 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center text-lg group-hover:scale-110 transition-transform">
-                          {item.mod === 'COMMAND' ? '📊' : item.zone.includes('CREATE') ? '🎨' : item.zone.includes('SELL') ? '💰' : '📁'}
+                          {item.mod === 'COMMAND' ? '📊' : item.zone.includes('CREATE') ? '🎨' : item.zone.includes('SELL') ? '💰' : item.zone.includes('STUDIO') ? '📹' : '📁'}
                         </div>
                         <div className="flex flex-col">
                           <span className={`text-xs font-black uppercase tracking-widest group-hover:text-white transition-colors ${theme === 'dark' ? 'text-slate-200' : 'text-slate-700'}`}>{item.label}</span>

@@ -51,6 +51,7 @@ const STRATEGIC_CITIES = [
 const Icons = {
   Operate: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>,
   Create: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l5 5" /></svg>,
+  Studio: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>,
   Sell: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>,
   Control: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>,
   Command: <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>,
@@ -85,26 +86,29 @@ export const Layout: React.FC<LayoutProps> = ({
       { id: 'DEEP_LOGIC', label: 'DEEP LOGIC', icon: '🧠' },
       { id: 'VIRAL_PULSE', label: 'VIRAL PULSE', icon: '📈' },
       { id: 'VISION_LAB', label: 'VISION LAB', icon: '👁️' },
-      { id: 'CINEMA_INTEL', label: 'CINEMA INTEL', icon: '🎬' },
       { id: 'ARTICLE_INTEL', label: 'ARTICLE INTEL', icon: '📄' },
       { id: 'BENCHMARK', label: 'BENCHMARK', icon: '📏' },
       { id: 'ANALYTICS', label: 'ANALYTICS', icon: '📉' },
       { id: 'HEATMAP', label: 'HEATMAP', icon: '🔥' },
       { id: 'PROMPT_AI', label: 'PROMPT AI', icon: '💬' },
       { id: 'MODEL_TEST', label: 'MODEL TEST', icon: '🧪' },
-      { id: 'VIDEO_AI', label: 'VIDEO AI', icon: '🎥' },
       { id: 'FACT_CHECK', label: 'FACT CHECK', icon: '✅' },
       { id: 'TRANSLATOR', label: 'TRANSLATOR', icon: '🌐' },
     ],
     CREATE: [
-      { id: 'VIDEO_PITCH', label: 'VIDEO PITCH', icon: '📹' },
       { id: 'VISUAL_STUDIO', label: 'VISUAL STUDIO', icon: '🎨' },
       { id: 'MOCKUPS_4K', label: '4K MOCKUPS', icon: '🖥️' },
-      { id: 'SONIC_STUDIO', label: 'SONIC STUDIO', icon: '🎵' },
       { id: 'PRODUCT_SYNTH', label: 'PRODUCT SYNTH', icon: '🧬' },
-      { id: 'MOTION_LAB', label: 'MOTION LAB', icon: '🏃' },
       { id: 'FLASH_SPARK', label: 'FLASH SPARK', icon: '⚡' },
       { id: 'MEDIA_VAULT', label: 'MEDIA VAULT', icon: '🔒' },
+    ],
+    STUDIO: [
+      { id: 'VIDEO_PITCH', label: 'VEO FORGE', icon: '📹' },
+      { id: 'VIDEO_AI', label: 'VIDEO AUDIT', icon: '🎥' },
+      { id: 'CINEMA_INTEL', label: 'CINEMA INTEL', icon: '🎬' },
+      { id: 'MOTION_LAB', label: 'MOTION LAB', icon: '🏃' },
+      { id: 'SONIC_STUDIO', label: 'SONIC STUDIO', icon: '🎵' },
+      { id: 'LIVE_SCRIBE', label: 'LIVE SCRIBE', icon: '✍️' },
     ],
     SELL: [
       { id: 'BUSINESS_ORCHESTRATOR', label: 'BUSINESS ORCHESTRATOR', icon: '🎼' },
@@ -115,7 +119,6 @@ export const Layout: React.FC<LayoutProps> = ({
       { id: 'DEMO_SANDBOX', label: 'DEMO SANDBOX', icon: '🏖️' },
       { id: 'DRAFTING', label: 'DRAFTING', icon: '✏️' },
       { id: 'VOICE_STRAT', label: 'VOICE STRAT', icon: '🗣️' },
-      { id: 'LIVE_SCRIBE', label: 'LIVE SCRIBE', icon: '✍️' },
       { id: 'AI_CONCIERGE', label: 'AI CONCIERGE', icon: '🤖' },
       { id: 'PITCH_GEN', label: 'PITCH GEN', icon: '📢' },
       { id: 'FUNNEL_MAP', label: 'FUNNEL MAP', icon: '🗺️' },
@@ -159,18 +162,19 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
 
         <div className={`border rounded-lg p-0.5 flex ${theme === 'dark' ? 'bg-slate-950 border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
-          {(['OPERATE', 'CREATE', 'SELL', 'CONTROL'] as MainMode[]).map(mode => (
+          {(['OPERATE', 'CREATE', 'STUDIO', 'SELL', 'CONTROL'] as MainMode[]).map(mode => (
             <button
               key={mode}
               onClick={() => setActiveMode(mode)}
               className={`flex items-center gap-2 px-5 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
                 activeMode === mode 
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
+                  ? mode === 'STUDIO' ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/20' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
                   : theme === 'dark' ? 'text-slate-200 hover:text-white' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               {mode === 'OPERATE' && Icons.Operate}
               {mode === 'CREATE' && Icons.Create}
+              {mode === 'STUDIO' && Icons.Studio}
               {mode === 'SELL' && Icons.Sell}
               {mode === 'CONTROL' && Icons.Control}
               <span className="hidden lg:inline">{mode}</span>
@@ -257,12 +261,12 @@ export const Layout: React.FC<LayoutProps> = ({
             onClick={() => setActiveModule(mod.id)}
             className={`flex items-center gap-2.5 px-4 py-2 rounded-lg transition-all border group ${
               activeModule === mod.id 
-                ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-400 shadow-sm' 
+                ? activeMode === 'STUDIO' ? 'bg-rose-600/20 border-rose-500/50 text-rose-400 shadow-sm' : 'bg-indigo-600/20 border-indigo-500/50 text-indigo-400 shadow-sm' 
                 : theme === 'dark' ? 'border-transparent text-slate-200 hover:text-white hover:bg-slate-800' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200'
             }`}
           >
             <span className={`text-xs transition-opacity group-hover:opacity-100 ${activeModule === mod.id ? 'opacity-100 font-bold' : 'opacity-70'}`}>{mod.icon}</span>
-            <span className={`text-[10px] font-black tracking-widest uppercase transition-colors ${activeModule === mod.id ? 'text-indigo-400' : ''}`}>{mod.label}</span>
+            <span className={`text-[10px] font-black tracking-widest uppercase transition-colors ${activeModule === mod.id ? (activeMode === 'STUDIO' ? 'text-rose-400' : 'text-indigo-400') : ''}`}>{mod.label}</span>
           </button>
         ))}
       </div>

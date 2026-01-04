@@ -178,27 +178,33 @@ const App: React.FC = () => {
         case 'PROMPT_AI': return <PromptAI lead={lockedLead} />;
         case 'FACT_CHECK': return <FactCheck lead={lockedLead} />;
         case 'MODEL_TEST': return <ModelTest />;
-        case 'VIDEO_AI': return <VideoAI lead={lockedLead} />;
         case 'TRANSLATOR': return <TranslatorNode />;
         case 'VIRAL_PULSE': return <ViralPulse lead={lockedLead} />;
         case 'WORKSPACE': return <WorkspaceNode leads={leads} />;
         case 'ARTICLE_INTEL': return <ArticleIntel lead={lockedLead} />;
-        case 'CINEMA_INTEL': return <CinemaIntel lead={lockedLead} />;
         case 'ANALYTICS': return <AnalyticsHub leads={leads} />;
         default: return <IntelNode module={activeModule} lead={lockedLead} />;
       }
     }
     if (activeMode === 'CREATE') {
       switch (activeModule) {
-        case 'SONIC_STUDIO': return <SonicStudio lead={lockedLead} />;
         case 'VISION_LAB': return <VisionLab lead={lockedLead} />;
         case 'MOCKUPS_4K': return <Mockups4K lead={lockedLead} />;
-        case 'VIDEO_PITCH': return <VideoPitch lead={lockedLead} />;
         case 'PRODUCT_SYNTH': return <ProductSynth lead={lockedLead} />;
-        case 'MOTION_LAB': return <MotionLab lead={lockedLead} />;
         case 'FLASH_SPARK': return <FlashSpark lead={lockedLead} />;
         case 'MEDIA_VAULT': return <MediaVault />;
         case 'VISUAL_STUDIO': return <VisualStudio leads={leads} lockedLead={lockedLead} />;
+        default: return <CreateWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
+      }
+    }
+    if (activeMode === 'STUDIO') {
+      switch (activeModule) {
+        case 'VIDEO_PITCH': return <VideoPitch lead={lockedLead} />;
+        case 'VIDEO_AI': return <VideoAI lead={lockedLead} />;
+        case 'CINEMA_INTEL': return <CinemaIntel lead={lockedLead} />;
+        case 'MOTION_LAB': return <MotionLab lead={lockedLead} />;
+        case 'SONIC_STUDIO': return <SonicStudio lead={lockedLead} />;
+        case 'LIVE_SCRIBE': return <LiveScribe />;
         default: return <CreateWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
       }
     }
@@ -211,7 +217,6 @@ const App: React.FC = () => {
         case 'DRAFTING': return <ProposalDrafting lead={lockedLead} />;
         case 'PITCH_GEN': return <PitchGen lead={lockedLead} />;
         case 'FUNNEL_MAP': return <FunnelMap lead={lockedLead} />;
-        case 'LIVE_SCRIBE': return <LiveScribe />;
         case 'AI_CONCIERGE': return <AIConcierge lead={lockedLead} />;
         case 'ROI_CALC': return <ROICalc leads={leads} />;
         case 'DECK_ARCH': return <DeckArch lead={lockedLead} />;

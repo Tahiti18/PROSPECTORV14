@@ -2,7 +2,7 @@
 // PHASE 1: Canonical Status Definition
 export type OutreachStatus = 'cold' | 'queued' | 'sent' | 'opened' | 'replied' | 'booked' | 'won' | 'lost' | 'paused';
 
-export type MainMode = 'OPERATE' | 'CREATE' | 'SELL' | 'CONTROL';
+export type MainMode = 'OPERATE' | 'CREATE' | 'STUDIO' | 'SELL' | 'CONTROL';
 
 export type SubModule = 
   | 'COMMAND' | 'RADAR_RECON' | 'AUTO_CRAWL' | 'TARGET_LIST' | 'PIPELINE' | 'WAR_ROOM' 
