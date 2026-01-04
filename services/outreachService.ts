@@ -1,7 +1,8 @@
+import { OutreachLog, OutreachChannel, OutreachMode } from '../types';
 
-import { Lead, OutreachLog } from '../types';
-
-const LOG_STORAGE_KEY = 'pomelli_outreach_log_v1';
+const LOG_STORAGE_KEY = 'outreachLog'; 
+const LOG_CAP = 200;
+const SNIPPET_MAX = 240;
 
 type GenerateMailtoArgs = {
   to: string;
@@ -10,46 +11,58 @@ type GenerateMailtoArgs = {
   cc?: string;
 };
 
+export type LogInteractionArgs = {
+  leadId?: string;
+  channel: OutreachChannel;
+  mode: OutreachMode;
+  to?: string;
+  subject?: string;
+  body?: string; // used ONLY to derive contentSnippet
+};
+
+function mkId() {
+  try {
+    // @ts-ignore
+    if (crypto?.randomUUID) return crypto.randomUUID();
+  } catch {}
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function makeSnippet(body?: string) {
+  const v = (body ?? "").replace(/\s+/g, " ").trim();
+  if (!v) return undefined;
+  return v.length > SNIPPET_MAX ? v.slice(0, SNIPPET_MAX) : v;
+}
+
 export const outreachService = {
   
   // Log interactions to a global persistent log (System of Record)
-  // Refactored to accept structured options for clarity
-  logInteraction: (
-    leadId: string, 
-    type: OutreachLog['type'], 
-    details: {
-      subject?: string;
-      body?: string;
-      mode?: 'live' | 'test';
-      to?: string;
-    }
-  ): OutreachLog => {
-    const { subject, body, mode = 'live', to = '' } = details;
+  // Enforces strict object signature and body truncation
+  logInteraction: (args: LogInteractionArgs): OutreachLog => {
     
-    // Auto-generate snippet from body, fallback to subject
-    const contentSnippet = body 
-      ? (body.slice(0, 100) + (body.length > 100 ? '...' : '')) 
-      : (subject || 'No Content');
-
     const log: OutreachLog = {
-      id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      id: mkId(),
       timestamp: Date.now(),
-      type,
-      channel: type, // Explicitly map type to channel for consistency
-      mode,
-      to,
-      subject,
-      contentSnippet,
-      status: 'SENT'
+      
+      channel: args.channel,
+      mode: args.mode,
+      
+      leadId: args.leadId?.trim() || undefined,
+      to: args.to?.trim() || undefined,
+      subject: args.subject?.trim() || undefined,
+      
+      // Body never stored; only a short snippet is persisted.
+      contentSnippet: makeSnippet(args.body),
+      
+      status: 'SENT' // Default status for UI compat
     };
 
     try {
       const raw = localStorage.getItem(LOG_STORAGE_KEY);
-      const history: OutreachLog[] = raw ? JSON.parse(raw) : [];
-      history.unshift(log);
-      // Keep last 500 logs globally
-      if (history.length > 500) history.pop();
-      localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(history));
+      const prev: OutreachLog[] = raw ? JSON.parse(raw) : [];
+      // Unshift to add to top, slice to cap
+      const next = [log, ...prev].slice(0, LOG_CAP);
+      localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(next));
     } catch (e) {
       console.error("Failed to persist outreach log", e);
     }
@@ -62,13 +75,16 @@ export const outreachService = {
     const isTruncated = body.length > MAILTO_BODY_LIMIT;
     const bodyForMailto = isTruncated ? body.slice(0, MAILTO_BODY_LIMIT) + '...' : body;
 
-    const params: string[] = [];
-    params.push(`subject=${encodeURIComponent(subject || "")}`);
-    params.push(`body=${encodeURIComponent(bodyForMailto || "")}`);
-    if (cc && cc.trim()) params.push(`cc=${encodeURIComponent(cc.trim())}`);
+    const params = new URLSearchParams();
+    params.append('subject', subject || "");
+    params.append('body', bodyForMailto || "");
+    if (cc && cc.trim()) params.append('cc', cc.trim());
+
+    // Clean space encoding for mailto compatibility
+    const qs = params.toString().replace(/\+/g, '%20');
 
     return {
-      url: `mailto:${encodeURIComponent(to)}?${params.join("&")}`,
+      url: `mailto:${encodeURIComponent(to)}?${qs}`,
       isTruncated,
       bodyForMailto
     };
@@ -80,19 +96,18 @@ export const outreachService = {
       return true;
     } catch (e) {
       // Fallback
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed"; 
-      ta.style.left = "-9999px";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
       try {
-        document.execCommand('copy');
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed"; 
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
         document.body.removeChild(ta);
-        return true;
+        return ok;
       } catch (err) {
-        document.body.removeChild(ta);
         return false;
       }
     }

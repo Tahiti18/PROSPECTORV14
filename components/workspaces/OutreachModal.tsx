@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lead, OutreachStatus } from '../../types';
+import { Lead, OutreachChannel, OutreachMode } from '../../types';
 import { outreachService } from '../../services/outreachService';
 
 interface OutreachModalProps {
@@ -113,12 +113,14 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({ isOpen, onClose, d
 
     window.open(url, '_blank');
 
-    // Log as test, do not update lead status
-    outreachService.logInteraction(lead.id, 'EMAIL', {
-      subject,
-      body,
+    // STRICT RULES: Mode = test, Channel = email, NO status update
+    outreachService.logInteraction({
+      leadId: lead.id,
+      channel: 'email', 
       mode: 'test',
-      to: adminEmail
+      to: adminEmail,
+      subject: `[TEST] ${subject}`,
+      body: body
     });
     
     await new Promise(r => setTimeout(r, 600));
@@ -133,7 +135,7 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({ isOpen, onClose, d
     // Determine Recipient
     const targetEmail = sendMode === 'TEST' ? adminEmail : (lead.email || '');
     
-    // 1. Trigger the native client (V1 Logic)
+    // 1. Trigger the native client
     if (channel === 'GMAIL') {
       const { url, isTruncated } = outreachService.generateMailto({
         to: targetEmail,
@@ -150,25 +152,26 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({ isOpen, onClose, d
     } else {
       // For LinkedIn, we copy to clipboard and attempt to open URL
       await outreachService.copyToClipboard(body);
-      // Try to find LinkedIn URL or fallback to website
       const targetUrl = lead.contactUrl || lead.websiteUrl;
       window.open(targetUrl, '_blank');
       setUiNotice("Message copied. Opening target...");
     }
 
-    // 2. Log Interaction
-    const logType = channel === 'GMAIL' ? 'EMAIL' : 'LINKEDIN';
-    const logMode = sendMode === 'TEST' ? 'test' : 'live';
+    // 2. Log Interaction with STRICT Types
+    const logChannel: OutreachChannel = channel === 'GMAIL' ? 'email' : 'linkedin';
+    const logMode: OutreachMode = sendMode === 'TEST' ? 'test' : 'live';
     
-    const log = outreachService.logInteraction(lead.id, logType, {
-      subject,
-      body,
+    const log = outreachService.logInteraction({
+      leadId: lead.id,
+      channel: logChannel,
       mode: logMode,
-      to: targetEmail
+      to: targetEmail,
+      subject: subject,
+      body: body
     });
     
     // 3. Update Lead Status (System of Record) - ONLY IF LIVE
-    if (sendMode === 'LIVE') {
+    if (logMode === 'live') {
         const newHistory = [log, ...(lead.outreachHistory || [])];
         
         onUpdateLead(lead.id, {
@@ -186,7 +189,7 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({ isOpen, onClose, d
     setIsSending(false);
     if (onSent) onSent();
     // Don't close immediately on test so user can iterate
-    if (sendMode === 'LIVE') onClose();
+    if (logMode === 'live') onClose();
   };
 
   return (

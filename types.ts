@@ -28,19 +28,25 @@ export interface ComputeStats {
   flashCalls: number;
 }
 
+// STRICT OUTREACH TYPING
+export type OutreachChannel = 'email' | 'linkedin';
+export type OutreachMode = 'live' | 'test';
+
 export interface OutreachLog {
   id: string;
   timestamp: number;
-  type: 'EMAIL' | 'LINKEDIN' | 'CALL';
-  channel?: 'EMAIL' | 'LINKEDIN' | 'CALL';
-  mode?: 'live' | 'test'; // New: Track if it was a real send or admin test
-  to?: string; // New: Record actual recipient
-  contentSnippet: string;
+
+  channel: OutreachChannel;
+  mode: OutreachMode;
+
+  leadId?: string;
+  to?: string;
+
   subject?: string;
-  status: 'SENT' | 'FAILED';
-  outcome?: string;
-  stepIndex?: number;
-  error?: string;
+  contentSnippet?: string; // derived from body, max 240 chars
+  
+  // Optional extras if needed for UI compatibility
+  status?: 'SENT' | 'FAILED'; 
 }
 
 export interface Lead {
