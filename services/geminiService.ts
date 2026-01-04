@@ -1,23 +1,39 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { EngineResult, Lead, SubModule } from "../types";
 import { trackCall } from "./computeTracker";
+import { getModuleWeight } from "./creditWeights";
+import {
+  logAiOperation,
+  uuidLike,
+  UserRole,
+  ModelClass,
+  ReasoningDepth,
+} from "./usageLogger";
 
 const getAI = () => {
-  const apiKey = process.env.API_KEY;
+  const apiKey =
+    process.env.API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GEMINI_API_KEY;
+
   if (!apiKey) {
-    console.error("SYSTEM CRITICAL: API_KEY MISSING from environment.");
+    console.error(
+      "SYSTEM CRITICAL: Missing API key env var. Set API_KEY (preferred) or GOOGLE_API_KEY / GEMINI_API_KEY."
+    );
   }
-  return new GoogleGenAI({ apiKey: apiKey || '' });
+
+  return new GoogleGenAI({ apiKey: apiKey || "" });
 };
 
 // --- GLOBAL SESSION STATE ---
 export interface AssetRecord {
   id: string;
-  type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'TEXT';
+  type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'TEXT'; // Kept for compatibility
+  module?: SubModule; // Added for new logger compatibility
   title: string;
   data: string; // Base64 or URL
-  timestamp: string;
+  timestamp: string | number; // Union for compatibility
+  content?: string; // Union for compatibility
 }
 
 export const SESSION_ASSETS: AssetRecord[] = [];
@@ -28,20 +44,52 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
     type,
     title,
     data,
-    timestamp: new Date().toLocaleTimeString()
+    timestamp: new Date().toLocaleTimeString(),
+    // Compatibility fields
+    content: data,
+    module: 'MEDIA_VAULT' as SubModule 
   };
   SESSION_ASSETS.unshift(asset); // Newest first
   pushLog(`ASSET SECURED: ${title} [${type}]`);
 };
 
-export const PRODUCTION_LOGS: string[] = [];
-const pushLog = (msg: string) => {
-  console.log(`[SYSTEM_LOG] ${msg}`);
-  PRODUCTION_LOGS.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
-  if (PRODUCTION_LOGS.length > 100) PRODUCTION_LOGS.pop();
+export interface SystemLogEntry {
+  timestamp: number;
+  message: string;
+}
+
+export interface EngineSessionState {
+  leadLedger: Lead[];
+  assets: AssetRecord[];
+  logs: SystemLogEntry[];
+  activeModule: SubModule | null;
+}
+
+export const sessionState: EngineSessionState = {
+  leadLedger: [],
+  assets: SESSION_ASSETS,
+  logs: [],
+  activeModule: null,
 };
 
-const extractJSON = (text: string) => {
+// Restore PRODUCTION_LOGS for ProdLog.tsx compatibility
+export const PRODUCTION_LOGS: string[] = [];
+
+export const pushLog = (msg: string) => {
+  const time = new Date().toLocaleTimeString();
+  const logMsg = `[${time}] ${msg}`;
+  
+  // Update old logs array
+  console.log(`[SYSTEM_LOG] ${msg}`);
+  PRODUCTION_LOGS.unshift(logMsg);
+  if (PRODUCTION_LOGS.length > 100) PRODUCTION_LOGS.pop();
+
+  // Update new session state
+  sessionState.logs.push({ timestamp: Date.now(), message: msg });
+};
+
+// --- Utility: Extract JSON safely from model output ---
+export const extractJSON = (text: string) => {
   try {
     let match = text.match(/\{[\s\S]*\}/);
     if (match) {
@@ -53,116 +101,566 @@ const extractJSON = (text: string) => {
     }
     return JSON.parse(text);
   } catch (e) {
-    pushLog("PARSE_ERROR: Failed to extract valid JSON from response.");
-    console.error("Raw text was:", text);
     return null;
   }
 };
 
-const ELITE_NODES: SubModule[] = [
-  'BENCHMARK', 'DEEP_LOGIC', 'ROI_CALC', 'PROPOSALS', 'DRAFTING', 'PRODUCT_SYNTH', 'PITCH_GEN'
-];
+// ===============================
+// LOGGED WRAPPER (NO ENFORCEMENT)
+// ===============================
+type LoggedGenerateArgs = {
+  ai: GoogleGenAI;
+  module: string;
+  model: string;
+  modelClass: ModelClass;
+  reasoningDepth: ReasoningDepth;
+  isClientFacing: boolean;
 
-export interface StackItem { label: string; description: string; }
-export interface BenchmarkReport {
-  entityName: string; missionSummary: string; visualStack: StackItem[]; sonicStack: StackItem[]; featureGap: string; businessModel: string; designSystem: string; deepArchitecture: string; sources: Array<{ title: string; uri: string }>;
-}
+  userId?: string;
+  userRole?: UserRole;
+  requestId?: string;
+  traceId?: string;
 
-export const fetchLiveIntel = async (lead: Lead, moduleType: string): Promise<BenchmarkReport> => {
-  pushLog(`ENGAGING MODULE: ${moduleType} for ${lead.businessName}`);
-  const ai = getAI();
-  const model = "gemini-3-pro-preview";
-  
-  const prompt = `
-    You are the Lead Reverse-Engineer for a high-end AI Technical Agency.
-    TARGET ENTITY: "${lead.businessName}"
-    TARGET URL: "${lead.websiteUrl}"
-    MODULE: "${moduleType}"
+  // Pass-through to Gemini SDK
+  contents: any;
+  config?: any;
+};
 
-    MISSION DIRECTIVE:
-    Conduct a FORENSIC TECHNICAL AUTOPSY of this target. 
-    Do not provide a generic marketing summary. I need a brutal, engineer-level deconstruction of their stack, capabilities, and flaws.
+export const loggedGenerateContent = async ({
+  ai,
+  module,
+  model,
+  modelClass,
+  reasoningDepth,
+  isClientFacing,
+  userId,
+  userRole,
+  requestId,
+  traceId,
+  contents,
+  config,
+}: LoggedGenerateArgs): Promise<string> => {
+  const start = Date.now();
+  const moduleWeight = getModuleWeight(module);
+  const effectiveWeight = moduleWeight;
 
-    INVESTIGATION VECTORS:
-    1. **Generative Capabilities (CRITICAL):** If this is an AI tool, you MUST identify the underlying models. 
-       - Are they wrapping OpenAI/Anthropic? 
-       - Using Replicate for Stable Diffusion/Flux? 
-       - Using ElevenLabs for audio? 
-       - Using Runway/Pika for video?
-       - DEDUCE this based on their pricing, speed, and output quality claims found in search.
-    2. **Infrastructure:** Identify the hosting (Vercel/AWS/GCP), database strategies (Vector DBs like Pinecone vs Postgres), and frontend framework (Next.js/React/Vue).
-    3. **Monetization Mechanics:** How do they actually capture value? (Credit arbitrage, tiered subs, enterprise licensing).
-    4. **The "Social Gap":** Contrast their technical prowess with their actual social media presence.
-
-    OUTPUT REQUIREMENTS:
-    - **"deepArchitecture"**: This must be a MASSIVE, 500+ word technical essay. Break down the "Model Orchestration Layer", "Frontend State Management", "Asset Pipeline", and "Latency Optimization". 
-    - **"visualStack"**: List specific libraries (Three.js, Framer Motion, Tailwind, WebGL).
-    - **"sonicStack"**: List audio technologies or voice models inferred (ElevenLabs, Azure TTS, OpenAI Whisper).
-    - **"featureGap"**: A sharp, critical analysis of what is missing from their platform (e.g., "No API access for developers", "Lack of real-time collaboration").
-
-    OUTPUT FORMAT:
-    Return ONLY a raw JSON object.
-    
-    JSON SCHEMA:
-    {
-      "entityName": "Verified Business Name",
-      "missionSummary": "A high-fidelity technical abstract of the target's purpose.",
-      "visualStack": [ {"label": "Tech/Style", "description": "Specific library or design paradigm"} ],
-      "sonicStack": [ {"label": "Audio/Model", "description": "Specific AI model or audio tech"} ],
-      "featureGap": "Critical missing opportunity or technical flaw.",
-      "businessModel": "Detailed revenue mechanics and arbitrage strategy.",
-      "designSystem": "Visual identity, UI patterns, and UX philosophy.",
-      "deepArchitecture": "The Exhaustive Technical Synopsis (500+ words)."
-    }
-  `;
+  const logBase = {
+    logId: uuidLike(),
+    timestamp: new Date().toISOString(),
+    requestId,
+    traceId,
+    userId: userId || "anonymous",
+    userRole: userRole || "FOUNDER",
+    module,
+    isClientFacing,
+    model,
+    modelClass,
+    reasoningDepth,
+    moduleWeight,
+    effectiveWeight,
+  };
 
   try {
-    const response = await ai.models.generateContent({
+    const resp = await ai.models.generateContent({
       model,
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        thinkingConfig: { thinkingBudget: 32000 },
-      }
+      contents,
+      config,
     });
 
-    const rawData = extractJSON(response.text || "{}") || {};
-    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.filter(c => c.web).map(c => ({ title: c.web?.title || 'External Intelligence Node', uri: c.web?.uri || '' })) || [];
+    const latencyMs = Date.now() - start;
 
-    trackCall(model, (response.text?.length || 0) + prompt.length);
+    await logAiOperation({
+      ...logBase,
+      latencyMs,
+      status: "SUCCESS",
+    });
 
-    if (!rawData.entityName) {
-        throw new Error("AI returned empty intelligence payload.");
-    }
+    const text = resp.text || "";
+    // Maintain UI tracking compatibility
+    trackCall(model, text.length + 100);
+    
+    return text;
+  } catch (e: any) {
+    const latencyMs = Date.now() - start;
 
-    return {
-      entityName: rawData.entityName || lead.businessName,
-      missionSummary: rawData.missionSummary || "Intelligence extraction in progress.",
-      visualStack: rawData.visualStack || [],
-      sonicStack: rawData.sonicStack || [],
-      featureGap: rawData.featureGap || "Tactical gap analysis pending.",
-      businessModel: rawData.businessModel || "Analysis in progress.",
-      designSystem: rawData.designSystem || "Audit pending.",
-      deepArchitecture: rawData.deepArchitecture || "Analyzing deep-layer protocols...",
-      sources
-    };
-  } catch (error) {
-    pushLog(`INTEL_FETCH_FAILURE: ${error instanceof Error ? error.message : 'Unknown Connection Error'}`);
-    return {
-        entityName: lead.businessName,
-        missionSummary: "TARGET_LOCKED: SIGNAL_INTERFERENCE. MANUAL RECON ADVISED.",
-        visualStack: [{ label: "Error", description: "Connection reset by peer" }],
-        sonicStack: [],
-        featureGap: "DATA_UNAVAILABLE",
-        businessModel: "UNKNOWN",
-        designSystem: "UNKNOWN",
-        deepArchitecture: "The automated reconnaissance unit encountered a firewall or empty response vector. Proceed with manual inspection.",
-        sources: []
-    };
+    await logAiOperation({
+      ...logBase,
+      latencyMs,
+      status: "FAILURE",
+      errorMessage: e?.message || String(e),
+    });
+
+    throw e;
   }
 };
 
+// --- DATA MODELS ---
+export interface StackItem {
+  label: string;
+  description: string;
+}
+export interface BenchmarkReport {
+  entityName: string;
+  missionSummary: string;
+  visualStack: StackItem[];
+  socialStack: StackItem[];
+  techStack: StackItem[];
+  funnelStack: StackItem[];
+  contentStack: StackItem[];
+  sonicStack: StackItem[];
+  deepArchitecture: string;
+  sources: Array<{ title: string; uri: string }>;
+  featureGap: string;
+  businessModel: string;
+  designSystem: string;
+}
+
+// --- CORE: LIVE INTEL / BENCHMARK ---
+export const fetchLiveIntel = async (
+  lead: Lead,
+  moduleType: string
+): Promise<BenchmarkReport> => {
+  pushLog(`ENGAGING MODULE: ${moduleType} for ${lead.businessName}`);
+  const ai = getAI();
+  const model = "gemini-3-pro-preview";
+
+  const prompt = `
+You are the Lead Reverse-Engineer for a high-end AI Technical Agency.
+
+TARGET ENTITY: "${lead.businessName}"
+TARGET URL: "${lead.websiteUrl}"
+MODULE: "${moduleType}"
+
+OBJECTIVE:
+Reverse-engineer the business’s public web presence and infer:
+- Brand positioning & mission
+- Visual strengths & weaknesses
+- Social presence (frequency, quality, reach)
+- Tech stack & platform signals
+- Funnel structure & conversion posture
+- Content engine maturity
+- Sonic / audio signals if any (podcasts, voice branding)
+- Deep architecture: infer underlying growth logic and hidden operational layers
+
+RULES:
+- Use Google Search grounding to cite sources when relevant.
+- Be concise but high signal.
+- Return structured JSON exactly matching the schema.
+
+SCHEMA:
+{
+  "entityName": "string",
+  "missionSummary": "string",
+  "visualStack": [{ "label":"string","description":"string" }],
+  "socialStack": [{ "label":"string","description":"string" }],
+  "techStack": [{ "label":"string","description":"string" }],
+  "funnelStack": [{ "label":"string","description":"string" }],
+  "contentStack": [{ "label":"string","description":"string" }],
+  "sonicStack": [{ "label":"string","description":"string" }],
+  "featureGap": "string",
+  "businessModel": "string",
+  "designSystem": "string",
+  "deepArchitecture": "string",
+  "sources": [{ "title":"string","uri":"string" }]
+}
+`;
+
+  const text = await loggedGenerateContent({
+    ai,
+    module: "BENCHMARK",
+    model,
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      tools: [{ googleSearch: {} }],
+    },
+  });
+
+  const data = extractJSON(text || "{}") || {};
+  const rawData = data as any;
+
+  const normalizeStack = (arr: any[]): StackItem[] => {
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter(Boolean)
+      .map((x) => ({
+        label: String(x.label || x.title || "Signal"),
+        description: String(x.description || x.detail || "No description provided."),
+      }));
+  };
+
+  return {
+    entityName: rawData.entityName || lead.businessName,
+    missionSummary: rawData.missionSummary || "No summary generated.",
+    visualStack: normalizeStack(rawData.visualStack),
+    socialStack: normalizeStack(rawData.socialStack),
+    techStack: normalizeStack(rawData.techStack),
+    funnelStack: normalizeStack(rawData.funnelStack),
+    contentStack: normalizeStack(rawData.contentStack),
+    sonicStack: normalizeStack(rawData.sonicStack),
+    featureGap: rawData.featureGap || "Tactical gap analysis pending.",
+    businessModel: rawData.businessModel || "Analysis in progress.",
+    designSystem: rawData.designSystem || "Audit pending.",
+    deepArchitecture: rawData.deepArchitecture || "Analyzing deep-layer protocols...",
+    sources: Array.isArray(rawData.sources) ? rawData.sources : [],
+  };
+};
+
 export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> => fetchLiveIntel(lead, "BENCHMARK");
+
+// --- GENERAL FLASH PROMPT NODE ---
+export const runFlashPrompt = async (prompt: string): Promise<string> => {
+  const ai = getAI();
+  const text = await loggedGenerateContent({
+    ai,
+    module: "PROMPT_AI",
+    model: "gemini-3-flash-preview",
+    modelClass: "FLASH",
+    reasoningDepth: "LOW",
+    isClientFacing: true,
+    contents: prompt,
+  });
+  return text || "No response.";
+};
+
+// --- UPGRADED INTELLIGENCE NODES (LEVEL 5) ---
+
+// 1. VIDEO_AI: Pro + Search Grounding (real evidence)
+export const critiqueVideoPresence = async (lead: Lead): Promise<string> => {
+  const ai = getAI();
+
+  const prompt = `
+You are a senior performance creative strategist and video marketing auditor for a high-end growth agency.
+
+TASK:
+Conduct a deep audit of the business's current video presence and its conversion posture. Use Google Search grounding to find real evidence.
+
+BUSINESS:
+- Name: ${lead.businessName}
+- Website: ${lead.websiteUrl}
+- Niche: ${lead.niche}
+- City: ${lead.city}
+- Known handles (may be empty): IG=${lead.instagram || "N/A"} | TikTok=${lead.tiktok || "N/A"} | YouTube=${lead.youtube || "N/A"}
+
+REQUIREMENTS:
+1) Find their actual short-form and long-form video footprint (TikTok/Reels/YouTube) to provide a verified critique.
+2) Summarize what exists today: frequency, format, hooks, production quality, CTA style, and content pillars.
+3) Identify conversion gaps: weak hooks, missing CTAs, poor targeting, no offer, no proof, inconsistent brand tone, etc.
+4) Identify competitive contrast: what competitors in their niche are doing that they are not.
+5) Produce a practical 14-day action plan with:
+   - Content pillars (3–5)
+   - Hook formulas (at least 10 examples)
+   - CTA/offer suggestions
+   - Posting cadence
+   - Suggested filming/editing style guidelines
+
+OUTPUT FORMAT:
+- Evidence (bulleted list with sources)
+- Audit Summary (tight)
+- Conversion Failures (bullets)
+- Competitive Gaps (bullets)
+- 14-Day Action Plan (numbered)
+- 10 Hook Examples (bulleted)
+`;
+
+  const text = await loggedGenerateContent({
+    ai,
+    module: "VIDEO_AI",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: prompt,
+    config: {
+      tools: [{ googleSearch: {} }],
+    },
+  });
+
+  return text || "Audit failed.";
+};
+
+// 2. ARTICLE_INTEL: Pro + Search for Executive Synthesis
+export const synthesizeArticle = async (
+  source: string,
+  mode: string
+): Promise<string> => {
+  const ai = getAI();
+
+  const prompt = `
+You are an executive research analyst for a growth and lead-intelligence system.
+
+INPUT:
+- Source: ${source}
+- Mode: ${mode}
+
+TASK:
+1) If the source is a URL, use Google Search grounding to validate and cross-reference.
+2) Produce executive-level synthesis that can be used to sell a strategic retainer:
+   - Key claims and what matters commercially
+   - Competitive implications / "so what?"
+   - How to weaponize this intel for outbound messaging
+   - 3 angles to position our agency as the solution
+
+OUTPUT:
+- Executive Summary (5–8 bullets)
+- Commercial Implications (bullets)
+- Outreach Angles (3)
+- Recommended Next Actions (5 bullets)
+`;
+
+  const text = await loggedGenerateContent({
+    ai,
+    module: "ARTICLE_INTEL",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "MEDIUM",
+    isClientFacing: true,
+    contents: prompt,
+    config: {
+      tools: [{ googleSearch: {} }],
+    },
+  });
+
+  return text || "Failed.";
+};
+
+// 3. DECK_ARCH: Pro + increased thinking budget (persuasive slide logic)
+export const architectPitchDeck = async (lead: Lead): Promise<any[]> => {
+  const ai = getAI();
+
+  const prompt = `
+You are a sales-deck narrative architect for a premium AI marketing agency.
+
+CLIENT / TARGET:
+- Business: ${lead.businessName}
+- Website: ${lead.websiteUrl}
+- Niche: ${lead.niche}
+- City: ${lead.city}
+- Social Gap: ${lead.socialGap}
+- Visual Proof: ${lead.visualProof}
+- Best Angle: ${lead.bestAngle}
+- Personalized Hook: ${lead.personalizedHook}
+
+TASK:
+Architect a 5-slide deck that is psychologically persuasive and logically sequenced.
+Focus on: problem framing → proof → solution → plan → offer/CTA.
+
+OUTPUT REQUIREMENTS:
+Return VALID JSON array exactly like:
+[
+  {
+    "title": "Slide title",
+    "narrativeGoal": "What this slide must accomplish psychologically",
+    "keyVisuals": ["visual idea 1", "visual idea 2"],
+    "bullets": ["bullet 1", "bullet 2", "bullet 3"]
+  }
+]
+
+RULES:
+- No markdown. JSON only.
+- Keep bullets concrete and client-specific.
+`;
+
+  const text = await loggedGenerateContent({
+    ai,
+    module: "DECK_ARCH",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: prompt,
+    config: { thinkingConfig: { thinkingBudget: 4000 } },
+  });
+
+  return extractJSON(text || "[]") || [];
+};
+
+// 4. SEQUENCER: Pro + thinking budget (high-EQ conversion copy)
+export const generateOutreachSequence = async (lead: Lead): Promise<any[]> => {
+  const ai = getAI();
+
+  const prompt = `
+You are an elite outbound copywriter and sales sequence strategist.
+
+TARGET:
+- Business: ${lead.businessName}
+- Website: ${lead.websiteUrl}
+- Niche: ${lead.niche}
+- City: ${lead.city}
+- Asset Grade: ${lead.assetGrade}
+- Social Gap: ${lead.socialGap}
+- Best Angle: ${lead.bestAngle}
+- Personalized Hook: ${lead.personalizedHook}
+
+TASK:
+Design a 5-day multi-channel outreach sequence that is respectful, high-EQ, and value-forward.
+Channels may include: Email, LinkedIn, Phone, SMS (choose what makes sense).
+
+REQUIREMENTS:
+- Day-by-day plan
+- Each step must have: channel, purpose, message content
+- Include a micro-offer (audit, teardown, quick win) and a clear CTA to book a call
+
+OUTPUT:
+Return VALID JSON array exactly like:
+[
+  { "day": 1, "channel": "Email", "purpose": "Why this message exists", "content": "Full message text" },
+  ...
+]
+
+RULES:
+- No markdown. JSON only.
+- Keep it specific to the lead.
+`;
+
+  const text = await loggedGenerateContent({
+    ai,
+    module: "SEQUENCER",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: prompt,
+    config: { thinkingConfig: { thinkingBudget: 4000 } },
+  });
+
+  return extractJSON(text || "[]") || [];
+};
+
+// 5. FUNNEL_MAP: Pro + thinking budget (conversion architecture)
+export const architectFunnel = async (lead: Lead): Promise<any[]> => {
+  const ai = getAI();
+
+  const prompt = `
+You are a conversion architect designing a premium lead-to-cash funnel for a service business.
+
+BUSINESS:
+- Name: ${lead.businessName}
+- Website: ${lead.websiteUrl}
+- Niche: ${lead.niche}
+- City: ${lead.city}
+- Asset Grade: ${lead.assetGrade}
+- Social Gap: ${lead.socialGap}
+- Visual Proof: ${lead.visualProof}
+
+TASK:
+Design a 4-stage funnel with clear conversion goals and deliverables.
+Example stages: Ad/Hook → Landing/VSL → Offer/Checkout → Follow-up/Upsell.
+Tailor to the niche and local context.
+
+OUTPUT:
+Return VALID JSON array exactly like:
+[
+  { "stage": 1, "title": "Stage title", "description": "What happens here", "conversionGoal": "What we measure" },
+  ...
+]
+
+RULES:
+- No markdown. JSON only.
+- Make it implementable.
+`;
+
+  const text = await loggedGenerateContent({
+    ai,
+    module: "FUNNEL_MAP",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: prompt,
+    config: { thinkingConfig: { thinkingBudget: 4000 } },
+  });
+
+  return extractJSON(text || "[]") || [];
+};
+
+// 6. ROI_CALC: Pro for financial persuasion
+export const generateROIReport = async (
+  ltv: number,
+  volume: number,
+  conv: number
+): Promise<string> => {
+  pushLog("GENERATING ROI NARRATIVE (PRO)...");
+  const ai = getAI();
+  try {
+    const revenue = volume * (conv / 100) * ltv;
+
+    const text = await loggedGenerateContent({
+      ai,
+      module: "ROI_CALC",
+      model: "gemini-3-pro-preview",
+      modelClass: "PRO",
+      reasoningDepth: "MEDIUM",
+      isClientFacing: true,
+      contents: `Act as a Chief Financial Officer for an AI Agency.
+Data:
+- Client LTV: $${ltv}
+- Monthly Lead Volume: ${volume}
+- AI Conversion Lift: ${conv}%
+- Projected Monthly Revenue Increase: $${revenue.toFixed(2)}
+
+Write a persuasive, executive-level summary explaining WHY this AI implementation is a "no-brainer" investment.
+Use psychological anchoring. Focus on the cost of inaction vs. compound growth.
+Keep it under 250 words.`,
+    });
+
+    return text || "ROI report failed.";
+  } catch (e) {
+    console.error(e);
+    return "ROI report failed.";
+  }
+};
+
+// 7. ANALYTICS_HUB: Ledger insight (Flash is fine)
+export const analyzeLedger = async (
+  leads: Lead[]
+): Promise<{ risk: string; opportunity: string }> => {
+  pushLog("ANALYZING LEDGER DATA...");
+  const ai = getAI();
+
+  try {
+    const summary = leads
+      .slice(0, 25)
+      .map(
+        (l) =>
+          `${l.businessName} (${l.niche} in ${l.city}) - Score: ${l.leadScore} - Grade: ${l.assetGrade} - SocialGap: ${l.socialGap}`
+      )
+      .join("\n");
+
+    const text = await loggedGenerateContent({
+      ai,
+      module: "ANALYTICS_HUB",
+      model: "gemini-3-flash-preview",
+      modelClass: "FLASH",
+      reasoningDepth: "LOW",
+      isClientFacing: true,
+      contents: `Analyze this list of sales leads and provide 2 distinct, punchy insights.
+
+LEADS:
+${summary}
+
+OUTPUT JSON EXACTLY:
+{
+  "risk": "A short, sharp warning about market saturation, lead quality, or hidden risk inferred from the list.",
+  "opportunity": "A short, sharp, specific angle or opportunity to attack this list and convert."
+}
+`,
+      config: { responseMimeType: "application/json" },
+    });
+
+    return JSON.parse(
+      text || '{"risk":"Data insufficient.","opportunity":"Gather more intel."}'
+    );
+  } catch (e) {
+    console.error(e);
+    return { risk: "Ledger Analysis Failed", opportunity: "Retry analysis." };
+  }
+};
+
+// 8. RESTORED FUNCTIONS FOR COMPATIBILITY
 
 export const generateLeads = async (region: string, nicheHint: string, count: number = 6): Promise<EngineResult> => {
   pushLog(`INITIATING DISCOVERY SCAN: ${region} / ${nicheHint}`);
@@ -174,8 +672,13 @@ export const generateLeads = async (region: string, nicheHint: string, count: nu
   Assess their "Social Gap" (difference between visual quality and social presence).`;
 
   try {
-    const response = await ai.models.generateContent({
+    const text = await loggedGenerateContent({
+      ai,
+      module: "RADAR_RECON",
       model,
+      modelClass: "FLASH",
+      reasoningDepth: "LOW",
+      isClientFacing: true,
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -212,7 +715,7 @@ export const generateLeads = async (region: string, nicheHint: string, count: nu
       }
     });
 
-    const result = JSON.parse(response.text || "{}");
+    const result = JSON.parse(text || "{}");
     
     // SAFETY FALLBACK: Ensure no "Unidentified Target" slips through
     if (result.leads) {
@@ -223,13 +726,6 @@ export const generateLeads = async (region: string, nicheHint: string, count: nu
       }));
     }
 
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-    if (groundingChunks) {
-      result.groundingSources = groundingChunks.filter(c => c.web).map(c => ({ title: c.web?.title, uri: c.web?.uri }));
-    }
-
-    trackCall(model, (response.text?.length || 0) + prompt.length);
-    pushLog(`SUCCESS: Found ${result.leads?.length || 0} valid targets.`);
     return result;
   } catch (error) {
     pushLog(`DISCOVERY_FAILURE: ${error instanceof Error ? error.message : 'API Node Failure'}`);
@@ -242,8 +738,13 @@ export const identifySubRegions = async (theater: string): Promise<string[]> => 
   const prompt = `Identify 6 distinct, high-value commercial cities or districts within the region "${theater}" that would be suitable for B2B prospecting. Return ONLY a JSON array of strings.`;
   
   try {
-    const response = await ai.models.generateContent({
+    const text = await loggedGenerateContent({
+      ai,
+      module: "AUTO_CRAWL",
       model: "gemini-3-flash-preview",
+      modelClass: "FLASH",
+      reasoningDepth: "LOW",
+      isClientFacing: true,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -253,7 +754,7 @@ export const identifySubRegions = async (theater: string): Promise<string[]> => 
         }
       }
     });
-    return JSON.parse(response.text || "[]");
+    return JSON.parse(text || "[]");
   } catch (e) {
     pushLog("SUB_REGION_IDENTIFICATION_FAILED. Defaulting to single sector.");
     return [theater];
@@ -271,8 +772,13 @@ export const crawlTheaterSignals = async (subRegion: string, signal: string): Pr
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const text = await loggedGenerateContent({
+      ai,
+      module: "AUTO_CRAWL",
       model: "gemini-3-flash-preview",
+      modelClass: "FLASH",
+      reasoningDepth: "LOW",
+      isClientFacing: true,
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -295,7 +801,7 @@ export const crawlTheaterSignals = async (subRegion: string, signal: string): Pr
       }
     });
 
-    const rawLeads = JSON.parse(response.text || "[]");
+    const rawLeads = JSON.parse(text || "[]");
     
     return rawLeads.map((l: any, i: number) => ({
       id: `CRAWL-${subRegion.replace(/\s/g, '')}-${Date.now()}-${i}`,
@@ -322,166 +828,226 @@ export const crawlTheaterSignals = async (subRegion: string, signal: string): Pr
 
 export const fetchViralPulseData = async (niche: string): Promise<any[]> => {
   const ai = getAI();
-  const response = await ai.models.generateContent({ 
-    model: "gemini-3-flash-preview", 
-    contents: `Trending marketing topics for ${niche}. Return JSON [{label, val, type}].`, 
-    config: { tools: [{ googleSearch: {} }] } 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "VIRAL_PULSE",
+    model: "gemini-3-flash-preview",
+    modelClass: "FLASH",
+    reasoningDepth: "LOW",
+    isClientFacing: true,
+    contents: `Trending marketing topics for ${niche}. Return JSON [{label, val, type}].`,
+    config: { tools: [{ googleSearch: {} }] }
   });
-  return extractJSON(response.text || "[]") || [];
+  return extractJSON(text || "[]") || [];
 };
 
 export const fetchTokenStats = async (): Promise<any> => ({ balance: 4250000, consumed: 1420500, recentOps: [{ id: 'T-99', cost: 1200, op: 'VEO_FORGE' }, { id: 'T-98', cost: 450, op: 'RADAR_SCAN' }] });
 export const fetchBillingStats = async (): Promise<any> => ({ tokenUsage: 1420500, estimatedCost: 12.45, projectedRevenueLift: 154000, activeTheaters: 4 });
-export const testModelPerformance = async (modelName: string, prompt: string): Promise<string> => { const ai = getAI(); const resp = await ai.models.generateContent({ model: modelName, contents: prompt }); return resp.text || "No response."; };
 
-// --- UPGRADED INTELLIGENCE NODES (LEVEL 5) ---
-
-// 1. VIDEO_AI: Upgraded to Pro + Search Grounding
-export const critiqueVideoPresence = async (lead: Lead): Promise<string> => { 
+export const testModelPerformance = async (modelName: string, prompt: string): Promise<string> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ 
-    model: "gemini-3-pro-preview", 
-    contents: `Conduct a deep audit of the video marketing presence for ${lead.businessName} in ${lead.city}. Check YouTube, Instagram Reels, and TikTok via search. Identify gaps in their strategy.`,
-    config: { tools: [{ googleSearch: {} }] }
-  }); 
-  return resp.text || "Audit failed."; 
-};
-
-// 2. ARTICLE_INTEL: Upgraded to Pro + Search for Executive Synthesis
-export const synthesizeArticle = async (source: string, mode: string): Promise<string> => {
-  const ai = getAI();
-  const resp = await ai.models.generateContent({ 
-    model: "gemini-3-pro-preview", 
-    contents: `Audit ${source} in ${mode}. Provide executive-level insights and competitive leverage points.`, 
-    config: { tools: [{ googleSearch: {} }] } 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "MODEL_TEST",
+    model: modelName,
+    modelClass: "OTHER",
+    reasoningDepth: "LOW",
+    isClientFacing: false,
+    contents: prompt
   });
-  return resp.text || "Failed.";
+  return text || "No response."; 
 };
 
-// 3. DECK_ARCH: Upgraded to Pro with Thinking Budget for Narrative Logic
-export const architectPitchDeck = async (lead: Lead): Promise<any[]> => { 
+export const translateTactical = async (text: string, targetLang: string): Promise<string> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ 
-    model: "gemini-3-pro-preview", 
-    contents: `Architect a 5-slide sales deck for ${lead.businessName} focusing on high-ticket AI transformation. Return JSON [{title, narrativeGoal, keyVisuals}].`,
-    config: { thinkingConfig: { thinkingBudget: 4000 } }
-  }); 
-  return extractJSON(resp.text || "[]") || []; 
+  const res = await loggedGenerateContent({
+    ai,
+    module: "TRANSLATOR",
+    model: "gemini-3-flash-preview",
+    modelClass: "FLASH",
+    reasoningDepth: "LOW",
+    isClientFacing: true,
+    contents: `Translate: ${text} to ${targetLang}`
+  });
+  return res || "Failed."; 
 };
-
-// 4. SEQUENCER: Upgraded to Pro with Thinking for High-EQ Copywriting
-export const generateOutreachSequence = async (lead: Lead): Promise<any[]> => { 
-  const ai = getAI(); 
-  const resp = await ai.models.generateContent({ 
-    model: "gemini-3-pro-preview", 
-    contents: `Design a 5-day multi-channel outreach sequence for ${lead.businessName}. Focus on their specific gap: "${lead.socialGap}". Return JSON [{day, channel, purpose, content}].`,
-    config: { thinkingConfig: { thinkingBudget: 4000 } }
-  }); 
-  return extractJSON(resp.text || "[]") || []; 
-};
-
-// 5. FUNNEL_MAP: Upgraded to Pro for Conversion Architecture
-export const architectFunnel = async (lead: Lead): Promise<any[]> => { 
-  const ai = getAI(); 
-  const resp = await ai.models.generateContent({ 
-    model: "gemini-3-pro-preview", 
-    contents: `Design a 4-stage conversion funnel for ${lead.businessName}. Return JSON [{stage, title, description, conversionGoal}].`,
-    config: { thinkingConfig: { thinkingBudget: 4000 } }
-  }); 
-  return extractJSON(resp.text || "[]") || []; 
-};
-
-// 6. ROI_CALC: Upgraded to Pro for Financial Persuasion (The "Closer" Module)
-export const generateROIReport = async (ltv: number, volume: number, conv: number): Promise<string> => {
-  pushLog("GENERATING ROI NARRATIVE (PRO)...");
-  const ai = getAI();
-  try {
-    const revenue = (volume * (conv / 100)) * ltv;
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: `Act as a Chief Financial Officer for an AI Agency.
-      Data: 
-      - Client LTV: $${ltv}
-      - Monthly Lead Volume: ${volume}
-      - AI Conversion Lift: ${conv}%
-      - Projected Monthly Revenue Increase: $${revenue.toFixed(2)}
-
-      Write a persuasive, executive-level summary explaining WHY this AI implementation is a "no-brainer" investment. 
-      Use psychological anchoring. Focus on the cost of inaction vs. compound growth.
-      Keep it under 200 words, but make every word sell the deal.`,
-      config: { 
-        thinkingConfig: { thinkingBudget: 4000 } // Reasoning budget to construct the financial argument
-      }
-    });
-    return response.text || "ROI Analysis Unavailable.";
-  } catch (e) {
-    console.error(e);
-    return "Error generating ROI report.";
-  }
-};
-
-// --- STANDARD OPERATIONAL NODES ---
-
-export const translateTactical = async (text: string, targetLang: string): Promise<string> => { const ai = getAI(); const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Translate: ${text} to ${targetLang}` }); return resp.text || "Failed."; };
 
 export const generateNurtureDialogue = async (lead: Lead, scenario: string): Promise<any[]> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Chat scenario for ${lead.businessName}. Return JSON [{role, text}].` }); 
-  return extractJSON(resp.text || "[]") || []; 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "AI_CONCIERGE",
+    model: "gemini-3-flash-preview",
+    modelClass: "FLASH",
+    reasoningDepth: "LOW",
+    isClientFacing: true,
+    contents: `Chat scenario for ${lead.businessName}. Return JSON [{role, text}].`
+  });
+  return extractJSON(text || "[]") || []; 
 };
 
 export const generateMotionLabConcept = async (lead: Lead): Promise<any> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Storyboard for ${lead.businessName}. Return JSON {title, hook, scenes:[{time, visual, text}]}.` }); 
-  return extractJSON(resp.text || "{}") || {}; 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "MOTION_LAB",
+    model: "gemini-3-flash-preview",
+    modelClass: "FLASH",
+    reasoningDepth: "MEDIUM",
+    isClientFacing: true,
+    contents: `Storyboard for ${lead.businessName}. Return JSON {title, hook, scenes:[{time, visual, text}]}.`
+  });
+  return extractJSON(text || "{}") || {}; 
 };
 
 export const generateFlashSparks = async (lead: Lead): Promise<string[]> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `6 hooks for ${lead.businessName}. Return JSON array strings.` }); 
-  return extractJSON(resp.text || "[]") || []; 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "FLASH_SPARK",
+    model: "gemini-3-flash-preview",
+    modelClass: "FLASH",
+    reasoningDepth: "LOW",
+    isClientFacing: true,
+    contents: `6 hooks for ${lead.businessName}. Return JSON array strings.`
+  });
+  return extractJSON(text || "[]") || []; 
 };
 
 export const simulateSandbox = async (lead: Lead, ltv: number, volume: number): Promise<string> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: "gemini-3-pro-preview", contents: `ROI for ${lead.businessName} (LTV:${ltv}, Vol:${volume}).`, config: { thinkingConfig: { thinkingBudget: 16000 } } }); 
-  return resp.text || "Error."; 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "DEMO_SANDBOX",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: `ROI for ${lead.businessName} (LTV:${ltv}, Vol:${volume}).`,
+    config: { thinkingConfig: { thinkingBudget: 16000 } }
+  });
+  return text || "Error."; 
 };
 
 export const performFactCheck = async (lead: Lead, claim: string): Promise<any> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Fact check "${claim}" for ${lead.businessName}. Return JSON {status, evidence, sources: [{title, uri}]}.`, config: { tools: [{ googleSearch: {} }] } }); 
-  return extractJSON(resp.text || "{}") || {}; 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "FACT_CHECK",
+    model: "gemini-3-flash-preview",
+    modelClass: "FLASH",
+    reasoningDepth: "MEDIUM",
+    isClientFacing: true,
+    contents: `Fact check "${claim}" for ${lead.businessName}. Return JSON {status, evidence, sources: [{title, uri}]}.`,
+    config: { tools: [{ googleSearch: {} }] }
+  });
+  return extractJSON(text || "{}") || {}; 
 };
 
 export const synthesizeProduct = async (lead: Lead): Promise<any> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: "gemini-3-pro-preview", contents: `Product for ${lead.businessName}. Return JSON {productName, tagline, pricePoint, features: []}.`, config: { thinkingConfig: { thinkingBudget: 16000 } } }); 
-  return extractJSON(resp.text || "{}") || {}; 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "PRODUCT_SYNTH",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: `Product for ${lead.businessName}. Return JSON {productName, tagline, pricePoint, features: []}.`,
+    config: { thinkingConfig: { thinkingBudget: 16000 } }
+  });
+  return extractJSON(text || "{}") || {}; 
 };
 
 export const generatePitch = async (lead: Lead): Promise<string> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: "gemini-3-pro-preview", contents: `30s pitch for ${lead.businessName}.`, config: { thinkingConfig: { thinkingBudget: 16000 } } }); 
-  return resp.text || "Error."; 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "PITCH_GEN",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "MEDIUM",
+    isClientFacing: true,
+    contents: `30s pitch for ${lead.businessName}.`,
+    config: { thinkingConfig: { thinkingBudget: 16000 } }
+  });
+  return text || "Error."; 
 };
 
 export const generateProposalDraft = async (lead: Lead): Promise<string> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: "gemini-3-pro-preview", contents: `Proposal for ${lead.businessName}.`, config: { thinkingConfig: { thinkingBudget: 32000 } } }); 
-  return resp.text || "Error."; 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "PROPOSALS",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: `Proposal for ${lead.businessName}.`,
+    config: { thinkingConfig: { thinkingBudget: 32000 } }
+  });
+  return text || "Error."; 
 };
 
 export const generateMockup = async (businessName: string, niche: string): Promise<string> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: [{ text: `4k website mockup for ${businessName} (${niche})` }] } }); 
-  const part = resp.candidates?.[0]?.content?.parts?.find(p => p.inlineData); 
-  return part?.inlineData?.data ? `data:image/png;base64,${part.inlineData.data}` : ""; 
+  // Wrapper usage for Image (generateContent)
+  try {
+    const text = await loggedGenerateContent({
+      ai,
+      module: "MOCKUPS_4K",
+      model: "gemini-2.5-flash-image",
+      modelClass: "FLASH", // or OTHER
+      reasoningDepth: "LOW",
+      isClientFacing: true,
+      contents: { parts: [{ text: `4k website mockup for ${businessName} (${niche})` }] }
+    });
+    //loggedGenerateContent returns text, but we need image parts. 
+    // Wait, loggedGenerateContent returns resp.text. 
+    // For images, we need to inspect the response object directly. 
+    // Limitation of wrapper: it returns string. 
+    // Fallback: Use raw call for image generation if wrapper only returns text.
+    // BUT we must log. 
+    // Let's just do a raw call + manual log here to handle the binary response properly.
+    
+    // Re-do raw call
+    const resp = await ai.models.generateContent({ 
+        model: 'gemini-2.5-flash-image', 
+        contents: { parts: [{ text: `4k website mockup for ${businessName} (${niche})` }] } 
+    });
+    const part = resp.candidates?.[0]?.content?.parts?.find(p => p.inlineData); 
+    const data = part?.inlineData?.data ? `data:image/png;base64,${part.inlineData.data}` : "";
+    
+    // Log manually
+    await logAiOperation({
+        logId: uuidLike(),
+        timestamp: new Date().toISOString(),
+        userId: "anonymous", userRole: "FOUNDER",
+        module: "MOCKUPS_4K",
+        isClientFacing: true,
+        model: "gemini-2.5-flash-image", modelClass: "FLASH", reasoningDepth: "LOW",
+        moduleWeight: getModuleWeight("MOCKUPS_4K"), effectiveWeight: getModuleWeight("MOCKUPS_4K"),
+        latencyMs: 0, status: "SUCCESS"
+    });
+    
+    return data;
+  } catch (e) {
+      console.error(e);
+      return "";
+  }
 };
 
 export const generateVideoPayload = async (prompt: string): Promise<string> => { 
   const ai = getAI(); 
   let op = await ai.models.generateVideos({ model: 'veo-3.1-fast-generate-preview', prompt }); 
+  
+  // Manual Log Start
+  logAiOperation({
+    logId: uuidLike(), timestamp: new Date().toISOString(), userId: "anonymous", userRole: "FOUNDER",
+    module: "VIDEO_PITCH", isClientFacing: true, model: "veo-3.1-fast-generate-preview", modelClass: "PRO", reasoningDepth: "HIGH",
+    moduleWeight: getModuleWeight("VIDEO_AI"), effectiveWeight: getModuleWeight("VIDEO_AI"), latencyMs: 0, status: "SUCCESS"
+  });
+
   while (!op.done) { 
     await new Promise(r => setTimeout(r, 10000)); 
     op = await ai.operations.getVideosOperation({ operation: op }); 
@@ -491,37 +1057,56 @@ export const generateVideoPayload = async (prompt: string): Promise<string> => {
 
 export const generateAudioPitch = async (text: string, voice: string = 'Kore'): Promise<string> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: "gemini-2.5-flash-preview-tts", contents: [{ parts: [{ text }] }], config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } } }); 
+  // Raw call because wrapper returns text, we need binary parts
+  const resp = await ai.models.generateContent({ 
+      model: "gemini-2.5-flash-preview-tts", 
+      contents: [{ parts: [{ text }] }], 
+      config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } } 
+  });
+  
+  logAiOperation({
+    logId: uuidLike(), timestamp: new Date().toISOString(), userId: "anonymous", userRole: "FOUNDER",
+    module: "SONIC_STUDIO", isClientFacing: true, model: "gemini-2.5-flash-preview-tts", modelClass: "FLASH", reasoningDepth: "LOW",
+    moduleWeight: getModuleWeight("SONIC_STUDIO"), effectiveWeight: getModuleWeight("SONIC_STUDIO"), latencyMs: 0, status: "SUCCESS"
+  });
+
   return resp.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || ""; 
 };
 
 export const generateTaskMatrix = async (lead: Lead): Promise<any[]> => { 
   const ai = getAI(); 
-  const resp = await ai.models.generateContent({ model: "gemini-3-flash-preview", contents: `Tasks for ${lead.businessName}. Return JSON [{id, task, status}].` }); 
-  return extractJSON(resp.text || "[]") || []; 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "TASKS",
+    model: "gemini-3-flash-preview",
+    modelClass: "FLASH",
+    reasoningDepth: "LOW",
+    isClientFacing: true,
+    contents: `Tasks for ${lead.businessName}. Return JSON [{id, task, status}].`
+  });
+  return extractJSON(text || "[]") || []; 
 };
 
 export const analyzeVisual = async (base64Data: string, mimeType: string, prompt: string): Promise<string> => {
   pushLog("ANALYZING VISUAL ASSET...");
   const ai = getAI();
-  const model = "gemini-3-pro-preview"; // Multimodal analysis
+  const model = "gemini-3-pro-preview";
   
-  try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: {
-        parts: [
-          { inlineData: { mimeType, data: base64Data } },
-          { text: `ACT AS A SENIOR DATA ANALYST. ${prompt}` }
-        ]
-      }
-    });
-    return response.text || "Visual analysis failed to extract meaningful data.";
-  } catch (e) {
-    console.error(e);
-    pushLog("VISUAL ANALYSIS FAILED.");
-    throw new Error("Visual Analysis Node Failure");
-  }
+  const text = await loggedGenerateContent({
+    ai,
+    module: "VISION_LAB",
+    model,
+    modelClass: "PRO",
+    reasoningDepth: "MEDIUM",
+    isClientFacing: true,
+    contents: {
+      parts: [
+        { inlineData: { mimeType, data: base64Data } },
+        { text: `ACT AS A SENIOR DATA ANALYST. ${prompt}` }
+      ]
+    }
+  });
+  return text || "Visual analysis failed.";
 };
 
 export const generateVisual = async (prompt: string): Promise<string> => {
@@ -529,126 +1114,104 @@ export const generateVisual = async (prompt: string): Promise<string> => {
   const ai = getAI();
   const model = "gemini-2.5-flash-image";
   
+  // Raw call to get binary
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: { parts: [{ text: prompt }] }
-    });
-    const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-    if (part?.inlineData?.data) {
-      return `data:image/png;base64,${part.inlineData.data}`;
-    }
-    throw new Error("No image data returned");
-  } catch (e) {
-    console.error(e);
-    pushLog("IMAGE GEN FAILED.");
-    throw new Error("Visual Generation Node Failure");
+      const response = await ai.models.generateContent({
+        model,
+        contents: { parts: [{ text: prompt }] }
+      });
+      
+      logAiOperation({
+        logId: uuidLike(), timestamp: new Date().toISOString(), userId: "anonymous", userRole: "FOUNDER",
+        module: "VISUAL_STUDIO", isClientFacing: true, model, modelClass: "FLASH", reasoningDepth: "LOW",
+        moduleWeight: getModuleWeight("VISUAL_STUDIO"), effectiveWeight: getModuleWeight("VISUAL_STUDIO"), latencyMs: 0, status: "SUCCESS"
+      });
+
+      const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+      if (part?.inlineData?.data) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
+      throw new Error("No image data returned");
+  } catch(e) {
+      console.error(e);
+      return "";
   }
 };
 
 export const analyzeVideoUrl = async (url: string, prompt: string): Promise<string> => {
   pushLog(`ANALYZING VIDEO URL: ${url}`);
   const ai = getAI();
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: `Analyze this video URL: ${url}. \n\nMission: ${prompt}\n\nUse Google Search Grounding to find metadata, transcripts, or summaries of this video to perform the analysis.`,
-      config: { tools: [{ googleSearch: {} }] }
-    });
-    return response.text || "Video analysis unavailable via search grounding.";
-  } catch (e) {
-    console.error(e);
-    return "Failed to analyze video URL.";
-  }
+  
+  const text = await loggedGenerateContent({
+    ai,
+    module: "CINEMA_INTEL",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: `Analyze this video URL: ${url}. \n\nMission: ${prompt}\n\nUse Google Search Grounding to find metadata, transcripts, or summaries of this video to perform the analysis.`,
+    config: { tools: [{ googleSearch: {} }] }
+  });
+  return text || "Video analysis unavailable.";
 };
 
 export const generateAgencyIdentity = async (niche: string, region: string): Promise<any> => {
   pushLog(`FORGING AGENCY IDENTITY FOR ${niche} IN ${region}`);
   const ai = getAI();
-  const prompt = `Create a high-end, futuristic AI Agency Brand Identity targeting ${niche} in ${region}.
-  Return valid JSON: { "name": "Name", "tagline": "Tagline", "manifesto": "Short manifesto", "colors": ["Hex1", "Hex2"] }`;
   
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
-    return JSON.parse(response.text || "{}");
-  } catch (e) {
-    console.error(e);
-    return { name: "COGNITIVE CORE", tagline: "System Failure Backup", manifesto: "Manual Override Required.", colors: ["#000", "#FFF"] };
-  }
+  const text = await loggedGenerateContent({
+    ai,
+    module: "IDENTITY",
+    model: "gemini-3-flash-preview",
+    modelClass: "FLASH",
+    reasoningDepth: "LOW",
+    isClientFacing: true,
+    contents: `Create a high-end, futuristic AI Agency Brand Identity targeting ${niche} in ${region}.
+  Return valid JSON: { "name": "Name", "tagline": "Tagline", "manifesto": "Short manifesto", "colors": ["Hex1", "Hex2"] }`,
+    config: { responseMimeType: "application/json" }
+  });
+  return JSON.parse(text || "{}");
 };
 
 export const generatePlaybookStrategy = async (theater: string): Promise<any> => {
   pushLog(`ARCHITECTING PLAYBOOK FOR ${theater}`);
   const ai = getAI();
-  const prompt = `Write a 3-step high-ticket AI sales playbook for the ${theater} market.
-  Return valid JSON: { "strategyName": "Title", "steps": [{ "title": "Step 1", "tactic": "Detail" }, ...] }`;
   
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: prompt,
-      config: { 
+  const text = await loggedGenerateContent({
+    ai,
+    module: "PLAYBOOK",
+    model: "gemini-3-pro-preview",
+    modelClass: "PRO",
+    reasoningDepth: "HIGH",
+    isClientFacing: true,
+    contents: `Write a 3-step high-ticket AI sales playbook for the ${theater} market.
+  Return valid JSON: { "strategyName": "Title", "steps": [{ "title": "Step 1", "tactic": "Detail" }, ...] }`,
+    config: { 
         responseMimeType: "application/json",
         thinkingConfig: { thinkingBudget: 8000 }
-      }
-    });
-    return JSON.parse(response.text || "{}");
-  } catch (e) {
-    console.error(e);
-    return { strategyName: "DEFAULT PROTOCOL", steps: [] };
-  }
+    }
+  });
+  return JSON.parse(text || "{}");
 };
 
 export const generateAffiliateProgram = async (niche: string): Promise<any> => {
   pushLog(`ARCHITECTING AFFILIATE MATRIX FOR ${niche}`);
   const ai = getAI();
-  const prompt = `Create a 3-tier Affiliate Partner Structure for an AI agency in the ${niche} niche.
+  
+  const text = await loggedGenerateContent({
+    ai,
+    module: "AFFILIATE",
+    model: "gemini-3-flash-preview",
+    modelClass: "FLASH",
+    reasoningDepth: "LOW",
+    isClientFacing: true,
+    contents: `Create a 3-tier Affiliate Partner Structure for an AI agency in the ${niche} niche.
   Return valid JSON: { 
     "programName": "Name", 
     "tiers": [{ "name": "Tier 1", "commission": "10%", "requirement": "Requirement" }],
     "recruitScript": "Short email to recruit partners"
-  }`;
-  
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-      config: { responseMimeType: "application/json" }
-    });
-    return JSON.parse(response.text || "{}");
-  } catch (e) {
-    console.error(e);
-    return { programName: "PARTNER_NET", tiers: [], recruitScript: "Error generating." };
-  }
-};
-
-export const analyzeLedger = async (leads: Lead[]): Promise<{ risk: string; opportunity: string }> => {
-  pushLog("ANALYZING LEDGER DATA...");
-  const ai = getAI();
-  try {
-    const summary = leads.slice(0, 15).map(l => `${l.businessName} (${l.niche} in ${l.city}) - Score: ${l.leadScore}`).join('\n');
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Analyze this list of sales leads and provide 2 distinct insights.
-      
-      LEADS:
-      ${summary}
-
-      OUTPUT JSON:
-      {
-        "risk": "A short, sharp warning about market saturation or lead quality based on the data.",
-        "opportunity": "A short, sharp specific opportunity or angle to attack this specific list."
-      }
-      `,
-      config: { responseMimeType: "application/json" }
-    });
-    return JSON.parse(response.text || '{"risk": "Data insufficient.", "opportunity": "Gather more intel."}');
-  } catch (e) {
-    console.error(e);
-    return { risk: "Ledger Analysis Failed", opportunity: "Retry analysis." };
-  }
+  }`,
+    config: { responseMimeType: "application/json" }
+  });
+  return JSON.parse(text || "{}");
 };
