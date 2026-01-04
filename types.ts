@@ -43,6 +43,12 @@ export interface Lead {
   youtube?: string;
   contactUrl?: string;
   groundingSources?: Array<{ title?: string; uri?: string }>;
+  
+  // Automation Locking Fields (Strict Numeric Timestamps)
+  locked?: boolean;
+  lockedAt?: number;       // ms since epoch
+  lockedByRunId?: string;  // ID of the run holding the lock
+  lockExpiresAt?: number;  // ms since epoch
 }
 
 export interface OutreachAssets {

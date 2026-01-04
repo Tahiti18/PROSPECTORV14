@@ -12,7 +12,7 @@ import {
   getAvailableCredits,
 } from "./usageLogger";
 
-const getAI = () => {
+export const getAI = () => {
   const apiKey =
     process.env.API_KEY ||
     process.env.GOOGLE_API_KEY ||

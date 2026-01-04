@@ -78,8 +78,9 @@ const App: React.FC = () => {
   const [compute, setCompute] = useState<ComputeStats | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const didInitRef = useRef(false);
 
-  // Initialize Data
+  // Initialize Data & Automation Resume
   useEffect(() => {
     const savedLeads = localStorage.getItem(STORAGE_KEY_LEADS);
     const savedTheater = localStorage.getItem(STORAGE_KEY_THEATER);
@@ -96,6 +97,15 @@ const App: React.FC = () => {
     setIsHydrated(true);
 
     const unsubscribe = subscribeToCompute(setCompute);
+
+    // Safe Resume Logic (uses internal duplicate guard)
+    if (!didInitRef.current) {
+      didInitRef.current = true;
+      import('./services/automation/orchestrator').then(({ AutomationOrchestrator }) => {
+        AutomationOrchestrator.getInstance().resumeInterruptedRuns();
+      });
+    }
+
     return () => { unsubscribe(); };
   }, []);
 
