@@ -67,8 +67,8 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
   // Add to beginning
   SESSION_ASSETS.unshift(asset); 
   
-  // Rolling Buffer: Keep max 30 items to prevent LocalStorage quota limits (5MB)
-  if (SESSION_ASSETS.length > 30) {
+  // Rolling Buffer: Keep max 100 items (Upgraded from 30)
+  if (SESSION_ASSETS.length > 100) {
     SESSION_ASSETS.pop();
   }
 
@@ -81,6 +81,39 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
     pushLog(`VAULT MEMORY ONLY: Storage Quota Exceeded`);
   }
 };
+
+// Import / Merge Utility
+export const importVault = (externalAssets: AssetRecord[]) => {
+  if (!Array.isArray(externalAssets)) return 0;
+  
+  const existingIds = new Set(SESSION_ASSETS.map(a => a.id));
+  let addedCount = 0;
+
+  externalAssets.forEach(asset => {
+    if (!existingIds.has(asset.id)) {
+      SESSION_ASSETS.push(asset);
+      addedCount++;
+    }
+  });
+
+  // Re-sort by timestamp descending (assuming id contains timestamp or relying on order)
+  // Since IDs aren't strictly chronological in all cases, we just keep them appended or unshifted.
+  // For simplicity, we'll sort based on insert time (simulated)
+  
+  try {
+    localStorage.setItem(STORAGE_KEY_VAULT, JSON.stringify(SESSION_ASSETS));
+    pushLog(`VAULT RESTORE: ${addedCount} ASSETS INJECTED.`);
+  } catch (e) {
+    console.error("Import failed quota", e);
+  }
+  return addedCount;
+};
+
+export const clearVault = () => {
+  SESSION_ASSETS.length = 0;
+  localStorage.removeItem(STORAGE_KEY_VAULT);
+  pushLog("VAULT PURGED: COLD STORAGE RESET.");
+}
 
 export interface SystemLogEntry {
   timestamp: number;

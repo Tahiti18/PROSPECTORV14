@@ -1,23 +1,60 @@
 
-import React, { useState, useEffect } from 'react';
-import { SESSION_ASSETS, AssetRecord } from '../../services/geminiService';
+import React, { useState, useEffect, useRef } from 'react';
+import { SESSION_ASSETS, AssetRecord, importVault, clearVault } from '../../services/geminiService';
 
 export const MediaVault: React.FC = () => {
   const [assets, setAssets] = useState<AssetRecord[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Initial Load
     setAssets([...SESSION_ASSETS]);
-    
-    // Poll for updates (in case background processes add assets)
     const interval = setInterval(() => {
-      // Check if reference changed or length changed
       if (SESSION_ASSETS.length !== assets.length || SESSION_ASSETS[0]?.id !== assets[0]?.id) {
         setAssets([...SESSION_ASSETS]);
       }
     }, 1000);
     return () => clearInterval(interval);
   }, [assets]);
+
+  const handleExportVault = () => {
+    const dataStr = JSON.stringify(SESSION_ASSETS, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `POMELLI_VAULT_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportVault = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target?.result as string);
+        if (Array.isArray(imported)) {
+          const count = importVault(imported);
+          alert(`SUCCESS: ${count} ASSETS RESTORED FROM COLD STORAGE.`);
+        } else {
+          alert("ERROR: INVALID VAULT FILE FORMAT.");
+        }
+      } catch (err) {
+        alert("ERROR: CORRUPT VAULT FILE.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleClear = () => {
+    if (confirm("WARNING: THIS WILL DELETE ALL ASSETS FROM BROWSER MEMORY. ENSURE YOU HAVE EXPORTED A BACKUP FIRST. PROCEED?")) {
+      clearVault();
+      setAssets([]);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
@@ -26,16 +63,39 @@ export const MediaVault: React.FC = () => {
           <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">MEDIA <span className="text-indigo-600 not-italic">VAULT</span></h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic italic">Persistent Asset Reservoir (Local Storage)</p>
         </div>
-        <div className="bg-slate-900 border border-slate-800 text-slate-500 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest">
-          {assets.length} ASSETS SECURED
+        <div className="flex gap-4">
+           <button 
+             onClick={handleExportVault}
+             disabled={assets.length === 0}
+             className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-indigo-600/20"
+           >
+             BACKUP VAULT (EXPORT)
+           </button>
+           <button 
+             onClick={() => fileInputRef.current?.click()}
+             className="bg-slate-900 border border-slate-700 text-slate-300 hover:text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+           >
+             RESTORE VAULT (IMPORT)
+           </button>
+           <input type="file" ref={fileInputRef} onChange={handleImportVault} className="hidden" accept=".json" />
+           
+           {assets.length > 0 && (
+             <button 
+               onClick={handleClear}
+               className="bg-rose-900/20 border border-rose-500/20 text-rose-500 hover:bg-rose-900/40 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+             >
+               PURGE
+             </button>
+           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
          {assets.length === 0 && (
-            <div className="col-span-3 text-center py-20 opacity-30">
-               <span className="text-6xl mb-4 block">🔒</span>
-               <p className="text-[10px] font-black uppercase tracking-widest">VAULT EMPTY. GENERATE ASSETS IN CREATION ZONE.</p>
+            <div className="col-span-3 text-center py-32 opacity-30 border-2 border-dashed border-slate-800 rounded-[32px] flex flex-col items-center justify-center">
+               <span className="text-6xl mb-6 block">🔒</span>
+               <p className="text-[12px] font-black uppercase tracking-[0.3em]">VAULT EMPTY</p>
+               <p className="text-[9px] font-bold uppercase tracking-widest mt-2">GENERATE NEW ASSETS OR IMPORT BACKUP</p>
             </div>
          )}
 
@@ -61,7 +121,7 @@ export const MediaVault: React.FC = () => {
               </div>
               
               {/* PREVIEW AREA */}
-              <div className="aspect-video bg-slate-950 rounded-xl overflow-hidden relative border border-slate-800 flex items-center justify-center">
+              <div className="aspect-video bg-slate-950 rounded-xl overflow-hidden relative border border-slate-800 flex items-center justify-center group-hover:border-slate-700 transition-colors">
                  {a.type === 'IMAGE' && <img src={a.data} className="w-full h-full object-cover" alt="Asset" />}
                  {a.type === 'VIDEO' && <video src={a.data} className="w-full h-full object-cover" controls />}
                  {a.type === 'AUDIO' && (
@@ -83,7 +143,7 @@ export const MediaVault: React.FC = () => {
                    download={`POM_${a.id}.${a.type === 'TEXT' ? 'txt' : 'bin'}`} 
                    className="flex-1 bg-indigo-600/10 border border-indigo-500/20 hover:bg-indigo-600 hover:text-white py-3 rounded-xl text-[8px] font-black text-indigo-400 uppercase tracking-widest transition-all text-center flex items-center justify-center"
                  >
-                   DOWNLOAD
+                   DOWNLOAD FILE
                  </a>
               </div>
            </div>
