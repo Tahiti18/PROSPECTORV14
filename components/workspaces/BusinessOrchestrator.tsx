@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Lead, MainMode, SubModule } from '../../types';
-import { SESSION_ASSETS, orchestrateBusinessPackage } from '../../services/geminiService';
+import { SESSION_ASSETS, orchestrateBusinessPackage, saveAsset, AssetRecord } from '../../services/geminiService';
 import { dossierStorage, StrategicDossier } from '../../services/dossierStorage';
 import { OutreachModal } from './OutreachModal';
 
@@ -20,6 +20,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   const [isOrchestrating, setIsOrchestrating] = useState(false);
   const [activeTab, setActiveTab] = useState<'strategy' | 'narrative' | 'content' | 'outreach'>('strategy');
   const [isOutreachOpen, setIsOutreachOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // Forces asset list refresh
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter Vault for selected lead
   const targetLead = leads.find(l => l.id === selectedLeadId);
@@ -31,6 +33,9 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     // Priority 2: Fuzzy Title Match (Legacy Fallback)
     const searchTerms = targetLead.businessName.toLowerCase().split(' ');
     
+    // We depend on refreshKey to re-evaluate this when an upload happens
+    const _ = refreshKey; 
+
     return SESSION_ASSETS.filter(a => {
       // Precise Match
       if (a.leadId && a.leadId === targetLead.id) return true;
@@ -39,7 +44,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       const titleLower = a.title.toLowerCase();
       return searchTerms.some(term => term.length > 3 && titleLower.includes(term));
     });
-  }, [targetLead]);
+  }, [targetLead, refreshKey]);
 
   const assetCounts = {
     TEXT: leadAssets.filter(a => a.type === 'TEXT').length,
@@ -104,10 +109,55 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     document.body.removeChild(a);
   };
 
+  const handleCopyMarkdown = () => {
+    if (!currentDossier) return;
+    const md = dossierStorage.exportToMarkdown(currentDossier);
+    navigator.clipboard.writeText(md);
+    alert("Full dossier markdown copied to clipboard.");
+  };
+
+  const handleSaveSnapshot = () => {
+    if (!targetLead || !packageData) return;
+    const saved = dossierStorage.save(targetLead, packageData, leadAssets.map(a => a.id));
+    setHistory(prev => [saved, ...prev]);
+    setCurrentDossier(saved);
+    alert(`Snapshot v${saved.version} saved successfully.`);
+  };
+
   const handleGenerateShortcut = (module: SubModule) => {
     if (!targetLead) return;
     onLockLead(targetLead.id);
     onNavigate('CREATE', module);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !targetLead) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      let type: AssetRecord['type'] = 'TEXT';
+      
+      if (file.type.startsWith('image/')) type = 'IMAGE';
+      else if (file.type.startsWith('video/')) type = 'VIDEO';
+      else if (file.type.startsWith('audio/')) type = 'AUDIO';
+      else type = 'TEXT';
+
+      // For non-text, result is base64 data URL. For text, it's the content.
+      // We'll trust the user to upload valid assets.
+      saveAsset(type, file.name, result, 'MEDIA_VAULT', targetLead.id);
+      setRefreshKey(prev => prev + 1); // Trigger re-render of asset list
+    };
+
+    if (file.type.startsWith('text/')) {
+        reader.readAsText(file);
+    } else {
+        reader.readAsDataURL(file);
+    }
+    
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -217,13 +267,30 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                       {leadAssets.length === 0 && <p className="text-[9px] text-rose-500 font-bold uppercase tracking-widest text-center py-4">NO ASSETS FOUND IN VAULT</p>}
                    </div>
 
-                   <button 
-                     onClick={handleOrchestrate}
-                     disabled={isOrchestrating}
-                     className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800"
-                   >
-                     {isOrchestrating ? 'SYNTHESIZING...' : (currentDossier ? 'GENERATE NEW VERSION' : 'ASSEMBLE DOSSIER')}
-                   </button>
+                   {/* VAULT INJECTOR */}
+                   <div className="pt-2">
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileUpload} 
+                        className="hidden" 
+                        accept="image/*,video/*,audio/*,text/plain"
+                      />
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all mb-4"
+                      >
+                        + QUICK UPLOAD ASSET
+                      </button>
+
+                      <button 
+                        onClick={handleOrchestrate}
+                        disabled={isOrchestrating}
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800"
+                      >
+                        {isOrchestrating ? 'SYNTHESIZING...' : (currentDossier ? 'GENERATE NEW VERSION' : 'ASSEMBLE DOSSIER')}
+                      </button>
+                   </div>
                 </div>
               )}
            </div>
@@ -359,7 +426,19 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                             onClick={handleExportMarkdown}
                             className="flex items-center gap-2 text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
                           >
-                             <span>↓</span> EXPORT MARKDOWN
+                             <span>↓</span> EXPORT MD
+                          </button>
+                          <button 
+                            onClick={handleCopyMarkdown}
+                            className="flex items-center gap-2 text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
+                          >
+                             <span>📋</span> COPY
+                          </button>
+                          <button 
+                            onClick={handleSaveSnapshot}
+                            className="flex items-center gap-2 text-[9px] font-black text-emerald-500 hover:text-emerald-400 uppercase tracking-widest transition-colors"
+                          >
+                             <span>💾</span> SNAPSHOT
                           </button>
                        </div>
                        
