@@ -37,12 +37,23 @@ export const outreachService = {
     return log;
   },
 
-  generateMailto: (email: string, subject: string, body: string, cc?: string): string => {
+  generateMailto: (email: string, subject: string, body: string, cc?: string): { url: string; isTruncated: boolean } => {
+    const MAILTO_BODY_LIMIT = 1800;
+    const isTruncated = body.length > MAILTO_BODY_LIMIT;
+    const bodyForMailto = isTruncated ? body.slice(0, MAILTO_BODY_LIMIT) + '...' : body;
+
     const params = new URLSearchParams();
     params.append('subject', subject);
-    params.append('body', body);
+    params.append('body', bodyForMailto);
     if (cc) params.append('cc', cc);
-    return `mailto:${email}?${params.toString().replace(/\+/g, '%20')}`;
+    
+    // Properly encode spaces as %20 instead of + for strict mailto compatibility
+    const queryString = params.toString().replace(/\+/g, '%20');
+    
+    return {
+      url: `mailto:${email}?${queryString}`,
+      isTruncated
+    };
   },
 
   copyToClipboard: async (text: string): Promise<boolean> => {

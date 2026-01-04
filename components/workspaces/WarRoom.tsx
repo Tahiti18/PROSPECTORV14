@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Lead, OutreachStatus } from '../../types';
+import { Tooltip } from '../Tooltip';
 
 interface WarRoomProps {
   lead?: Lead;
@@ -72,11 +73,13 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-4xl font-black text-white tracking-tighter">{lead.businessName}</h2>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${
-              lead.assetGrade === 'A' ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'
-            }`}>
-              Grade {lead.assetGrade}
-            </span>
+            <Tooltip content="The visual quality score of this lead. 'A' means they look great, 'C' means their photos/videos are outdated (huge opportunity)." side="right">
+              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest cursor-help ${
+                lead.assetGrade === 'A' ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'
+              }`}>
+                Grade {lead.assetGrade}
+              </span>
+            </Tooltip>
           </div>
           <p className="text-slate-400 mt-2 font-medium flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
@@ -84,12 +87,16 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-colors">
-            Extract Brand Kit
-          </button>
-          <button className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-colors shadow-lg shadow-indigo-500/20">
-            Deploy Attack Sequence
-          </button>
+          <Tooltip content="Automatically pulls logos and colors from their website to build a style guide." side="bottom">
+            <button className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-colors">
+              Extract Brand Kit
+            </button>
+          </Tooltip>
+          <Tooltip content="Launch the automated outreach system to contact this lead immediately." side="bottom">
+            <button className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-colors shadow-lg shadow-indigo-500/20">
+              Deploy Attack Sequence
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -99,7 +106,9 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
             <div className="p-6 bg-slate-900/50 border-b border-slate-800 flex items-center gap-2">
               <span className="text-xl">📉</span>
-              <h3 className="font-bold text-white uppercase tracking-widest text-xs">Vulnerability Analysis (Social Gap)</h3>
+              <Tooltip content="The critical disconnect. It explains the gap between how high-quality their business actually is versus how poorly they are represented online." side="right">
+                <h3 className="font-bold text-white uppercase tracking-widest text-xs cursor-help border-b border-dotted border-slate-600">Vulnerability Analysis (Social Gap)</h3>
+              </Tooltip>
             </div>
             <div className="p-8">
               <p className="text-slate-300 leading-relaxed text-lg italic">"{lead.socialGap}"</p>
@@ -154,12 +163,14 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Combat Readiness</p>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500" style={{ width: `${lead.leadScore}%` }}></div>
+                <Tooltip content="Overall attractiveness score (0-100) based on their budget, need for help, and reachability." side="left">
+                  <div className="flex items-center gap-3 cursor-help">
+                    <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-500" style={{ width: `${lead.leadScore}%` }}></div>
+                    </div>
+                    <span className="text-xs font-black text-white">{lead.leadScore}</span>
                   </div>
-                  <span className="text-xs font-black text-white">{lead.leadScore}</span>
-                </div>
+                </Tooltip>
               </div>
 
               {/* Mandatory Grounding Sources Display */}
