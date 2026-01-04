@@ -54,11 +54,12 @@ try {
 export const SESSION_ASSETS: AssetRecord[] = persistedAssets;
 
 // Core Auto-Save Function
-export const saveAsset = (type: AssetRecord['type'], title: string, data: string, module: SubModule = 'MEDIA_VAULT', leadId?: string) => {
+export const saveAsset = (type: AssetRecord['type'], title: string, data: string, module: SubModule = 'MEDIA_VAULT', leadId?: string): AssetRecord => {
   // Guardrail B: Collision-resistant ID
-  // Use crypto.randomUUID if available, else robust fallback
   let uniqueId: string;
+  // @ts-ignore
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    // @ts-ignore
     uniqueId = `ASSET-${crypto.randomUUID()}`;
   } else {
     uniqueId = `ASSET-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
