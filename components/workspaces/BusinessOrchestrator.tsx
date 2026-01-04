@@ -1,7 +1,8 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Lead } from '../../types';
-import { SESSION_ASSETS, orchestrateBusinessPackage, AssetRecord } from '../../services/geminiService';
+import { SESSION_ASSETS, orchestrateBusinessPackage } from '../../services/geminiService';
+import { dossierStorage, StrategicDossier } from '../../services/dossierStorage';
 
 interface BusinessOrchestratorProps {
   leads: Lead[];
@@ -11,6 +12,8 @@ interface BusinessOrchestratorProps {
 export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ leads, lockedLead }) => {
   const [selectedLeadId, setSelectedLeadId] = useState<string>(lockedLead?.id || '');
   const [packageData, setPackageData] = useState<any>(null);
+  const [currentDossier, setCurrentDossier] = useState<StrategicDossier | null>(null);
+  const [history, setHistory] = useState<StrategicDossier[]>([]);
   const [isOrchestrating, setIsOrchestrating] = useState(false);
   const [activeTab, setActiveTab] = useState<'strategy' | 'narrative' | 'content' | 'outreach'>('strategy');
 
@@ -20,10 +23,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   const leadAssets = useMemo(() => {
     if (!targetLead) return [];
     const searchTerms = targetLead.businessName.toLowerCase().split(' ');
-    // Fuzzy matching: asset must contain at least one significant part of the business name
     return SESSION_ASSETS.filter(a => {
       const titleLower = a.title.toLowerCase();
-      // Simple match or explicit lead ID match if we stored it (currently title based)
       return searchTerms.some(term => term.length > 3 && titleLower.includes(term));
     });
   }, [targetLead]);
@@ -35,18 +36,60 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     AUDIO: leadAssets.filter(a => a.type === 'AUDIO').length,
   };
 
+  // Re-hydration Effect
+  useEffect(() => {
+    if (targetLead) {
+      const savedDossiers = dossierStorage.getAllByLead(targetLead.id);
+      setHistory(savedDossiers);
+      
+      if (savedDossiers.length > 0) {
+        // Auto-load the latest
+        setCurrentDossier(savedDossiers[0]);
+        setPackageData(savedDossiers[0].data);
+      } else {
+        setCurrentDossier(null);
+        setPackageData(null);
+      }
+    }
+  }, [targetLead?.id]);
+
   const handleOrchestrate = async () => {
     if (!targetLead) return;
     setIsOrchestrating(true);
     try {
       const result = await orchestrateBusinessPackage(targetLead, leadAssets);
+      
+      // PERSISTENCE LAYER: Auto-Save
+      const saved = dossierStorage.save(targetLead, result, leadAssets.map(a => a.id));
+      
       setPackageData(result);
+      setCurrentDossier(saved);
+      setHistory(prev => [saved, ...prev]);
+      
     } catch (e) {
       console.error(e);
       alert("Orchestration failed. Check API connectivity.");
     } finally {
       setIsOrchestrating(false);
     }
+  };
+
+  const loadVersion = (dossier: StrategicDossier) => {
+    setCurrentDossier(dossier);
+    setPackageData(dossier.data);
+  };
+
+  const handleExportMarkdown = () => {
+    if (!currentDossier) return;
+    const md = dossierStorage.exportToMarkdown(currentDossier);
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `DOSSIER_${targetLead?.businessName}_v${currentDossier.version}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -62,7 +105,15 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
             STRATEGIC ASSET COMPILATION & SYNTHESIS
           </p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex items-center gap-4">
+           {currentDossier && (
+             <div className="bg-emerald-900/20 border border-emerald-500/20 px-6 py-2 rounded-xl flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                  LOADED: V{currentDossier.version} ({new Date(currentDossier.timestamp).toLocaleTimeString()})
+                </span>
+             </div>
+           )}
            <div className="bg-slate-900 border border-slate-800 px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-400">
               VAULT LINK: ONLINE
            </div>
@@ -91,6 +142,28 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
               {targetLead && (
                 <div className="space-y-6 animate-in slide-in-from-left-4">
+                   {/* History Selector */}
+                   {history.length > 0 && (
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">VERSION HISTORY</label>
+                        <div className="flex flex-wrap gap-2">
+                           {history.map(ver => (
+                             <button
+                               key={ver.id}
+                               onClick={() => loadVersion(ver)}
+                               className={`px-3 py-1 rounded-lg text-[9px] font-black border transition-all ${
+                                 currentDossier?.id === ver.id 
+                                   ? 'bg-emerald-600 border-emerald-500 text-white' 
+                                   : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'
+                               }`}
+                             >
+                               V{ver.version}
+                             </button>
+                           ))}
+                        </div>
+                     </div>
+                   )}
+
                    <div className="grid grid-cols-2 gap-4">
                       {Object.entries(assetCounts).map(([type, count]) => (
                         <div key={type} className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
@@ -112,10 +185,10 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
                    <button 
                      onClick={handleOrchestrate}
-                     disabled={isOrchestrating || leadAssets.length === 0}
+                     disabled={isOrchestrating}
                      className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800"
                    >
-                     {isOrchestrating ? 'SYNTHESIZING...' : 'ASSEMBLE DOSSIER'}
+                     {isOrchestrating ? 'SYNTHESIZING...' : (currentDossier ? 'GENERATE NEW VERSION' : 'ASSEMBLE DOSSIER')}
                    </button>
                 </div>
               )}
@@ -243,6 +316,19 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                           </div>
                        )}
 
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="border-t border-slate-800 p-6 flex justify-between items-center bg-[#05091a]">
+                       <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                          DOSSIER ID: {currentDossier.id}
+                       </p>
+                       <button 
+                         onClick={handleExportMarkdown}
+                         className="flex items-center gap-2 text-[9px] font-black text-emerald-400 hover:text-white uppercase tracking-widest transition-colors"
+                       >
+                          <span>↓</span> EXPORT MARKDOWN
+                       </button>
                     </div>
                  </div>
               )}
