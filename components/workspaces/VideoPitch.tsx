@@ -13,11 +13,15 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const checkAndOpenKey = async () => {
+    // Safeguard: Only run if window.aistudio exists (AI Studio Environment)
     // @ts-ignore
-    const hasKey = await window.aistudio.hasSelectedApiKey();
-    if (!hasKey) {
-      // @ts-ignore
-      await window.aistudio.openSelectKey();
+    if (typeof window !== 'undefined' && window.aistudio) {
+        // @ts-ignore
+        const hasKey = await window.aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+          // @ts-ignore
+          await window.aistudio.openSelectKey();
+        }
     }
   };
 
@@ -26,12 +30,12 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
     setIsGenerating(true);
     try {
       await checkAndOpenKey();
+      // Ensure we pass the lead ID for proper vault linking
       const url = await generateVideoPayload(prompt, lead?.id);
       setVideoUrl(url);
-      // Asset saved internally by generateVideoPayload with leadId
     } catch (e) {
       console.error(e);
-      alert("Video generation requires a paid API key and valid permissions.");
+      alert("Video generation failed. Ensure your API key is valid and has the Veo API enabled.");
     } finally {
       setIsGenerating(false);
     }
