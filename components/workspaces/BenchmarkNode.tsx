@@ -47,10 +47,10 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
   return (
     <div className="max-w-[1550px] mx-auto py-12 space-y-12 animate-in fade-in duration-700">
       <div className="text-center space-y-6">
-        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter leading-none">
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter leading-none">
           MARKET <span className="text-amber-500 uppercase">REVERSE-ENG</span> HUB
         </h1>
-        <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.4em]">
+        <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.4em]">
           EXHAUSTIVE MULTI-PARA TECHNICAL SYNTHESIS
         </p>
       </div>
@@ -61,7 +61,7 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
             <input 
                value={url}
                onChange={(e) => setUrl(e.target.value)}
-               className="flex-1 bg-transparent border-none px-10 text-xl font-bold text-white placeholder-slate-700 focus:ring-0 italic"
+               className="flex-1 bg-transparent border-none px-10 text-xl font-bold text-white placeholder-slate-600 focus:ring-0 italic"
                placeholder="INPUT TARGET URL OR PROSPECT..."
             />
             <button 
@@ -81,7 +81,7 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                  <h2 className="text-6xl font-black italic text-white tracking-tighter uppercase leading-none">
                     {report.entityName}
                  </h2>
-                 <p className="text-xl font-medium text-slate-400 italic max-w-4xl leading-relaxed">
+                 <p className="text-xl font-medium text-slate-300 italic max-w-4xl leading-relaxed">
                     "{report.missionSummary}"
                  </p>
               </div>
@@ -96,14 +96,14 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                              <li key={idx} className="space-y-1 group">
                                 <div className="flex items-center gap-4">
                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
-                                   <span className="text-[11px] font-black text-slate-100 uppercase tracking-widest group-hover:text-amber-500 transition-colors">{clean(item.label)}</span>
+                                   <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-amber-500 transition-colors">{clean(item.label)}</span>
                                 </div>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-5 opacity-70 leading-relaxed italic">
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pl-5 opacity-70 leading-relaxed italic">
                                    {clean(item.description)}
                                 </p>
                              </li>
                           ))}
-                          {report.visualStack.length === 0 && <p className="text-[9px] text-slate-700 uppercase italic">Analysis pending...</p>}
+                          {report.visualStack.length === 0 && <p className="text-[9px] text-slate-600 uppercase italic">Analysis pending...</p>}
                        </ul>
                     </div>
                     <div className="space-y-8">
@@ -113,14 +113,14 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                              <li key={idx} className="space-y-1 group">
                                 <div className="flex items-center gap-4">
                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
-                                   <span className="text-[11px] font-black text-slate-100 uppercase tracking-widest group-hover:text-amber-500 transition-colors">{clean(item.label)}</span>
+                                   <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-amber-500 transition-colors">{clean(item.label)}</span>
                                 </div>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-5 opacity-70 leading-relaxed italic">
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pl-5 opacity-70 leading-relaxed italic">
                                    {clean(item.description)}
                                 </p>
                              </li>
                           ))}
-                          {report.sonicStack.length === 0 && <p className="text-[9px] text-slate-700 uppercase italic">Analysis pending...</p>}
+                          {report.sonicStack.length === 0 && <p className="text-[9px] text-slate-600 uppercase italic">Analysis pending...</p>}
                        </ul>
                     </div>
                  </div>
@@ -136,15 +136,15 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                     </div>
 
                     <div className="bg-[#0b1021] border border-slate-800 p-12 rounded-[48px] shadow-2xl space-y-10">
-                       <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.4em] italic border-b border-slate-800 pb-4">COMMERCIAL INTELLIGENCE</h3>
+                       <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] italic border-b border-slate-800 pb-4">COMMERCIAL INTELLIGENCE</h3>
                        <div className="space-y-8">
                           <div className="space-y-2">
-                             <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">BUSINESS MODEL</p>
-                             <p className="text-[12px] font-black text-slate-100 uppercase tracking-widest italic leading-relaxed">{clean(report.businessModel)}</p>
+                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">BUSINESS MODEL</p>
+                             <p className="text-[12px] font-black text-slate-200 uppercase tracking-widest italic leading-relaxed">{clean(report.businessModel)}</p>
                           </div>
                           <div className="space-y-2">
-                             <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">DESIGN SYSTEM</p>
-                             <p className="text-[12px] font-black text-slate-100 uppercase tracking-widest italic leading-relaxed">{clean(report.designSystem)}</p>
+                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">DESIGN SYSTEM</p>
+                             <p className="text-[12px] font-black text-slate-200 uppercase tracking-widest italic leading-relaxed">{clean(report.designSystem)}</p>
                           </div>
                        </div>
                     </div>

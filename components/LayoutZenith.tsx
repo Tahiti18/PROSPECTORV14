@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MainMode, SubModule } from '../types';
 import { Tooltip } from './Tooltip';
 
@@ -53,7 +52,7 @@ const STRATEGIC_CITIES = [
 
 // --- TOP NAV MODE ICONS ---
 const ModeIcon = ({ id, active }: { id: MainMode, active: boolean }) => {
-  const cn = active ? "text-white" : "text-slate-500 group-hover:text-white";
+  const cn = active ? "text-white" : "text-slate-400 group-hover:text-white";
   switch(id) {
     case 'OPERATE': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>; // Stack
     case 'CREATE': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>; // Pen
@@ -96,7 +95,7 @@ const ModuleIcon = ({ id, className = "w-5 h-5" }: { id: SubModule; className?: 
       case 'MEDIA_VAULT': return <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />;
       
       // STUDIO
-      case 'VIDEO_PITCH': return <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />;
+      case 'VIDEO_PITCH': return <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />; // Camera
       case 'VIDEO_AI': return <path d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />;
       case 'CINEMA_INTEL': return <path d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />;
       case 'MOTION_LAB': return <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
@@ -258,21 +257,22 @@ const MODE_CONFIG: Record<MainMode, any> = {
 export const LayoutZenith: React.FC<LayoutProps> = ({ 
   children, 
   activeMode, 
-  setActiveMode,
-  activeModule,
-  setActiveModule,
-  onSearchClick,
-  theater,
-  setTheater,
-  theme,
-  toggleTheme,
-  currentLayout,
-  setLayoutMode
+  setActiveMode, 
+  activeModule, 
+  setActiveModule, 
+  onSearchClick, 
+  theater, 
+  setTheater, 
+  theme, 
+  toggleTheme, 
+  currentLayout, 
+  setLayoutMode 
 }) => {
   const [moduleFilter, setModuleFilter] = useState('');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const groups = MODULE_GROUPS[activeMode];
   const activeColor = MODE_COLORS[activeMode];
+  const mainRef = useRef<HTMLDivElement>(null);
 
   const handleModeClick = (mode: MainMode) => {
     setActiveMode(mode);
@@ -285,24 +285,28 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (mainRef.current) {
+        mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeModule]);
+
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${theme === 'dark' ? 'bg-[#030712] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    // FIX: Main container is now h-screen and flex-col to force header separation
+    <div className={`h-screen w-full flex flex-col overflow-hidden transition-colors duration-300 ${theme === 'dark' ? 'bg-[#020617] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       
-      {/* --- COMMAND CENTER HEADER --- */}
-      <header className={`h-20 border-b fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 transition-colors ${theme === 'dark' ? 'bg-[#030712] border-slate-800' : 'bg-white border-slate-200'}`}>
+      {/* --- COMMAND CENTER HEADER (Flex Item, Not Fixed) --- */}
+      <header className={`h-20 flex-none border-b z-50 flex items-center justify-between px-8 transition-colors ${theme === 'dark' ? 'bg-[#030712] border-slate-800' : 'bg-white border-slate-200'}`}>
          
-         {/* LEFT: IDENTITY (Icon Removed, Text flush) */}
+         {/* LEFT: IDENTITY (Cleaner) */}
          <div className="flex items-center gap-4 w-80 pl-2">
-            <div className="flex flex-col">
-               <h1 className={`text-lg font-black tracking-tight leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                  PROSPECTOR <span className="text-indigo-500 italic">OS</span>
-               </h1>
-               <span className="text-[10px] font-bold text-slate-500 tracking-[0.2em] mt-1">LEAD INTEL ENGINE V13.2</span>
-            </div>
+            <h1 className={`text-xl font-black tracking-tight leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+               PROSPECTOR <span className="text-indigo-500 italic">OS</span>
+            </h1>
          </div>
 
-         {/* CENTER: PILL NAVIGATION */}
-         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden lg:block">
+         {/* CENTER: PILL NAVIGATION (Relative positioning context is header) */}
+         <div className="absolute left-1/2 top-10 -translate-x-1/2 -translate-y-1/2 hidden xl:block pointer-events-auto">
             <nav className={`flex items-center gap-1 p-1.5 rounded-full border shadow-2xl ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                {(Object.keys(MODE_CONFIG) as MainMode[]).map((mode) => {
                   const isActive = activeMode === mode;
@@ -324,42 +328,45 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
             </nav>
          </div>
 
-         {/* RIGHT: UTILITIES */}
-         <div className="flex items-center gap-4 w-80 justify-end">
+         {/* RIGHT: UTILITIES (High Z-Index, Solid BG) */}
+         <div className={`flex items-center gap-4 w-auto justify-end z-50 pl-4 py-2 ${theme === 'dark' ? 'bg-[#030712]' : 'bg-white'}`}>
             
             {/* Theme Toggle */}
             <button onClick={toggleTheme} className={`w-12 h-12 rounded-2xl border flex items-center justify-center transition-all ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 text-amber-400 hover:border-slate-700' : 'bg-white border-slate-200 text-amber-500'}`}>
-               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             </button>
 
             {/* Quick Search */}
             <button 
                onClick={onSearchClick}
-               className={`hidden md:flex items-center gap-3 px-5 h-12 rounded-2xl border text-xs font-bold transition-all w-56 group ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700' : 'bg-white border-slate-200 text-slate-500'}`}
+               className={`flex items-center gap-3 px-4 h-12 rounded-2xl border text-xs font-bold transition-all group ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700' : 'bg-white border-slate-200 text-slate-500'}`}
             >
                <svg className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-               <span className="uppercase tracking-wider">QUICK SEARCH...</span>
-               <span className={`ml-auto text-[9px] font-black px-1.5 py-0.5 rounded ${theme === 'dark' ? 'bg-slate-800 text-slate-500' : 'bg-slate-200 text-slate-600'}`}>⌘K</span>
+               <span className="uppercase tracking-wider hidden md:block">SEARCH</span>
+               <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${theme === 'dark' ? 'bg-slate-800 text-slate-500' : 'bg-slate-200 text-slate-600'}`}>⌘K</span>
             </button>
 
-            {/* Location Selector (Pill Style) */}
+            {/* Location Selector (Refined Pill) */}
             <div className="relative group">
-                <div className={`flex items-center gap-3 px-6 h-12 rounded-full border cursor-pointer transition-all min-w-[200px] shadow-2xl ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200'}`}>
-                   <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                   <div className="flex flex-col">
-                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none">THEATER</span>
+                <div className={`flex items-center gap-3 pl-4 pr-6 h-12 rounded-full border cursor-pointer transition-all shadow-lg hover:shadow-indigo-500/10 ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200'}`}>
+                   <div className="w-6 h-6 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                      <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                   </div>
+                   <div className="flex flex-col relative">
+                       <span className="text-[8px] font-black text-indigo-400/80 uppercase tracking-widest leading-none mb-0.5">THEATER</span>
                        <select 
                           value={theater} 
                           onChange={(e) => setTheater(e.target.value)}
-                          className={`bg-transparent text-[11px] font-black uppercase focus:outline-none cursor-pointer border-none w-full truncate appearance-none leading-none mt-0.5 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
-                          style={{ width: '140px' }}
+                          className={`bg-transparent text-xs font-bold uppercase focus:outline-none cursor-pointer border-none w-full appearance-none leading-none ${theme === 'dark' ? 'text-slate-200' : 'text-slate-900'} pr-4`}
                        >
                           {STRATEGIC_CITIES.map(c => (
                               <option key={c.city} value={c.city} className="text-slate-900 bg-white">{c.city}</option>
                           ))}
                        </select>
+                       <div className="absolute right-0 bottom-0.5 pointer-events-none">
+                          <svg className="w-2 h-2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                       </div>
                    </div>
-                   <svg className="w-3 h-3 text-slate-600 ml-auto group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
                 </div>
             </div>
 
@@ -367,13 +374,14 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
       </header>
 
       {/* --- 2. MAIN WORKSPACE CONTAINER --- */}
-      <div className="flex pt-20 h-screen overflow-hidden">
+      {/* Takes remaining height, Sidebar and Main scroll independently */}
+      <div className="flex-1 flex overflow-hidden">
          
          {/* LEFT SIDEBAR (Contextual Modules Only) */}
-         <aside className={`flex-shrink-0 border-r flex flex-col z-40 transition-all duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800' : 'bg-slate-50 border-slate-200'} ${isSidebarExpanded ? 'w-[240px]' : 'w-[80px]'}`}>
+         <aside className={`flex-shrink-0 border-r flex flex-col z-40 h-full overflow-hidden transition-all duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800' : 'bg-slate-50 border-slate-200'} ${isSidebarExpanded ? 'w-[240px]' : 'w-[80px]'}`}>
             
             {/* Sidebar Expand/Collapse Control */}
-            <div className={`p-4 border-b border-slate-800/50 flex items-center justify-center`}>
+            <div className={`p-4 border-b border-slate-800/50 flex items-center justify-center shrink-0`}>
                <button 
                  onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
                  className="p-2 rounded-lg hover:bg-slate-800 text-slate-500 transition-colors w-full flex items-center justify-center"
@@ -453,7 +461,10 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
          </aside>
 
          {/* MAIN STAGE */}
-         <main className="flex-1 overflow-y-auto custom-scrollbar relative bg-slate-950 p-8 md:p-12">
+         <main 
+            ref={mainRef}
+            className="flex-1 h-full overflow-y-auto custom-scrollbar relative bg-[#020617] p-8 md:p-12"
+         >
             {/* Ambient Background Glow */}
             <div className={`fixed inset-0 pointer-events-none opacity-[0.03] transition-colors duration-1000 ${activeColor.replace('text', 'bg')}`}></div>
             

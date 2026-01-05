@@ -54,8 +54,8 @@ export const LiveScribe: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">LIVE <span className="text-indigo-600 not-italic">SCRIBE</span></h1>
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic italic">Real-Time Combat Transcription</p>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">LIVE <span className="text-indigo-600 not-italic">SCRIBE</span></h1>
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Real-Time Combat Transcription</p>
       </div>
 
       <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl flex flex-col space-y-10 relative overflow-hidden">
@@ -80,7 +80,7 @@ export const LiveScribe: React.FC = () => {
                 {t}
               </div>
             ))}
-            {transcripts.length === 0 && <div className="text-slate-800 italic uppercase tracking-widest text-center py-20">Awaiting audio feed...</div>}
+            {transcripts.length === 0 && <div className="text-slate-600 italic uppercase tracking-widest text-center py-20">Awaiting audio feed...</div>}
          </div>
       </div>
     </div>

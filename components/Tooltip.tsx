@@ -83,8 +83,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ children, content, side = 'top
                        'translate(0, -50%)'
           }}
         >
-           <div className="bg-[#0f172a] border border-slate-700/80 text-slate-300 text-xs font-medium leading-relaxed p-4 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 relative">
-             <span className="block text-indigo-400 font-bold text-[10px] uppercase tracking-widest mb-1">Intelligence Note</span>
+           <div className="bg-[#0f172a] border border-slate-700/80 text-slate-300 text-xs font-medium leading-relaxed p-3 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.9)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 relative">
              {content}
              
              {/* Arrows */}

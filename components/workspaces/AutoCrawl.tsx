@@ -83,15 +83,15 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
   return (
     <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">AUTO <span className="text-indigo-600 not-italic">CRAWL</span></h1>
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">Multi-Vector Signal Extraction: {theater}</p>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">AUTO <span className="text-indigo-600 not-italic">CRAWL</span></h1>
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic">Multi-Vector Signal Extraction: {theater}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* CONTROL PANEL */}
         <div className="bg-[#0b1021] border border-slate-800 rounded-[40px] p-8 shadow-2xl space-y-8">
           <div className="space-y-3">
-             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Vulnerability Signal</label>
+             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Vulnerability Signal</label>
              <textarea 
               value={signal}
               onChange={(e) => setSignal(e.target.value)}
@@ -110,7 +110,7 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
 
           {/* LIVE TERMINAL */}
           <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 h-64 overflow-y-auto custom-scrollbar font-mono text-[9px] space-y-2 shadow-inner" ref={scrollRef}>
-            {logs.length === 0 && <span className="text-slate-700 italic">SYSTEM READY. AWAITING COMMAND.</span>}
+            {logs.length === 0 && <span className="text-slate-600 italic">SYSTEM READY. AWAITING COMMAND.</span>}
             {logs.map((log, i) => (
               <div key={i} className={`truncate ${log.includes('ERROR') ? 'text-rose-500' : log.includes('SUCCESS') ? 'text-emerald-500' : 'text-slate-400'}`}>
                 {log}
@@ -144,7 +144,7 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
 
           <div className="space-y-3 min-h-[500px]">
             {sessionLeads.length === 0 && !isCrawling ? (
-               <div className="h-96 border-2 border-dashed border-slate-800 rounded-[32px] flex flex-col items-center justify-center text-slate-700 italic opacity-50">
+               <div className="h-96 border-2 border-dashed border-slate-800 rounded-[32px] flex flex-col items-center justify-center text-slate-600 italic opacity-50">
                   <span className="text-4xl mb-4">📡</span>
                   <p className="text-[10px] font-black uppercase tracking-widest">NO DATA IN FEED</p>
                </div>

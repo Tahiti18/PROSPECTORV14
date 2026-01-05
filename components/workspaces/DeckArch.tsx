@@ -38,8 +38,8 @@ export const DeckArch: React.FC<DeckArchProps> = ({ lead }) => {
   return (
     <div className="max-w-5xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">DECK <span className="text-indigo-600 not-italic">ARCH</span></h1>
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic italic">Structural Sales Blueprint for {lead.businessName}</p>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">DECK <span className="text-indigo-600 not-italic">ARCH</span></h1>
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Structural Sales Blueprint for {lead.businessName}</p>
       </div>
 
       <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl relative min-h-[600px] flex flex-col">
@@ -57,10 +57,10 @@ export const DeckArch: React.FC<DeckArchProps> = ({ lead }) => {
                   </div>
                   <div className="flex-1 space-y-3">
                      <h4 className="text-[13px] font-black text-white uppercase tracking-widest group-hover:text-indigo-400 transition-colors">{s.title}</h4>
-                     <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed italic">"{s.narrativeGoal}"</p>
+                     <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed italic">"{s.narrativeGoal}"</p>
                      <div className="pt-4 border-t border-slate-800/50 flex items-center gap-4">
                         <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">VISUAL_ASSET:</span>
-                        <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest truncate">{s.keyVisuals}</p>
+                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest truncate">{s.keyVisuals}</p>
                      </div>
                   </div>
                </div>

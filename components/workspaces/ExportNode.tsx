@@ -93,8 +93,8 @@ export const ExportNode: React.FC<ExportNodeProps> = ({ leads }) => {
   return (
     <div className="max-w-6xl mx-auto py-12 space-y-16 animate-in fade-in duration-1000">
       <div className="text-center space-y-4">
-        <h1 className="text-5xl font-black italic text-slate-900 dark:text-white uppercase tracking-tighter leading-none transition-all">DEPLOYMENT <span className="text-indigo-600 not-italic opacity-40">HUB</span></h1>
-        <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.8em] italic">Archive Physical Source DNA & Target Intelligence</p>
+        <h1 className="text-4xl font-black italic text-slate-900 dark:text-white uppercase tracking-tighter leading-none transition-all">DEPLOYMENT <span className="text-indigo-600 not-italic opacity-40">HUB</span></h1>
+        <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.8em] italic">Archive Physical Source DNA & Target Intelligence</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
@@ -114,7 +114,7 @@ export const ExportNode: React.FC<ExportNodeProps> = ({ leads }) => {
                    </span>
                 </div>
               </div>
-              <p className="text-[14px] text-slate-500 font-bold uppercase tracking-[0.4em] max-w-2xl mx-auto leading-relaxed opacity-70">
+              <p className="text-[14px] text-slate-400 font-bold uppercase tracking-[0.4em] max-w-2xl mx-auto leading-relaxed opacity-70">
                 {isArchiving ? 'SERIALIZING PHYSICAL SOURCE CODE DNA REGISTRY...' : 'The High-Density Recovery Archive physically bundles the literal source code strings of the core engine into a single portable recovery manifest.'}
               </p>
            </div>
@@ -139,7 +139,7 @@ export const ExportNode: React.FC<ExportNodeProps> = ({ leads }) => {
         <div className="lg:col-span-4 space-y-10 flex flex-col">
            <div className="bg-slate-900 dark:bg-black border border-slate-800 rounded-[72px] p-16 space-y-16 flex-1 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-600/5 blur-[120px] rounded-full"></div>
-              <h3 className="text-[14px] font-black text-slate-500 uppercase tracking-[0.5em] flex items-center gap-6 relative z-10">
+              <h3 className="text-[14px] font-black text-slate-400 uppercase tracking-[0.5em] flex items-center gap-6 relative z-10">
                  <span className="w-3 h-3 rounded-full bg-indigo-500 animate-pulse shadow-lg"></span>
                  RECOVERY MANIFEST
               </h3>
@@ -153,10 +153,10 @@ export const ExportNode: React.FC<ExportNodeProps> = ({ leads }) => {
                  ].map((step, i) => (
                    <div key={i} className="space-y-4 group border-l-4 border-slate-800 pl-12 hover:border-indigo-500 transition-all duration-700">
                       <div className="flex justify-between items-center">
-                         <span className="text-[13px] font-black text-slate-100 uppercase tracking-[0.2em] group-hover:text-indigo-400 transition-colors">{step.t}</span>
+                         <span className="text-[13px] font-black text-slate-200 uppercase tracking-[0.2em] group-hover:text-indigo-400 transition-colors">{step.t}</span>
                          <span className="text-[10px] font-black px-4 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-sm">{step.s}</span>
                       </div>
-                      <p className="text-[11px] text-slate-500 font-bold leading-relaxed uppercase tracking-[0.2em] italic opacity-60 group-hover:opacity-100 transition-opacity">{step.d}</p>
+                      <p className="text-[11px] text-slate-400 font-bold leading-relaxed uppercase tracking-[0.2em] italic opacity-60 group-hover:opacity-100 transition-opacity">{step.d}</p>
                    </div>
                  ))}
               </div>

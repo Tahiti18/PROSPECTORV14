@@ -64,10 +64,10 @@ export const AnalyticsHub: React.FC<AnalyticsHubProps> = ({ leads }) => {
   return (
     <div className="max-w-[1550px] mx-auto py-10 space-y-16 animate-in fade-in duration-700">
       <div className="text-center space-y-4">
-        <h1 className="text-6xl font-black italic text-white uppercase tracking-tighter leading-none">
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter leading-none">
           MARKET <span className="text-indigo-500">DOMINANCE</span> ANALYTICS
         </h1>
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] italic">
+        <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.4em] italic">
           AGGREGATE INTELLIGENCE FOR {leads.length} ACTIVE NODES
         </p>
       </div>

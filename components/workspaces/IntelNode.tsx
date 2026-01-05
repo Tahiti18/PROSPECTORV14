@@ -48,14 +48,14 @@ export const IntelNode: React.FC<IntelNodeProps> = ({ module, lead }) => {
       <div className="flex justify-between items-start">
         <div className="space-y-4">
            <div className="flex items-center gap-4">
-              <h1 className="text-5xl font-black italic text-white tracking-tighter uppercase leading-none">
+              <h1 className="text-4xl font-black italic text-white tracking-tighter uppercase leading-none">
                 {module.replace('_', ' ')} <span className="text-indigo-500 not-italic">PROTOCOL</span>
               </h1>
               <div className="bg-indigo-600/10 border border-indigo-500/20 px-4 py-2 rounded-xl">
                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">TARGET: {lead.businessName}</span>
               </div>
            </div>
-           {report && <p className="text-xl font-medium text-slate-400 italic max-w-4xl leading-relaxed">"{report.missionSummary}"</p>}
+           {report && <p className="text-xl font-medium text-slate-300 italic max-w-4xl leading-relaxed">"{report.missionSummary}"</p>}
         </div>
       </div>
 
@@ -70,29 +70,29 @@ export const IntelNode: React.FC<IntelNodeProps> = ({ module, lead }) => {
              {/* STACKS */}
              <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-8">
-                   <h3 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em] italic">TECHNICAL VECTORS</h3>
+                   <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] italic">TECHNICAL VECTORS</h3>
                    <ul className="space-y-8">
                       {report.visualStack.map((item, idx) => (
                          <li key={idx} className="space-y-1 group">
                             <div className="flex items-center gap-4">
                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                               <span className="text-[11px] font-black text-slate-100 uppercase tracking-widest group-hover:text-indigo-500 transition-colors">{clean(item.label)}</span>
+                               <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-indigo-500 transition-colors">{clean(item.label)}</span>
                             </div>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-5 opacity-70 italic leading-relaxed">{clean(item.description)}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pl-5 opacity-70 italic leading-relaxed">{clean(item.description)}</p>
                          </li>
                       ))}
                    </ul>
                 </div>
                 <div className="space-y-8">
-                   <h3 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em] italic">STRATEGIC GAPS</h3>
+                   <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] italic">STRATEGIC GAPS</h3>
                    <ul className="space-y-8">
                       {report.sonicStack.map((item, idx) => (
                          <li key={idx} className="space-y-1 group">
                             <div className="flex items-center gap-4">
                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                               <span className="text-[11px] font-black text-slate-100 uppercase tracking-widest group-hover:text-indigo-500 transition-colors">{clean(item.label)}</span>
+                               <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-indigo-500 transition-colors">{clean(item.label)}</span>
                             </div>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest pl-5 opacity-70 italic leading-relaxed">{clean(item.description)}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pl-5 opacity-70 italic leading-relaxed">{clean(item.description)}</p>
                          </li>
                       ))}
                    </ul>
@@ -107,15 +107,15 @@ export const IntelNode: React.FC<IntelNodeProps> = ({ module, lead }) => {
                    <p className="text-white text-lg font-black italic leading-relaxed font-sans uppercase">"{clean(report.featureGap)}"</p>
                 </div>
                 <div className="bg-[#0b1021] border border-slate-800 p-12 rounded-[48px] shadow-2xl space-y-10">
-                   <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.4em] italic border-b border-slate-800 pb-4">INTELLIGENCE MATRIX</h3>
+                   <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] italic border-b border-slate-800 pb-4">INTELLIGENCE MATRIX</h3>
                    <div className="space-y-8">
                       <div className="space-y-2">
-                         <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">BUSINESS MODEL</p>
-                         <p className="text-[12px] font-black text-slate-100 uppercase tracking-widest italic leading-relaxed">{clean(report.businessModel)}</p>
+                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">BUSINESS MODEL</p>
+                         <p className="text-[12px] font-black text-slate-200 uppercase tracking-widest italic leading-relaxed">{clean(report.businessModel)}</p>
                       </div>
                       <div className="space-y-2">
-                         <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">DESIGN SYSTEM</p>
-                         <p className="text-[12px] font-black text-slate-100 uppercase tracking-widest italic leading-relaxed">{clean(report.designSystem)}</p>
+                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">DESIGN SYSTEM</p>
+                         <p className="text-[12px] font-black text-slate-200 uppercase tracking-widest italic leading-relaxed">{clean(report.designSystem)}</p>
                       </div>
                    </div>
                 </div>
@@ -160,7 +160,7 @@ export const IntelNode: React.FC<IntelNodeProps> = ({ module, lead }) => {
                    </div>
                 </div>
                 <div className="bg-slate-950 p-12 rounded-[56px] flex flex-col items-center justify-center text-center space-y-6 shadow-2xl relative group overflow-hidden">
-                   <span className="text-[11px] font-black text-slate-600 uppercase tracking-[0.6em] relative z-10">SYSTEM_VERDICT</span>
+                   <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.6em] relative z-10">SYSTEM_VERDICT</span>
                    <p className="text-3xl font-black italic text-white uppercase tracking-tighter leading-none relative z-10">PRIME TRANSFORMATION TARGET</p>
                    <p className="text-[9px] text-indigo-400/60 font-black uppercase tracking-[0.4em] relative z-10">READY FOR 4K PAYLOAD FORGE</p>
                 </div>

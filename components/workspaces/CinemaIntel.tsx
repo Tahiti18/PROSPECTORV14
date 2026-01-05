@@ -34,7 +34,7 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
             <span className="text-amber-500 uppercase">CINEMA</span> INTEL HUB
             <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-500 font-black">i</span>
           </h1>
-          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">
+          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em]">
             Deep-layer video understanding via Search Grounding.
           </p>
         </div>
@@ -80,7 +80,7 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
                  </div>
                  <div>
                     <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter">INTELLIGENCE OUTPUT</h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">MULTI-MODAL TEMPORAL DECODING</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em]">MULTI-MODAL TEMPORAL DECODING</p>
                  </div>
               </div>
 

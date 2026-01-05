@@ -86,10 +86,10 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
     <div className="max-w-[1600px] mx-auto py-6 space-y-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter leading-none">
+          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter leading-none">
             VIDEO <span className="text-amber-500 not-italic">PITCH</span>
           </h1>
-          <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.5em] mt-4 italic">Veo 3.1 Generative Video Core</p>
+          <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.5em] mt-4 italic">Veo 3.1 Generative Video Core</p>
         </div>
         <div className="flex items-center gap-3">
            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
@@ -101,7 +101,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
         <div className="lg:col-span-4 space-y-8">
           <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-12 shadow-2xl space-y-10">
             <div className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] ml-1">DIRECTOR'S PROMPT</h3>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-1">DIRECTOR'S PROMPT</h3>
               <textarea 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -120,7 +120,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
           </div>
 
           <div className="bg-slate-900/50 border border-slate-800 rounded-[40px] p-8 space-y-6">
-             <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest">RAPID PROMPT LIBRARY</h4>
+             <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">RAPID PROMPT LIBRARY</h4>
              <div className="space-y-3 h-64 overflow-y-auto custom-scrollbar pr-2">
                 {SUGGESTIONS.map((cat, i) => (
                   <div key={i} className="space-y-2">
@@ -129,7 +129,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
                        <button 
                          key={j}
                          onClick={() => setPrompt(p)}
-                         className="w-full text-left p-3 rounded-xl bg-slate-950 border border-slate-800 text-[10px] text-slate-400 hover:text-white hover:border-amber-500/30 transition-all truncate"
+                         className="w-full text-left p-3 rounded-xl bg-slate-950 border border-slate-800 text-[10px] text-slate-300 hover:text-white hover:border-amber-500/30 transition-all truncate"
                          title={p}
                        >
                          {p}
@@ -164,7 +164,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
             ) : (
               <div className="relative z-10 flex flex-col items-center text-center space-y-8 px-20 opacity-30">
                  <div className="w-32 h-32 rounded-full border-4 border-slate-800 flex items-center justify-center">
-                    <svg className="w-16 h-16 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+                    <svg className="w-16 h-16 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
                  </div>
                  <h4 className="text-4xl font-black italic text-slate-700 uppercase tracking-tighter">VEO STANDBY</h4>
                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] max-w-md leading-relaxed">

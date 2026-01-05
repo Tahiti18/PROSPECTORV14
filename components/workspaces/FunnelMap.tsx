@@ -38,8 +38,8 @@ export const FunnelMap: React.FC<FunnelMapProps> = ({ lead }) => {
   return (
     <div className="max-w-5xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">FUNNEL <span className="text-indigo-600 not-italic">MAP</span></h1>
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">Conversion Logic for {lead.businessName}</p>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">FUNNEL <span className="text-indigo-600 not-italic">MAP</span></h1>
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic">Conversion Logic for {lead.businessName}</p>
       </div>
 
       <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl relative min-h-[600px] flex flex-col items-center justify-center">
@@ -61,11 +61,11 @@ export const FunnelMap: React.FC<FunnelMapProps> = ({ lead }) => {
                      </div>
                      <div className="flex-1 space-y-1">
                         <h4 className="text-[13px] font-black text-white uppercase tracking-widest">{s.title}</h4>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{s.description}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{s.description}</p>
                      </div>
                      <div className="text-right">
                         <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mb-1">CONVERSION GOAL</p>
-                        <p className="text-[11px] font-black text-slate-100 uppercase italic tracking-tighter">{s.conversionGoal}</p>
+                        <p className="text-[11px] font-black text-slate-200 uppercase italic tracking-tighter">{s.conversionGoal}</p>
                      </div>
                   </div>
                </div>

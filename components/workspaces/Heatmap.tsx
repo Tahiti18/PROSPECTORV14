@@ -12,8 +12,8 @@ export const Heatmap: React.FC<HeatmapProps> = ({ leads, theater }) => {
     <div className="space-y-10 py-4 animate-in fade-in duration-500">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">HOT <span className="text-indigo-600 not-italic">ZONE</span></h1>
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic italic">Opportunity Density: {theater}</p>
+          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">HOT <span className="text-indigo-600 not-italic">ZONE</span></h1>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Opportunity Density: {theater}</p>
         </div>
       </div>
 
@@ -61,13 +61,13 @@ export const Heatmap: React.FC<HeatmapProps> = ({ leads, theater }) => {
 
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-slate-900 border border-slate-800 rounded-[32px] p-8">
-             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Theater Coordinates</h3>
+             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Theater Coordinates</h3>
              <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                 {leads.sort((a,b) => b.leadScore - a.leadScore).map(l => (
                   <div key={l.id} className="flex justify-between items-center py-3 border-b border-slate-800/50 last:border-0">
                     <div>
                       <p className="text-[10px] font-black text-slate-200 uppercase truncate max-w-[150px]">{l.businessName}</p>
-                      <p className="text-[8px] text-slate-600 font-bold uppercase">{l.niche}</p>
+                      <p className="text-[8px] text-slate-500 font-bold uppercase">{l.niche}</p>
                     </div>
                     <span className={`text-[11px] font-black italic ${l.leadScore > 80 ? 'text-emerald-400' : 'text-indigo-400'}`}>
                       {l.leadScore}

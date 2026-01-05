@@ -37,8 +37,8 @@ export const DemoSandbox: React.FC<DemoSandboxProps> = ({ lead }) => {
   return (
     <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">DEMO <span className="text-indigo-600 not-italic">SANDBOX</span></h1>
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic italic">Predictive Growth Modeling for {lead.businessName}</p>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">DEMO <span className="text-indigo-600 not-italic">SANDBOX</span></h1>
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Predictive Growth Modeling for {lead.businessName}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

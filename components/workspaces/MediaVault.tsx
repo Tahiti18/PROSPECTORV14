@@ -60,8 +60,8 @@ export const MediaVault: React.FC = () => {
     <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">MEDIA <span className="text-indigo-600 not-italic">VAULT</span></h1>
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic italic">Persistent Asset Reservoir (Local Storage)</p>
+          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">MEDIA <span className="text-indigo-600 not-italic">VAULT</span></h1>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Persistent Asset Reservoir (Local Storage)</p>
         </div>
         <div className="flex gap-4">
            <button 
@@ -112,8 +112,8 @@ export const MediaVault: React.FC = () => {
                    {a.type}
                  </div>
                  <div className="text-right">
-                    <span className="text-[9px] font-black text-slate-700 block">{a.module?.replace('_', ' ')}</span>
-                    <span className="text-[8px] font-black text-slate-800">{a.timestamp}</span>
+                    <span className="text-[9px] font-black text-slate-500 block">{a.module?.replace('_', ' ')}</span>
+                    <span className="text-[8px] font-black text-slate-600">{a.timestamp}</span>
                  </div>
               </div>
               <div className="space-y-1 relative z-10">

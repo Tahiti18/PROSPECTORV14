@@ -39,8 +39,8 @@ export const MotionLab: React.FC<MotionLabProps> = ({ lead }) => {
     <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">MOTION <span className="text-indigo-600 not-italic">LAB</span></h1>
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic italic">Cinematic Storyboard Architecture for {lead.businessName}</p>
+          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">MOTION <span className="text-indigo-600 not-italic">LAB</span></h1>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Cinematic Storyboard Architecture for {lead.businessName}</p>
         </div>
       </div>
 

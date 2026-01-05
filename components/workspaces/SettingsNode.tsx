@@ -23,8 +23,8 @@ export const SettingsNode: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">CORE <span className="text-indigo-600 not-italic">SETTINGS</span></h1>
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic italic">Operational Logic Configuration</p>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">CORE <span className="text-indigo-600 not-italic">SETTINGS</span></h1>
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Operational Logic Configuration</p>
       </div>
 
       <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl space-y-12">

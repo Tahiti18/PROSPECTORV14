@@ -32,10 +32,10 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
     <div className="max-w-[1550px] mx-auto py-6 space-y-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
+          <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase leading-none">
             VISUAL <span className="text-indigo-600 not-italic">STUDIO</span>
           </h1>
-          <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.5em] mt-4 italic">Gemini 2.5 Flash Image Core</p>
+          <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.5em] mt-4 italic">Gemini 2.5 Flash Image Core</p>
         </div>
       </div>
 
@@ -43,7 +43,7 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
         <div className="lg:col-span-4 space-y-8">
           <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-12 shadow-2xl space-y-10">
             <div className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] ml-1">PROMPT DIRECTIVE</h3>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-1">PROMPT DIRECTIVE</h3>
               <textarea 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -68,7 +68,7 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
               <img src={generatedImage} className="w-full h-full object-cover animate-in zoom-in-95 duration-1000" alt="Generated Asset" />
             ) : (
               <div className="relative z-10 flex flex-col items-center text-center space-y-8 px-20 opacity-30">
-                 <svg className="w-32 h-32 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l5 5" /></svg>
+                 <svg className="w-32 h-32 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l5 5" /></svg>
                  <h4 className="text-3xl font-black italic text-slate-700 uppercase tracking-tighter">STUDIO IDLE</h4>
               </div>
             )}
