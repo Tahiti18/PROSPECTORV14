@@ -240,6 +240,7 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
   }
 };
 
+// UNIFIED EMERALD THEME FOR ALL MODES
 const MODE_COLORS: Record<MainMode, string> = {
   OPERATE: 'text-emerald-500',
   CREATE: 'text-emerald-500',
@@ -294,21 +295,21 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
   }, [activeModule]);
 
   return (
-    <div className={`h-screen w-full flex flex-col overflow-hidden transition-colors duration-300 ${theme === 'dark' ? 'bg-[#020617] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`h-screen w-full flex flex-col overflow-hidden bg-[#020617] text-slate-100`}>
       
       {/* --- COMMAND CENTER HEADER (Flex Item, Not Fixed) --- */}
-      <header className={`h-20 flex-none border-b z-[100] flex items-center justify-between px-8 transition-colors ${theme === 'dark' ? 'bg-[#030712] border-slate-800' : 'bg-white border-slate-200'}`}>
+      <header className={`h-20 flex-none border-b z-[100] flex items-center justify-between px-8 bg-[#030712] border-slate-800`}>
          
          {/* LEFT: IDENTITY (Cleaner) */}
          <div className="flex items-center gap-4 w-80 pl-2">
-            <h1 className={`text-xl font-black tracking-tight leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+            <h1 className={`text-xl font-black tracking-tight leading-none text-white`}>
                PROSPECTOR <span className="text-emerald-500 italic">OS</span>
             </h1>
          </div>
 
          {/* CENTER: PILL NAVIGATION (Relative positioning context is header) */}
          <div className="absolute left-1/2 top-10 -translate-x-1/2 -translate-y-1/2 hidden xl:block pointer-events-auto">
-            <nav className={`flex items-center gap-1 p-1.5 rounded-full border shadow-2xl ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
+            <nav className={`flex items-center gap-1 p-1.5 rounded-full border shadow-2xl bg-[#0b1021] border-slate-800`}>
                {(Object.keys(MODE_CONFIG) as MainMode[]).map((mode) => {
                   const isActive = activeMode === mode;
                   return (
@@ -330,26 +331,21 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
          </div>
 
          {/* RIGHT: UTILITIES (High Z-Index, Solid BG) */}
-         <div className={`flex items-center gap-4 w-auto justify-end z-50 pl-4 py-2 ${theme === 'dark' ? 'bg-[#030712]' : 'bg-white'}`}>
+         <div className={`flex items-center gap-4 w-auto justify-end z-50 pl-4 py-2 bg-[#030712]`}>
             
-            {/* Theme Toggle */}
-            <button onClick={toggleTheme} className={`w-12 h-12 rounded-2xl border flex items-center justify-center transition-all ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 text-amber-400 hover:border-slate-700' : 'bg-white border-slate-200 text-amber-500'}`}>
-               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-            </button>
-
             {/* Quick Search */}
             <button 
                onClick={onSearchClick}
-               className={`flex items-center gap-3 px-4 h-12 rounded-2xl border text-xs font-bold transition-all group ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700' : 'bg-white border-slate-200 text-slate-500'}`}
+               className={`flex items-center gap-3 px-4 h-12 rounded-2xl border text-xs font-bold transition-all group bg-[#0b1021] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700`}
             >
                <svg className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                <span className="uppercase tracking-wider hidden md:block">SEARCH</span>
-               <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${theme === 'dark' ? 'bg-slate-800 text-slate-500' : 'bg-slate-200 text-slate-600'}`}>⌘K</span>
+               <span className={`text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-slate-500`}>⌘K</span>
             </button>
 
             {/* Location Selector (Refined Pill) */}
             <div className="relative group">
-                <div className={`flex items-center gap-3 pl-4 pr-6 h-12 rounded-full border cursor-pointer transition-all shadow-lg hover:shadow-emerald-500/10 ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 hover:border-emerald-500/50' : 'bg-white border-slate-200'}`}>
+                <div className={`flex items-center gap-3 pl-4 pr-6 h-12 rounded-full border cursor-pointer transition-all shadow-lg hover:shadow-emerald-500/10 bg-[#0b1021] border-slate-800 hover:border-emerald-500/50`}>
                    <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
                       <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                    </div>
@@ -358,7 +354,7 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                        <select 
                           value={theater} 
                           onChange={(e) => setTheater(e.target.value)}
-                          className={`bg-transparent text-xs font-bold uppercase focus:outline-none cursor-pointer border-none w-full appearance-none leading-none ${theme === 'dark' ? 'text-slate-200' : 'text-slate-900'} pr-4`}
+                          className={`bg-transparent text-xs font-bold uppercase focus:outline-none cursor-pointer border-none w-full appearance-none leading-none text-slate-200 pr-4`}
                        >
                           {STRATEGIC_CITIES.map(c => (
                               <option key={c.city} value={c.city} className="text-slate-900 bg-white">{c.city}</option>
@@ -379,7 +375,7 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
       <div className="flex-1 flex overflow-hidden">
          
          {/* LEFT SIDEBAR (Contextual Modules Only) */}
-         <aside className={`flex-shrink-0 border-r flex flex-col z-40 h-full overflow-hidden transition-all duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800' : 'bg-slate-50 border-slate-200'} ${isSidebarExpanded ? 'w-[240px]' : 'w-[80px]'}`}>
+         <aside className={`flex-shrink-0 border-r flex flex-col z-40 h-full overflow-hidden transition-all duration-300 ease-in-out bg-[#0b1021] border-slate-800 ${isSidebarExpanded ? 'w-[240px]' : 'w-[80px]'}`}>
             
             {/* Sidebar Expand/Collapse Control */}
             <div className={`p-4 border-b border-slate-800/50 flex items-center justify-center shrink-0`}>

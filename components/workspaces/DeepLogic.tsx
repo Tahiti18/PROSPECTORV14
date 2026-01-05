@@ -40,17 +40,17 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
     <div className="max-w-[1500px] mx-auto py-6 space-y-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-start">
         <div className="space-y-2">
-          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter flex items-center gap-3">
-            <span className="text-amber-500">DEEP</span> REASONING LAB
+          <h1 className="text-4xl font-bold uppercase tracking-tight text-white flex items-center gap-3">
+            <span className="text-emerald-500">DEEP</span> REASONING LAB
             <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-500 font-black">i</span>
           </h1>
           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">
             System 2 high-intensity cognitive processing for the most complex agency missions.
           </p>
         </div>
-        <div className="bg-amber-500/10 border border-amber-500/20 px-6 py-2.5 rounded-full flex items-center gap-3">
-           <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
-           <span className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">
+        <div className="bg-emerald-500/10 border border-emerald-500/20 px-6 py-2.5 rounded-full flex items-center gap-3">
+           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+           <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">
              THINKING MODE: ACTIVE ({intensity.toLocaleString()} TOKENS)
            </span>
         </div>
@@ -63,7 +63,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
               <div className="space-y-8">
                 <div className="flex justify-between items-end">
                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">THINKING INTENSITY</h3>
-                   <span className="text-sm font-black italic text-amber-500 tracking-tighter">{intensity.toLocaleString()}</span>
+                   <span className="text-sm font-black italic text-emerald-500 tracking-tighter">{intensity.toLocaleString()}</span>
                 </div>
                 <div className="relative pt-2">
                   <input 
@@ -71,7 +71,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
                     min="0" max="32000" step="1000"
                     value={intensity}
                     onChange={(e) => setIntensity(parseInt(e.target.value))}
-                    className="w-full h-1 bg-slate-800 rounded-full appearance-none accent-amber-500 cursor-pointer"
+                    className="w-full h-1 bg-slate-800 rounded-full appearance-none accent-emerald-500 cursor-pointer"
                   />
                   <div className="flex justify-between mt-4 text-[9px] font-black text-slate-600 uppercase tracking-widest">
                      <span>TACTICAL</span>
@@ -86,7 +86,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
                  <textarea 
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  className="w-full bg-[#020617] border border-slate-800 rounded-3xl p-8 text-sm font-medium text-slate-200 focus:outline-none focus:border-amber-500/50 h-56 resize-none shadow-inner placeholder-slate-800 italic leading-relaxed"
+                  className="w-full bg-[#020617] border border-slate-800 rounded-3xl p-8 text-sm font-medium text-slate-200 focus:outline-none focus:border-emerald-500/50 h-56 resize-none shadow-inner placeholder-slate-800 italic leading-relaxed"
                   placeholder="Enter a highly complex strategic query..."
                  />
               </div>
@@ -98,7 +98,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
                 <button 
                   onClick={handleEngage}
                   disabled={isThinking}
-                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-5 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-amber-500/20"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-emerald-600/20"
                 >
                   <span className="text-xl">⚡</span>
                   ENGAGE DEEP THOUGHT
@@ -124,7 +124,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
                  {isThinking ? (
                    <div className="h-full flex flex-col items-center justify-center space-y-8 animate-pulse">
                       <div className="w-20 h-1 bg-slate-100 rounded-full relative overflow-hidden">
-                         <div className="absolute inset-0 bg-amber-500 animate-[loading_1.5s_infinite]"></div>
+                         <div className="absolute inset-0 bg-emerald-500 animate-[loading_1.5s_infinite]"></div>
                       </div>
                       <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.5em]">SYSTEM 2: COGNITIVE CHAINING...</p>
                    </div>

@@ -10,7 +10,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ leads, onSelectLead }) => {
   const metrics = [
     { label: 'Total Scanned', value: leads.length, icon: '🔍', color: 'indigo' },
-    { label: 'High Potential', value: leads.filter(l => l.assetGrade === 'A').length, icon: '💎', color: 'amber' },
+    { label: 'High Potential', value: leads.filter(l => l.assetGrade === 'A').length, icon: '💎', color: 'emerald' },
     { label: 'Avg Lead Score', value: leads.length ? Math.round(leads.reduce((a, b) => a + b.leadScore, 0) / leads.length) : 0, icon: '📈', color: 'emerald' },
     { label: 'Active Missions', value: 4, icon: '⚔️', color: 'rose' },
   ];
@@ -89,7 +89,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ leads, onSelectLead }) => 
               {[
                 { label: 'Reconnaissance', status: 'Active', color: 'indigo' },
                 { label: 'Strategic Drafting', status: 'Standby', color: 'slate' },
-                { label: 'Production Pipeline', status: 'Generating', color: 'amber' },
+                { label: 'Production Pipeline', status: 'Generating', color: 'emerald' },
               ].map((s, i) => (
                 <div key={i} className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
                   <span className="text-xs font-medium text-slate-400">{s.label}</span>

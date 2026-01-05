@@ -47,8 +47,8 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
   return (
     <div className="max-w-[1550px] mx-auto py-12 space-y-12 animate-in fade-in duration-700">
       <div className="text-center space-y-6">
-        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter leading-none">
-          MARKET <span className="text-amber-500 uppercase">REVERSE-ENG</span> HUB
+        <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">
+          MARKET <span className="text-emerald-500 uppercase">REVERSE-ENG</span> HUB
         </h1>
         <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.4em]">
           EXHAUSTIVE MULTI-PARA TECHNICAL SYNTHESIS
@@ -57,7 +57,7 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
 
       <div className="max-w-6xl mx-auto">
          <div className="bg-[#0b1021]/80 border-2 border-slate-800 rounded-[64px] p-6 shadow-2xl relative overflow-hidden flex items-center gap-6">
-            <div className="absolute inset-0 bg-amber-500/[0.02] pointer-events-none"></div>
+            <div className="absolute inset-0 bg-emerald-500/[0.02] pointer-events-none"></div>
             <input 
                value={url}
                onChange={(e) => setUrl(e.target.value)}
@@ -67,7 +67,7 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
             <button 
               onClick={handleDive}
               disabled={isLoading}
-              className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black px-12 py-5 rounded-[44px] text-[12px] font-black uppercase tracking-[0.3em] transition-all active:scale-95 shadow-xl shadow-amber-500/20 whitespace-nowrap"
+              className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-12 py-5 rounded-[44px] text-[12px] font-black uppercase tracking-[0.3em] transition-all active:scale-95 shadow-xl shadow-emerald-600/20 whitespace-nowrap"
             >
                {isLoading ? 'DECONSTRUCTING...' : 'COMMENCE DEEP DIVE'}
             </button>
@@ -90,13 +90,13 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                  {/* DUAL STACKS - Technical Bullets */}
                  <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="space-y-8">
-                       <h3 className="text-[10px] font-black text-amber-500 uppercase tracking-[0.4em] italic mb-6">VISUAL / MOTION STACK</h3>
+                       <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] italic mb-6">VISUAL / MOTION STACK</h3>
                        <ul className="space-y-8">
                           {report.visualStack.map((item, idx) => (
                              <li key={idx} className="space-y-1 group">
                                 <div className="flex items-center gap-4">
-                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
-                                   <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-amber-500 transition-colors">{clean(item.label)}</span>
+                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
+                                   <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{clean(item.label)}</span>
                                 </div>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pl-5 opacity-70 leading-relaxed italic">
                                    {clean(item.description)}
@@ -107,13 +107,13 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                        </ul>
                     </div>
                     <div className="space-y-8">
-                       <h3 className="text-[10px] font-black text-amber-500 uppercase tracking-[0.4em] italic mb-6">SONIC / MUSIC STACK</h3>
+                       <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] italic mb-6">SONIC / MUSIC STACK</h3>
                        <ul className="space-y-8">
                           {report.sonicStack.map((item, idx) => (
                              <li key={idx} className="space-y-1 group">
                                 <div className="flex items-center gap-4">
-                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
-                                   <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-amber-500 transition-colors">{clean(item.label)}</span>
+                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
+                                   <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{clean(item.label)}</span>
                                 </div>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pl-5 opacity-70 leading-relaxed italic">
                                    {clean(item.description)}
@@ -127,10 +127,10 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
 
                  {/* HIGHLIGHT CARDS */}
                  <div className="lg:col-span-5 space-y-10">
-                    <div className="bg-amber-500 p-12 rounded-[48px] shadow-2xl space-y-6 relative overflow-hidden group">
+                    <div className="bg-emerald-600 p-12 rounded-[48px] shadow-2xl space-y-6 relative overflow-hidden group">
                        <div className="absolute top-0 right-0 p-8 opacity-10 text-6xl font-black italic select-none uppercase">GAP</div>
-                       <h3 className="text-[11px] font-black text-black uppercase tracking-[0.4em] italic border-b border-black/20 pb-4">FEATURE GAP ANALYSIS</h3>
-                       <p className="text-black text-lg font-black italic leading-relaxed font-sans uppercase">
+                       <h3 className="text-[11px] font-black text-white uppercase tracking-[0.4em] italic border-b border-white/20 pb-4">FEATURE GAP ANALYSIS</h3>
+                       <p className="text-white text-lg font-black italic leading-relaxed font-sans uppercase">
                           "{clean(report.featureGap)}"
                        </p>
                     </div>
@@ -153,7 +153,7 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
 
               {/* MASSIVE TECHNICAL PROTOCOL SECTION */}
               <div className="bg-white border border-slate-200 rounded-[84px] p-24 shadow-2xl relative overflow-hidden">
-                 <div className="absolute top-0 left-0 w-full h-4 bg-amber-500"></div>
+                 <div className="absolute top-0 left-0 w-full h-4 bg-emerald-500"></div>
                  <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1.2px, transparent 1.2px)', backgroundSize: '40px 40px' }}></div>
                  
                  <div className="flex items-center gap-8 mb-20 border-b border-slate-100 pb-12 relative z-10">
@@ -178,13 +178,13 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                  <div className="mt-24 pt-16 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-16 relative z-10">
                     <div className="space-y-8">
                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.5em] italic flex items-center gap-4">
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                           VERIFIABLE INTELLIGENCE NODES
                        </h4>
                        <div className="grid grid-cols-1 gap-4">
                           {report.sources.map((s, i) => (
-                             <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="p-6 bg-slate-50 border border-slate-100 rounded-[28px] hover:border-amber-500/30 transition-all group flex flex-col gap-1 shadow-sm">
-                                <p className="text-[11px] font-black text-slate-800 uppercase truncate group-hover:text-amber-500 transition-colors">{s.title}</p>
+                             <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="p-6 bg-slate-50 border border-slate-100 rounded-[28px] hover:border-emerald-500/30 transition-all group flex flex-col gap-1 shadow-sm">
+                                <p className="text-[11px] font-black text-slate-800 uppercase truncate group-hover:text-emerald-500 transition-colors">{s.title}</p>
                                 <p className="text-[8px] text-slate-400 truncate italic font-bold tracking-widest">{s.uri}</p>
                              </a>
                           ))}
@@ -210,9 +210,9 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
 
          {isLoading && (
             <div className="min-h-[600px] flex flex-col items-center justify-center space-y-12 py-20 animate-in fade-in duration-1000">
-               <div className="w-24 h-24 border-4 border-slate-900 border-t-amber-500 rounded-full animate-spin shadow-2xl shadow-amber-500/10"></div>
+               <div className="w-24 h-24 border-4 border-slate-900 border-t-emerald-500 rounded-full animate-spin shadow-2xl shadow-emerald-500/10"></div>
                <div className="text-center space-y-5 animate-pulse">
-                  <p className="text-[12px] font-black text-amber-500 uppercase tracking-[0.7em] italic">DECONSTRUCTING MULTI-LAYER STACK...</p>
+                  <p className="text-[12px] font-black text-emerald-500 uppercase tracking-[0.7em] italic">DECONSTRUCTING MULTI-LAYER STACK...</p>
                   <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.4em]">ENGAGING GEMINI 3 PRO COGNITIVE CORE (32K BUDGET)</p>
                </div>
             </div>
