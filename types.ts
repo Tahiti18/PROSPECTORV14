@@ -61,6 +61,7 @@ export interface BrandIdentity {
   voiceTags?: string[];
   mission?: string;
   logoUrl?: string;
+  extractedImages?: string[]; // New field for real extracted site images
 }
 
 export interface Lead {

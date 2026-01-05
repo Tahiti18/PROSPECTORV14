@@ -474,15 +474,23 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImage?: s
   const ai = getAI();
   const model = "gemini-2.5-flash-image";
   
-  let enrichedPrompt = prompt;
+  // High-fidelity prompt engineering to mimic "4072" / 4K request
+  let enrichedPrompt = prompt + " 4k, high resolution, highly detailed, photorealistic, professional photography, cinematic lighting, 8k render, unreal engine 5";
+  
   if (lead?.brandIdentity && !inputImage) {
     const { colors, visualTone, aestheticTags } = lead.brandIdentity;
     enrichedPrompt = `
-      Create a professional image.
+      Create a professional, high-fidelity image.
       Brand Context:
       - Colors: ${colors.join(', ')}
       - Aesthetic: ${aestheticTags?.join(', ')}
       - Tone: ${visualTone}
+      
+      Requirements:
+      - Photorealistic 4K quality
+      - Commercial grade photography
+      - Sharp focus, high detail
+      
       User Prompt: ${prompt}
     `;
   }
@@ -494,7 +502,7 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImage?: s
           if (parts.length > 1) {
             const mimeType = parts[0].split(':')[1].split(';')[0];
             const data = parts[1];
-            contents = { parts: [{ inlineData: { mimeType, data } }, { text: prompt }] };
+            contents = { parts: [{ inlineData: { mimeType, data } }, { text: enrichedPrompt }] };
           } else {
              contents = { parts: [{ text: enrichedPrompt }] };
           }
@@ -546,18 +554,25 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
     You are a world-class Brand Strategist.
     Analyze the website/brand at: ${url} (Business Name: ${lead.businessName}).
     
-    If the website is not accessible, Hallucinate a "Best-in-Class" brand identity that would fit this business perfectly based on its name and niche (${lead.niche}).
+    CRITICAL: Search for and EXTRACT 4-6 REAL image URLs from this website or its associated social media (Instagram, Facebook, LinkedIn). 
+    Look for:
+    1. The main Logo (PNG/SVG/JPG).
+    2. High-quality Hero Images from the homepage.
+    3. Product or Service photography.
+    
+    If real images are protected or cannot be found, provide 4 highly relevant, high-quality public stock image URLs (e.g. from Unsplash/Pexels) that PERFECTLY match the brand's specific aesthetic and niche.
     
     Construct a "Brand DNA" profile with the following exact specifications:
     
-    1. **Colors**: Extract or generate 5 specific Hex color codes representing the brand palette (Primary, Secondary, Accent, Light, Dark).
-    2. **Typography**: Identify a premium font pairing (Header Font + Body Font).
-    3. **Aesthetic**: List 3-5 keywords describing the visual vibe (e.g., "Professional", "Minimalist", "High-Contrast").
-    4. **Voice**: List 3-5 keywords describing the copy tone (e.g., "Confident", "Friendly", "Expert").
+    1. **Colors**: Extract or generate 5 specific Hex color codes representing the brand palette.
+    2. **Typography**: Identify a premium font pairing.
+    3. **Aesthetic**: List 3-5 keywords describing the visual vibe.
+    4. **Voice**: List 3-5 keywords describing the copy tone.
     5. **Values**: List 4 core brand values.
     6. **Tagline**: Write a punchy, memorable 1-sentence tagline.
     7. **Mission**: Write a 2-sentence "Business Overview" or Mission Statement.
-    8. **Archetype**: Define the Brand Archetype (e.g., "The Ruler", "The Creator").
+    8. **Archetype**: Define the Brand Archetype.
+    9. **ExtractedImages**: A list of valid image URLs found or selected.
 
     Return strictly valid JSON:
     {
@@ -569,7 +584,8 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
       "brandValues": ["string", "string", "string", "string"],
       "aestheticTags": ["string", "string", "string"],
       "voiceTags": ["string", "string", "string"],
-      "mission": "string"
+      "mission": "string",
+      "extractedImages": ["url1", "url2", "url3", "url4"]
     }
   `;
   

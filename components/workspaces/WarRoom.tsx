@@ -38,9 +38,13 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
     if (lead) {
       setLocalNotes(lead.notes || '');
       setTargetUrl(lead.websiteUrl || '');
-      setGeneratedImages([]); // Reset on lead change
+      // Initialize with any previously extracted images + generated
+      const extracted = lead.brandIdentity?.extractedImages || [];
+      setGeneratedImages(extracted); 
+    } else {
+        setGeneratedImages(activeEntity.brandIdentity?.extractedImages || []);
     }
-  }, [lead?.id]);
+  }, [lead?.id, activeEntity.brandIdentity]);
 
   const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
@@ -83,6 +87,11 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
     try {
       const brandData = await extractBrandDNA(activeEntity, targetUrl);
       
+      // Auto-populate grid with extracted images immediately
+      if (brandData.extractedImages && brandData.extractedImages.length > 0) {
+          setGeneratedImages(prev => [...brandData.extractedImages!, ...prev]);
+      }
+
       if (lead && onUpdateLead) {
         onUpdateLead(lead.id, { brandIdentity: brandData });
       } else {
@@ -131,7 +140,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        setGeneratedImages(prev => [...prev, ev.target?.result as string]);
+        setGeneratedImages(prev => [ev.target?.result as string, ...prev]);
       };
       reader.readAsDataURL(file);
     }
@@ -341,7 +350,16 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
                           <div className="grid grid-cols-2 gap-3 flex-1 content-start overflow-y-auto custom-scrollbar max-h-[500px] min-h-[300px]">
                              {generatedImages.map((img, i) => (
                                 <div key={i} className="aspect-square rounded-2xl overflow-hidden relative group border border-slate-700/50 shadow-lg">
-                                   <img src={img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Brand Asset" />
+                                   <img 
+                                     src={img} 
+                                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                     alt="Brand Asset" 
+                                     onError={(e) => {
+                                        // Hide image if it fails to load (common with scraped URLs)
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).parentElement!.style.display = 'none';
+                                     }}
+                                   />
                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                       <button className="text-xs">⬇️</button>
                                       <button className="text-xs">🗑️</button>
