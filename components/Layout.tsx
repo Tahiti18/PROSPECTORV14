@@ -122,7 +122,6 @@ const SUB_MODULES: Record<MainMode, { id: SubModule; label: string }[]> = {
     { id: 'CALENDAR', label: 'Calendar' },
     { id: 'PROD_LOG', label: 'Prod Log' },
     { id: 'SETTINGS', label: 'Settings' },
-    { id: 'CIPHER_NODE', label: 'Cipher Node' },
     { id: 'NEXUS_GRAPH', label: 'Nexus Graph' },
     { id: 'CHRONOS', label: 'Chronos' },
     { id: 'TASKS', label: 'Tasks' },

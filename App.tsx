@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MainMode, SubModule, Lead, ComputeStats } from './types';
 import { Layout } from './components/Layout';
@@ -44,7 +45,6 @@ import { ExportNode } from './components/workspaces/ExportNode';
 import { CalendarNode } from './components/workspaces/CalendarNode';
 import { ProdLog } from './components/workspaces/ProdLog';
 import { SettingsNode } from './components/workspaces/SettingsNode';
-import { CipherNode } from './components/workspaces/CipherNode';
 import { NexusGraph } from './components/workspaces/NexusGraph';
 import { ChronosNode } from './components/workspaces/ChronosNode';
 import { TasksNode } from './components/workspaces/TasksNode';
@@ -236,7 +236,6 @@ const App: React.FC = () => {
         case 'CALENDAR': return <CalendarNode leads={leads} />;
         case 'PROD_LOG': return <ProdLog />;
         case 'SETTINGS': return <SettingsNode />;
-        case 'CIPHER_NODE': return <CipherNode />;
         case 'NEXUS_GRAPH': return <NexusGraph leads={leads} />;
         case 'CHRONOS': return <ChronosNode />;
         case 'TASKS': return <TasksNode lead={lockedLead} />;

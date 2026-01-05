@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { MainMode, SubModule } from '../types';
 import { Tooltip } from './Tooltip';
@@ -95,7 +96,7 @@ const ModuleIcon = ({ id, className = "w-5 h-5" }: { id: SubModule; className?: 
       case 'MEDIA_VAULT': return <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />;
       
       // STUDIO
-      case 'VIDEO_PITCH': return <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />; // Camera
+      case 'VIDEO_PITCH': return <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />;
       case 'VIDEO_AI': return <path d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />;
       case 'CINEMA_INTEL': return <path d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />;
       case 'MOTION_LAB': return <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
@@ -126,7 +127,6 @@ const ModuleIcon = ({ id, className = "w-5 h-5" }: { id: SubModule; className?: 
       case 'EXPORT_DATA': return <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />;
       case 'PROD_LOG': return <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />;
       case 'CHRONOS': return <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />;
-      case 'CIPHER_NODE': return <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />;
       case 'NEXUS_GRAPH': return <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />;
       default: return <circle cx="12" cy="12" r="2" />;
     }
@@ -232,7 +232,6 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
         { id: 'EXPORT_DATA', label: 'Export Data' },
         { id: 'PROD_LOG', label: 'Prod Log' },
         { id: 'CHRONOS', label: 'Chronos' },
-        { id: 'CIPHER_NODE', label: 'Cipher Node' },
         { id: 'NEXUS_GRAPH', label: 'Nexus Graph' },
     ]
   }
@@ -257,16 +256,16 @@ const MODE_CONFIG: Record<MainMode, any> = {
 export const LayoutZenith: React.FC<LayoutProps> = ({ 
   children, 
   activeMode, 
-  setActiveMode, 
-  activeModule, 
-  setActiveModule, 
-  onSearchClick, 
-  theater, 
-  setTheater, 
-  theme, 
-  toggleTheme, 
-  currentLayout, 
-  setLayoutMode 
+  setActiveMode,
+  activeModule,
+  setActiveModule,
+  onSearchClick,
+  theater,
+  setTheater,
+  theme,
+  toggleTheme,
+  currentLayout,
+  setLayoutMode
 }) => {
   const [moduleFilter, setModuleFilter] = useState('');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -292,11 +291,10 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
   }, [activeModule]);
 
   return (
-    // FIX: Main container is now h-screen and flex-col to force header separation
     <div className={`h-screen w-full flex flex-col overflow-hidden transition-colors duration-300 ${theme === 'dark' ? 'bg-[#020617] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       
       {/* --- COMMAND CENTER HEADER (Flex Item, Not Fixed) --- */}
-      <header className={`h-20 flex-none border-b z-50 flex items-center justify-between px-8 transition-colors ${theme === 'dark' ? 'bg-[#030712] border-slate-800' : 'bg-white border-slate-200'}`}>
+      <header className={`h-20 flex-none border-b z-[100] flex items-center justify-between px-8 transition-colors ${theme === 'dark' ? 'bg-[#030712] border-slate-800' : 'bg-white border-slate-200'}`}>
          
          {/* LEFT: IDENTITY (Cleaner) */}
          <div className="flex items-center gap-4 w-80 pl-2">

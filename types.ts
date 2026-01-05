@@ -15,8 +15,8 @@ export type SubModule =
   | 'DEMO_SANDBOX' | 'DRAFTING' | 'VOICE_STRAT' | 'LIVE_SCRIBE' | 'AI_CONCIERGE' 
   | 'PITCH_GEN' | 'FUNNEL_MAP'
   | 'PLAYBOOK' | 'BILLING' | 'AFFILIATE' | 'IDENTITY' | 'OS_FORGE' | 'EXPORT_DATA' 
-  | 'CALENDAR' | 'PROD_LOG' | 'SETTINGS' | 'CIPHER_NODE' | 'NEXUS_GRAPH' | 'CHRONOS' 
-  | 'TASKS' | 'THEME' | 'TOKENS';
+  | 'CALENDAR' | 'PROD_LOG' | 'SETTINGS' | 'NEXUS_GRAPH' | 'CHRONOS' 
+  | 'TASKS' | 'THEME' | 'TOKENS' | 'CIPHER_NODE';
 
 export type WorkspaceType = 'dashboard' | 'intelligence' | 'war-room' | 'creative' | 'outreach' | 'identity';
 

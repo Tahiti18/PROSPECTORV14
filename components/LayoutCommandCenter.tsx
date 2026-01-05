@@ -125,7 +125,6 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
         { id: 'EXPORT_DATA', label: 'Export Data' },
         { id: 'PROD_LOG', label: 'Prod Log' },
         { id: 'CHRONOS', label: 'Chronos' },
-        { id: 'CIPHER_NODE', label: 'Cipher Node' },
         { id: 'NEXUS_GRAPH', label: 'Nexus Graph' },
     ]
   }
