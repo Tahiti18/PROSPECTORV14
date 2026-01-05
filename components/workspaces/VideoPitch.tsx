@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Lead } from '../../types';
 import { generateVideoPayload, saveAsset } from '../../services/geminiService';
 
@@ -10,7 +10,9 @@ interface VideoPitchProps {
 export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
   const [prompt, setPrompt] = useState(lead ? `A sleek 4k cinematic intro for a high-end AI agency pitching to ${lead.businessName} in ${lead.city}. Show luxury office aesthetics and rapid data visualization.` : "");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const checkAndOpenKey = async () => {
     // @ts-ignore
@@ -24,13 +26,23 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setSourceImage(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleForge = async () => {
     if (!prompt) return;
     setIsGenerating(true);
     try {
       await checkAndOpenKey();
-      const url = await generateVideoPayload(prompt, lead?.id);
-      setVideoUrl(url);
+      // Pass sourceImage (Data URL) if present
+      const url = await generateVideoPayload(prompt, lead?.id, sourceImage || undefined);
+      if (url) setVideoUrl(url);
     } catch (e) {
       console.error(e);
       alert("Video generation failed.");
@@ -97,14 +109,45 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
         <div className="lg:col-span-4 space-y-8">
-          <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-12 shadow-2xl space-y-10">
+          <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-12 shadow-2xl space-y-8">
+            
+            {/* Image Input Section */}
+            <div className="space-y-4">
+               <div className="flex justify-between items-center">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-1">SOURCE IMAGE (OPTIONAL)</h3>
+                  {sourceImage && (
+                    <button onClick={() => { setSourceImage(null); if(fileInputRef.current) fileInputRef.current.value=''; }} className="text-[9px] text-rose-500 hover:text-white uppercase font-bold">CLEAR</button>
+                  )}
+               </div>
+               
+               <div 
+                 onClick={() => fileInputRef.current?.click()}
+                 className={`w-full rounded-[24px] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative group ${sourceImage ? 'border-emerald-500/50 h-48' : 'border-slate-800 h-24 hover:border-emerald-500/30 hover:bg-slate-900/50'}`}
+               >
+                  {sourceImage ? (
+                    <>
+                      <img src={sourceImage} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" alt="Source" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <span className="text-[9px] font-black text-white uppercase tracking-widest">CHANGE IMAGE</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center space-y-2">
+                       <span className="text-2xl text-slate-600 group-hover:text-emerald-500 transition-colors">📷</span>
+                       <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">UPLOAD REFERENCE</p>
+                    </div>
+                  )}
+                  <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
+               </div>
+            </div>
+
             <div className="space-y-4">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-1">DIRECTOR'S PROMPT</h3>
               <textarea 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                className="w-full bg-[#020617] border border-slate-800 rounded-[32px] p-8 text-sm font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-64 resize-none shadow-xl placeholder-slate-700 italic leading-relaxed"
-                placeholder="Describe the video asset (e.g. 'Cinematic drone shot of...')"
+                className="w-full bg-[#020617] border border-slate-800 rounded-[32px] p-8 text-sm font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-48 resize-none shadow-xl placeholder-slate-700 italic leading-relaxed"
+                placeholder={sourceImage ? "Describe how to animate this image (e.g. 'Make the character smile and look around')..." : "Describe the video asset (e.g. 'Cinematic drone shot of...')"}
               />
             </div>
             
@@ -113,13 +156,13 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
               disabled={isGenerating}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-6 rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-700 disabled:opacity-50"
             >
-              {isGenerating ? 'RENDERING VIDEO...' : 'GENERATE VEO ASSET'}
+              {isGenerating ? 'RENDERING VIDEO...' : (sourceImage ? 'ANIMATE IMAGE' : 'GENERATE VEO ASSET')}
             </button>
           </div>
 
           <div className="bg-slate-900/50 border border-slate-800 rounded-[40px] p-8 space-y-6">
              <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">RAPID PROMPT LIBRARY</h4>
-             <div className="space-y-3 h-64 overflow-y-auto custom-scrollbar pr-2">
+             <div className="space-y-3 h-48 overflow-y-auto custom-scrollbar pr-2">
                 {SUGGESTIONS.map((cat, i) => (
                   <div key={i} className="space-y-2">
                      <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest sticky top-0 bg-slate-900/90 py-1">{cat.category}</p>
@@ -165,7 +208,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
                  </div>
                  <h4 className="text-4xl font-black italic text-slate-700 uppercase tracking-tighter">VEO STANDBY</h4>
                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] max-w-md leading-relaxed">
-                   INPUT A DIRECTIVE TO INITIATE GENERATIVE VIDEO SYNTHESIS.
+                   UPLOAD AN IMAGE OR ENTER A PROMPT TO INITIATE VEO 3 VIDEO SYNTHESIS.
                  </p>
               </div>
             )}
