@@ -52,51 +52,51 @@ export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, 
   ];
 
   return (
-    <div className="space-y-10 py-4 max-w-6xl mx-auto animate-in fade-in duration-700">
+    <div className="space-y-8 py-4 max-w-5xl mx-auto animate-in fade-in duration-700">
       <div className="text-center relative py-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg mb-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg mb-4">
           <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></div>
           <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em]">Neural Core Synchronized</span>
         </div>
         
-        <h1 className="text-4xl font-black uppercase tracking-tight text-white leading-none">
+        <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-none">
           DASHBOARD <span className="text-emerald-600 opacity-70">OVERVIEW</span>
         </h1>
-        <p className="mt-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.6em]">ACTIVE MARKET REGION: <span className="text-emerald-400 italic">{theater}</span></p>
+        <p className="mt-2 text-[9px] font-black text-slate-500 uppercase tracking-[0.6em]">ACTIVE MARKET: <span className="text-emerald-400 italic">{theater}</span></p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {stats.map((node, i) => (
           <Tooltip key={i} content={node.desc} side="bottom">
-            <div className="bg-[#0b1021]/60 border border-slate-800/80 p-5 rounded-2xl flex flex-col items-center group hover:border-emerald-500/40 transition-all cursor-default w-full">
-              <svg className={`w-5 h-5 mb-2.5 text-${node.color}-500 transition-all`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <div className="bg-[#0b1021]/60 border border-slate-800/80 p-4 rounded-xl flex flex-col items-center group hover:border-emerald-500/40 transition-all cursor-default w-full shadow-sm">
+              <svg className={`w-4 h-4 mb-2 text-${node.color}-500 transition-all`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 {node.icon}
               </svg>
-              <span className="text-[8px] font-black text-slate-600 tracking-[0.2em] uppercase mb-1">{node.label}</span>
-              <span className={`text-[10px] font-black text-${node.color}-400 tracking-[0.1em] uppercase`}>{node.status}</span>
+              <span className="text-[8px] font-black text-slate-600 tracking-[0.2em] uppercase mb-0.5">{node.label}</span>
+              <span className={`text-[9px] font-black text-${node.color}-400 tracking-[0.1em] uppercase`}>{node.status}</span>
             </div>
           </Tooltip>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
         {actions.map((action, i) => (
           <Tooltip key={i} content={action.help} side="bottom">
             <div 
               onClick={() => onNavigate(action.mode, action.id as SubModule)}
-              className={`bg-[#0b1021] border border-slate-800/80 p-10 rounded-[48px] relative overflow-hidden group hover:border-${action.theme}-500/40 transition-all cursor-pointer shadow-xl hover:bg-slate-900/40 group flex flex-col items-center text-center w-full`}
+              className={`bg-[#0b1021] border border-slate-800/80 p-6 rounded-[24px] relative overflow-hidden group hover:border-${action.theme}-500/40 transition-all cursor-pointer shadow-lg hover:bg-slate-900/40 group flex flex-col items-center text-center w-full`}
             >
               <div className={`absolute inset-0 bg-${action.theme}-600/5 opacity-0 group-hover:opacity-100 transition-opacity`}></div>
-              <div className={`w-12 h-12 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center text-${action.theme}-500 mb-6 group-hover:scale-110 transition-transform shadow-inner group-hover:border-${action.theme}-500/50`}>
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <div className={`w-10 h-10 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-center text-${action.theme}-500 mb-4 group-hover:scale-110 transition-transform shadow-inner group-hover:border-${action.theme}-500/50`}>
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   {action.icon}
                 </svg>
               </div>
-              <h2 className={`text-xl font-bold uppercase tracking-tight text-white mb-1 group-hover:text-${action.theme}-400 transition-colors`}>{action.title}</h2>
-              <p className="text-[9px] font-black text-slate-600 tracking-[0.4em] uppercase">{action.desc}</p>
+              <h2 className={`text-sm font-bold uppercase tracking-tight text-white mb-1 group-hover:text-${action.theme}-400 transition-colors`}>{action.title}</h2>
+              <p className="text-[8px] font-black text-slate-600 tracking-[0.4em] uppercase">{action.desc}</p>
               
-              <div className="absolute top-8 left-8 w-4 h-4 border-t border-l border-slate-800/50 group-hover:border-emerald-500/30 transition-colors"></div>
-              <div className="absolute bottom-8 right-8 w-4 h-4 border-b border-r border-slate-800/50 group-hover:border-emerald-500/30 transition-colors"></div>
+              <div className="absolute top-4 left-4 w-3 h-3 border-t border-l border-slate-800/50 group-hover:border-emerald-500/30 transition-colors"></div>
+              <div className="absolute bottom-4 right-4 w-3 h-3 border-b border-r border-slate-800/50 group-hover:border-emerald-500/30 transition-colors"></div>
             </div>
           </Tooltip>
         ))}

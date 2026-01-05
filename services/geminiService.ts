@@ -230,19 +230,25 @@ export interface BenchmarkReport {
 }
 
 export const extractBrandDNA = async (lead: Lead): Promise<BrandIdentity> => {
-  pushLog(`EXTRACTING BRAND DNA FOR: ${lead.businessName}`);
+  pushLog(`EXTRACTING HIGH-FIDELITY BRAND DNA FOR: ${lead.businessName}`);
   const ai = getAI();
   const model = "gemini-3-pro-preview";
 
   const prompt = `
-    Analyze the brand identity for: ${lead.businessName} (${lead.websiteUrl}).
-    Use Google Search Grounding to visit their site and analyze their visual aesthetic.
+    Act as a World-Class Creative Director at Pentagram or Collins.
+    Analyze the visual identity for: ${lead.businessName} (${lead.websiteUrl}).
     
-    Extract the following:
-    1. Primary and Secondary Hex Colors (estimate if not explicitly found).
-    2. Font Pairing Style (e.g., "Modern Sans & Serif", "Bold Futurist").
-    3. Brand Archetype (e.g., "The Ruler", "The Creator", "The Sage").
-    4. Visual Tone (e.g., "Minimalist Luxury", "High-Tech Dark Mode").
+    Your goal is to extract a sophisticated, high-design brand profile.
+    DO NOT use generic terms like "Blue" or "Professional".
+    Use specific, evocative design terminology (e.g., "International Klein Blue", "Neo-Grotesque", "Brutalist Luxury").
+
+    Use Google Search Grounding to visit their site and analyze their actual visual aesthetic.
+    
+    Extract:
+    1. Colors: Exact Hex codes and specific artistic names (e.g., "Obsidian", "Electric Lime").
+    2. Font Pairing: Specific font classifications or names (e.g., "Editorial Serif + Mono").
+    3. Archetype: Jungian archetype with a twist (e.g., "The Outlaw Innovator").
+    4. Visual Tone: A evocative 3-word phrase (e.g., "Industrial Chic Minimalism").
 
     Return strictly JSON:
     {
@@ -263,9 +269,9 @@ export const extractBrandDNA = async (lead: Lead): Promise<BrandIdentity> => {
   
   return {
     colors: data.colors || ['#000000', '#FFFFFF'],
-    fontPairing: data.fontPairing || 'Sans-Serif',
-    archetype: data.archetype || 'Professional',
-    visualTone: data.visualTone || 'Corporate'
+    fontPairing: data.fontPairing || 'Modern Sans',
+    archetype: data.archetype || 'The Creator',
+    visualTone: data.visualTone || 'Sophisticated Minimal'
   };
 };
 
