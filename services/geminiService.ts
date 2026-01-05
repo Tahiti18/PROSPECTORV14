@@ -541,8 +541,37 @@ export const orchestrateBusinessPackage = async (lead: Lead, assets: AssetRecord
 export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIdentity> => {
   pushLog(`DNA: EXTRACTING BRAND FROM ${url}...`);
   const ai = getAI();
-  const prompt = `Analyze the brand at ${url} (${lead.businessName}).
-  Return JSON: { colors: string[], fontPairing, archetype, visualTone, tagline, brandValues: [], aestheticTags: [], voiceTags: [] }`;
+  
+  const prompt = `
+    You are a world-class Brand Strategist.
+    Analyze the website/brand at: ${url} (Business Name: ${lead.businessName}).
+    
+    If the website is not accessible, Hallucinate a "Best-in-Class" brand identity that would fit this business perfectly based on its name and niche (${lead.niche}).
+    
+    Construct a "Brand DNA" profile with the following exact specifications:
+    
+    1. **Colors**: Extract or generate 5 specific Hex color codes representing the brand palette (Primary, Secondary, Accent, Light, Dark).
+    2. **Typography**: Identify a premium font pairing (Header Font + Body Font).
+    3. **Aesthetic**: List 3-5 keywords describing the visual vibe (e.g., "Professional", "Minimalist", "High-Contrast").
+    4. **Voice**: List 3-5 keywords describing the copy tone (e.g., "Confident", "Friendly", "Expert").
+    5. **Values**: List 4 core brand values.
+    6. **Tagline**: Write a punchy, memorable 1-sentence tagline.
+    7. **Mission**: Write a 2-sentence "Business Overview" or Mission Statement.
+    8. **Archetype**: Define the Brand Archetype (e.g., "The Ruler", "The Creator").
+
+    Return strictly valid JSON:
+    {
+      "colors": ["#hex", "#hex", "#hex", "#hex", "#hex"],
+      "fontPairing": "HeaderFont / BodyFont",
+      "archetype": "string",
+      "visualTone": "string",
+      "tagline": "string",
+      "brandValues": ["string", "string", "string", "string"],
+      "aestheticTags": ["string", "string", "string"],
+      "voiceTags": ["string", "string", "string"],
+      "mission": "string"
+    }
+  `;
   
   const res = await loggedGenerateContent({
     ai, module: 'IDENTITY', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,

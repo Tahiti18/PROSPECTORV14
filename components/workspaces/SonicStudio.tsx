@@ -34,7 +34,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   return (
     <div className="max-w-4xl mx-auto py-10 space-y-10 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">SONIC <span className="text-indigo-600 not-italic">STUDIO</span></h1>
+        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">AUDIO <span className="text-indigo-600 not-italic">STUDIO</span></h1>
         <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">Generating Voice Payloads for {lead?.businessName || 'Global'}</p>
       </div>
 

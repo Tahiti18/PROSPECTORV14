@@ -125,7 +125,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-4 shrink-0">
         <div>
           <h1 className="text-3xl font-black uppercase tracking-tight leading-none flex items-center gap-3">
-            VEO <span className="text-emerald-500">DIRECTOR</span>
+            VIDEO <span className="text-emerald-500">STUDIO</span>
             <span className="px-2 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400 font-bold tracking-widest border border-slate-700">3.1 SUITE</span>
           </h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">

@@ -43,7 +43,7 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
     ],
     "CRM & Strategy": [
       { id: 'TARGET_LIST', label: 'Lead Database' },
-      { id: 'WAR_ROOM', label: 'Account Strategy' },
+      { id: 'WAR_ROOM', label: 'Strategy Hub' },
       { id: 'PIPELINE', label: 'Sales Pipeline' },
       { id: 'ANALYTICS_HUB', label: 'Market Analytics' },
     ],
@@ -67,13 +67,13 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
     ],
     "Assets": [
       { id: 'PRODUCT_SYNTH', label: 'Product Design' },
-      { id: 'FLASH_SPARK', label: 'Social Velocity' },
+      { id: 'FLASH_SPARK', label: 'Flash Spark' },
       { id: 'MEDIA_VAULT', label: 'Asset Library' },
     ]
   },
   STUDIO: {
     "Video": [
-      { id: 'VIDEO_PITCH', label: 'Video Gen' },
+      { id: 'VIDEO_PITCH', label: 'Video Studio' },
       { id: 'VIDEO_AI', label: 'Video Audit' },
       { id: 'CINEMA_INTEL', label: 'Video Analysis' },
       { id: 'MOTION_LAB', label: 'Motion Design' },
@@ -91,8 +91,8 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
     ],
     "Execution": [
       { id: 'PROPOSALS', label: 'Proposal Builder' },
-      { id: 'SEQUENCER', label: 'Flow Builder' },
-      { id: 'PITCH_GEN', label: 'Pitch Gen' },
+      { id: 'SEQUENCER', label: 'Outreach Builder' },
+      { id: 'PITCH_GEN', label: 'Pitch Generator' },
       { id: 'VOICE_STRAT', label: 'Sales Coach' },
     ],
     "Simulation": [

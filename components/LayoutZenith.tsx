@@ -166,7 +166,7 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
   },
   CREATE: {
     "Creative Studio": [
-      { id: 'VISUAL_STUDIO', label: 'Visual Studio', desc: 'Generate brand imagery' },
+      { id: 'VISUAL_STUDIO', label: 'Creative Studio', desc: 'Generate brand imagery' },
       { id: 'MOCKUPS_4K', label: 'Mockup Forge', desc: 'Create high-res product mockups' },
     ],
     "Assets": [
@@ -177,27 +177,27 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
   },
   STUDIO: {
     "Video": [
-      { id: 'VIDEO_PITCH', label: 'Veo Pitch', desc: 'AI Video Generation' },
+      { id: 'VIDEO_PITCH', label: 'Video Studio', desc: 'AI Video Generation' },
       { id: 'VIDEO_AI', label: 'Video Audit', desc: 'Analyze video content' },
-      { id: 'CINEMA_INTEL', label: 'Cinema Intel', desc: 'Deep video understanding' },
+      { id: 'CINEMA_INTEL', label: 'Video Analysis', desc: 'Deep video understanding' },
       { id: 'MOTION_LAB', label: 'Motion Lab', desc: 'Motion graphics concepts' },
     ],
     "Audio": [
-      { id: 'SONIC_STUDIO', label: 'Sonic Studio', desc: 'AI Voice Generation' },
+      { id: 'SONIC_STUDIO', label: 'Audio Studio', desc: 'AI Voice Generation' },
       { id: 'LIVE_SCRIBE', label: 'Live Scribe', desc: 'Real-time audio transcription' },
     ]
   },
   SELL: {
     "Strategy": [
-      { id: 'BUSINESS_ORCHESTRATOR', label: 'Orchestrator', desc: 'Full campaign strategy' },
+      { id: 'BUSINESS_ORCHESTRATOR', label: 'Campaign Builder', desc: 'Full campaign strategy' },
       { id: 'DECK_ARCH', label: 'Deck Architect', desc: 'Pitch deck builder' },
       { id: 'FUNNEL_MAP', label: 'Funnel Map', desc: 'Sales funnel visualization' },
     ],
     "Execution": [
       { id: 'PROPOSALS', label: 'Proposals', desc: 'Draft sales proposals' },
-      { id: 'SEQUENCER', label: 'Outreach', desc: 'Outreach campaigns' },
+      { id: 'SEQUENCER', label: 'Outreach Builder', desc: 'Outreach campaigns' },
       { id: 'PITCH_GEN', label: 'Pitch Gen', desc: 'Elevator pitch generator' },
-      { id: 'VOICE_STRAT', label: 'Voice Strat', desc: 'Real-time sales coaching' },
+      { id: 'VOICE_STRAT', label: 'Sales Coach', desc: 'Real-time sales coaching' },
     ],
     "Simulation": [
       { id: 'ROI_CALC', label: 'ROI Calc', desc: 'Value projection' },
@@ -216,7 +216,7 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
       { id: 'SETTINGS', label: 'Settings', desc: 'Global configuration' },
       { id: 'OS_FORGE', label: 'OS Forge', desc: 'System prompts' },
       { id: 'THEME', label: 'Theme', desc: 'UI customization' },
-      { id: 'TOKENS', label: 'Tokens', desc: 'Usage stats' },
+      { id: 'TOKENS', label: 'Credits', desc: 'Usage stats' },
     ],
     "Logs": [
         { id: 'EXPORT_DATA', label: 'Export Data', desc: 'Backup and export' },

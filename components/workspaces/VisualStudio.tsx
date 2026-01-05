@@ -82,7 +82,7 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
       <div className="flex justify-between items-start">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold uppercase tracking-tight text-white flex items-center gap-3">
-            VISUAL <span className="text-emerald-500">STUDIO</span>
+            CREATIVE <span className="text-emerald-500">STUDIO</span>
             <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-500 font-black">i</span>
           </h1>
           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">

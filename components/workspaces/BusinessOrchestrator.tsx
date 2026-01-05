@@ -184,7 +184,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
           <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">
-            STRATEGY <span className="text-emerald-500">BUILDER</span>
+            CAMPAIGN <span className="text-emerald-500">BUILDER</span>
           </h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">
             STRATEGIC ASSET COMPILATION & SYNTHESIS
