@@ -54,6 +54,12 @@ export interface BrandIdentity {
   fontPairing: string;
   archetype: string;
   visualTone: string;
+  // New Fields for Pomelli Clone
+  tagline?: string;
+  brandValues?: string[];
+  aestheticTags?: string[];
+  voiceTags?: string[];
+  mission?: string;
   logoUrl?: string;
 }
 

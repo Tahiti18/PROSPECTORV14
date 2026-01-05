@@ -229,33 +229,40 @@ export interface BenchmarkReport {
   entityName?: string; // Used in BenchmarkNode
 }
 
-export const extractBrandDNA = async (lead: Lead): Promise<BrandIdentity> => {
-  pushLog(`EXTRACTING HIGH-FIDELITY BRAND DNA FOR: ${lead.businessName}`);
+export const extractBrandDNA = async (lead: Lead, manualUrl?: string): Promise<BrandIdentity> => {
+  const targetUrl = manualUrl || lead.websiteUrl;
+  pushLog(`EXTRACTING BRAND DNA FOR: ${targetUrl}`);
+  
   const ai = getAI();
   const model = "gemini-3-pro-preview";
 
   const prompt = `
-    Act as a World-Class Creative Director at Pentagram or Collins.
-    Analyze the visual identity for: ${lead.businessName} (${lead.websiteUrl}).
+    Act as a World-Class Creative Director (Pomelli Style).
+    Analyze the visual identity for this business: ${targetUrl}.
     
-    Your goal is to extract a sophisticated, high-design brand profile.
-    DO NOT use generic terms like "Blue" or "Professional".
-    Use specific, evocative design terminology (e.g., "International Klein Blue", "Neo-Grotesque", "Brutalist Luxury").
-
-    Use Google Search Grounding to visit their site and analyze their actual visual aesthetic.
+    You need to create a complete "Business DNA" profile.
+    Use Google Search Grounding to visit their site and analyze their actual visual aesthetic, copy, and positioning.
     
-    Extract:
-    1. Colors: Exact Hex codes and specific artistic names (e.g., "Obsidian", "Electric Lime").
-    2. Font Pairing: Specific font classifications or names (e.g., "Editorial Serif + Mono").
-    3. Archetype: Jungian archetype with a twist (e.g., "The Outlaw Innovator").
-    4. Visual Tone: A evocative 3-word phrase (e.g., "Industrial Chic Minimalism").
+    Extract the following strictly in JSON format:
+    1. colors: An array of 4-5 hex codes representing their primary, secondary, and accent colors.
+    2. fontPairing: A string describing their font style (e.g., "Modern Sans & Serif").
+    3. visualTone: A short phrase describing the vibe (e.g., "Minimalist Luxury", "Playful & Bold").
+    4. aestheticTags: An array of 4-6 specific keywords describing the visual style (e.g., "clean", "destination-focused", "high-contrast", "modern").
+    5. voiceTags: An array of 4-6 adjectives describing their tone of voice (e.g., "Enthusiastic", "Friendly", "Confident", "Exclusive").
+    6. brandValues: An array of 4 short value statements derived from their "About" or mission (e.g., "Expertise and Insider Knowledge", "Customer Experience/Hospitality").
+    7. tagline: Their main headline or a synthesized tagline if none exists (e.g., "Go Beyond The Typical Tourist Experience!").
+    8. archetype: Their brand archetype (e.g. "The Explorer").
 
     Return strictly JSON:
     {
-      "colors": ["#hex", "#hex", "#hex"],
+      "colors": ["#hex", ...],
       "fontPairing": "string",
-      "archetype": "string",
-      "visualTone": "string"
+      "visualTone": "string",
+      "aestheticTags": ["string", ...],
+      "voiceTags": ["string", ...],
+      "brandValues": ["string", ...],
+      "tagline": "string",
+      "archetype": "string"
     }
   `;
 
@@ -268,10 +275,14 @@ export const extractBrandDNA = async (lead: Lead): Promise<BrandIdentity> => {
   const data = extractJSON(text || "{}") || {};
   
   return {
-    colors: data.colors || ['#000000', '#FFFFFF'],
+    colors: data.colors || ['#000000', '#FFFFFF', '#333333'],
     fontPairing: data.fontPairing || 'Modern Sans',
     archetype: data.archetype || 'The Creator',
-    visualTone: data.visualTone || 'Sophisticated Minimal'
+    visualTone: data.visualTone || 'Sophisticated Minimal',
+    tagline: data.tagline || 'Excellence in every detail.',
+    brandValues: data.brandValues || ['Quality', 'Innovation', 'Service'],
+    aestheticTags: data.aestheticTags || ['modern', 'clean', 'professional'],
+    voiceTags: data.voiceTags || ['Confident', 'Professional']
   };
 };
 
@@ -282,13 +293,13 @@ export const generateVisual = async (prompt: string, lead?: Lead): Promise<strin
   
   let enrichedPrompt = prompt;
   if (lead?.brandIdentity) {
-    const { colors, visualTone, archetype } = lead.brandIdentity;
+    const { colors, visualTone, aestheticTags } = lead.brandIdentity;
     enrichedPrompt = `
       Create a professional image for a business.
       Brand Context:
       - Colors: ${colors.join(', ')}
-      - Aesthetic: ${visualTone}
-      - Archetype: ${archetype}
+      - Aesthetic Keywords: ${aestheticTags?.join(', ')}
+      - Tone: ${visualTone}
       
       User Prompt: ${prompt}
       
