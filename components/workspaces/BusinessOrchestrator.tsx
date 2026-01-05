@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Lead, MainMode, SubModule } from '../../types';
 import { SESSION_ASSETS, orchestrateBusinessPackage, saveAsset, AssetRecord } from '../../services/geminiService';
@@ -130,7 +129,18 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   const handleGenerateShortcut = (module: SubModule) => {
     if (!targetLead) return;
     onLockLead(targetLead.id);
-    onNavigate('CREATE', module);
+    
+    // Determine the correct MainMode for the requested module
+    let targetMode: MainMode = 'CREATE';
+    if (['VIDEO_PITCH', 'SONIC_STUDIO', 'MOTION_LAB', 'LIVE_SCRIBE', 'CINEMA_INTEL', 'VIDEO_AI'].includes(module)) {
+        targetMode = 'STUDIO';
+    } else if (['PROPOSALS', 'SEQUENCER', 'ROI_CALC', 'BUSINESS_ORCHESTRATOR', 'AI_CONCIERGE'].includes(module)) {
+        targetMode = 'SELL';
+    } else if (['COMMAND', 'RADAR_RECON', 'AUTO_CRAWL', 'VIRAL_PULSE'].includes(module)) {
+        targetMode = 'OPERATE';
+    }
+    
+    onNavigate(targetMode, module);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,7 +268,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                            ) : (
                              <button 
                                onClick={() => {
-                                 if (type === 'IMAGE') handleGenerateShortcut('MOCKUPS_4K');
+                                 if (type === 'TEXT') handleGenerateShortcut('FLASH_SPARK');
+                                 if (type === 'IMAGE') handleGenerateShortcut('VISUAL_STUDIO');
                                  if (type === 'VIDEO') handleGenerateShortcut('VIDEO_PITCH');
                                  if (type === 'AUDIO') handleGenerateShortcut('SONIC_STUDIO');
                                }}

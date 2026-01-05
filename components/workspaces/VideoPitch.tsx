@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Lead } from '../../types';
 import { generateVideoPayload, enhanceVideoPrompt, VeoConfig, saveAsset } from '../../services/geminiService';
@@ -8,8 +7,13 @@ interface VideoPitchProps {
 }
 
 export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
+  // Enhanced Default Prompt
+  const defaultPrompt = lead 
+    ? `Cinematic 4k commercial establishing shot for a ${lead.niche || 'luxury'} business in ${lead.city}. ${lead.brandIdentity?.visualTone || 'Professional and sleek'} aesthetic, photorealistic, trending on artstation, unreal engine 5 render, dramatic lighting.` 
+    : "A futuristic cyberpunk city with neon lights, 4k, highly detailed.";
+
   // Core State
-  const [prompt, setPrompt] = useState(lead ? `Cinematic establishing shot of a modern office in ${lead.city}, sleek, 4k, trending on artstation.` : "A futuristic cyberpunk city with neon lights, 4k, highly detailed.");
+  const [prompt, setPrompt] = useState(defaultPrompt);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
@@ -29,6 +33,13 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
   // Refs
   const startInputRef = useRef<HTMLInputElement>(null);
   const endInputRef = useRef<HTMLInputElement>(null);
+
+  // Re-sync prompt if lead changes (and prompt hasn't been manually edited heavily)
+  useEffect(() => {
+    if (lead) {
+       setPrompt(`Cinematic 4k commercial establishing shot for a ${lead.niche || 'luxury'} business in ${lead.city}. ${lead.brandIdentity?.visualTone || 'Professional and sleek'} aesthetic, photorealistic, trending on artstation, unreal engine 5 render, dramatic lighting.`);
+    }
+  }, [lead?.id]);
 
   // --- ACTIONS ---
 

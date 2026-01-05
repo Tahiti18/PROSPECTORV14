@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Lead } from '../../types';
-import { generateFlashSparks } from '../../services/geminiService';
+import { generateFlashSparks, saveAsset } from '../../services/geminiService';
 
 interface FlashSparkProps {
   lead?: Lead;
@@ -10,10 +9,12 @@ interface FlashSparkProps {
 export const FlashSpark: React.FC<FlashSparkProps> = ({ lead }) => {
   const [sparks, setSparks] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [savedIndexes, setSavedIndexes] = useState<number[]>([]);
 
   const handleForge = async () => {
     if (!lead) return;
     setIsLoading(true);
+    setSavedIndexes([]); // Reset saved status on new gen
     try {
       const result = await generateFlashSparks(lead);
       setSparks(result);
@@ -22,6 +23,12 @@ export const FlashSpark: React.FC<FlashSparkProps> = ({ lead }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSaveSpark = (spark: string, index: number) => {
+    if (!lead) return;
+    saveAsset('TEXT', `SPARK_${index+1}: ${spark.slice(0, 20)}...`, spark, 'FLASH_SPARK', lead.id);
+    setSavedIndexes(prev => [...prev, index]);
   };
 
   useEffect(() => {
@@ -58,16 +65,22 @@ export const FlashSpark: React.FC<FlashSparkProps> = ({ lead }) => {
             <div key={i} className="h-40 bg-slate-900 border border-slate-800 rounded-3xl animate-pulse"></div>
           ))
         ) : sparks.map((s, i) => (
-          <div key={i} className="bg-[#0b1021] border border-slate-800 p-8 rounded-[32px] hover:border-emerald-500/40 transition-all group relative overflow-hidden">
+          <div key={i} className="bg-[#0b1021] border border-slate-800 p-8 rounded-[32px] hover:border-emerald-500/40 transition-all group relative overflow-hidden flex flex-col">
              <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-600/5 blur-[30px] rounded-full"></div>
-             <div className="flex flex-col h-full justify-between">
+             <div className="flex flex-col h-full justify-between flex-1">
                 <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-4">SPARK_ID: {i+1}</span>
-                <p className="text-slate-200 text-lg font-black italic tracking-tight uppercase leading-snug group-hover:text-white transition-colors">
+                <p className="text-slate-200 text-lg font-black italic tracking-tight uppercase leading-snug group-hover:text-white transition-colors flex-1">
                   "{s}"
                 </p>
                 <div className="mt-6 pt-4 border-t border-slate-800/50 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
                    <button className="text-[8px] font-black text-emerald-400 hover:text-white uppercase tracking-widest">DEPLOY →</button>
-                   <button className="text-[8px] font-black text-slate-600 hover:text-white uppercase tracking-widest">SAVE</button>
+                   <button 
+                     onClick={() => handleSaveSpark(s, i)}
+                     disabled={savedIndexes.includes(i)}
+                     className={`text-[8px] font-black uppercase tracking-widest transition-colors ${savedIndexes.includes(i) ? 'text-emerald-500' : 'text-slate-600 hover:text-white'}`}
+                   >
+                     {savedIndexes.includes(i) ? 'SAVED ✓' : 'SAVE TO VAULT'}
+                   </button>
                 </div>
              </div>
           </div>
