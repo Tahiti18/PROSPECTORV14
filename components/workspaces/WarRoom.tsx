@@ -58,8 +58,8 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
     return (
       <div className="h-96 flex flex-col items-center justify-center text-slate-500 bg-slate-900/50 border border-slate-800 rounded-2xl">
         <span className="text-5xl mb-6">♟️</span>
-        <h3 className="text-xl font-bold text-slate-300">No Target Selected</h3>
-        <p className="text-sm mt-2">Go to Lead Discovery to select a theater for operations.</p>
+        <h3 className="text-xl font-bold text-slate-300">No Lead Selected</h3>
+        <p className="text-sm mt-2">Go to Lead Database to select a prospect.</p>
       </div>
     );
   }
@@ -72,7 +72,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-4xl font-black text-white tracking-tighter">{lead.businessName}</h2>
+            <h2 className="text-4xl font-bold uppercase tracking-tight text-white">{lead.businessName}</h2>
             <Tooltip content="The visual quality score of this lead. 'A' means they look great, 'C' means their photos/videos are outdated (huge opportunity)." side="right">
               <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest cursor-help ${
                 lead.assetGrade === 'A' ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'
@@ -82,8 +82,8 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
             </Tooltip>
           </div>
           <p className="text-slate-400 mt-2 font-medium flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-            {lead.niche} Theater — {lead.city} Command
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            {lead.niche} Market — {lead.city} Region
           </p>
         </div>
         <div className="flex gap-3">
@@ -93,8 +93,8 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
             </button>
           </Tooltip>
           <Tooltip content="Launch the automated outreach system to contact this lead immediately." side="bottom">
-            <button className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-colors shadow-lg shadow-indigo-500/20">
-              Deploy Attack Sequence
+            <button className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors shadow-lg shadow-emerald-500/20">
+              Launch Campaign
             </button>
           </Tooltip>
         </div>
@@ -107,7 +107,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
             <div className="p-6 bg-slate-900/50 border-b border-slate-800 flex items-center gap-2">
               <span className="text-xl">📉</span>
               <Tooltip content="The critical disconnect. It explains the gap between how high-quality their business actually is versus how poorly they are represented online." side="right">
-                <h3 className="font-bold text-white uppercase tracking-widest text-xs cursor-help border-b border-dotted border-slate-600">Vulnerability Analysis (Social Gap)</h3>
+                <h3 className="font-bold text-white uppercase tracking-widest text-xs cursor-help border-b border-dotted border-slate-600">Opportunity Gap</h3>
               </Tooltip>
             </div>
             <div className="p-8">
@@ -118,7 +118,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
                   <p className="text-sm text-slate-200">{lead.visualProof}</p>
                 </div>
                 <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">High-Ticket Angle</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Value Angle</p>
                   <p className="text-sm text-slate-200">{lead.bestAngle}</p>
                 </div>
               </div>
@@ -127,8 +127,8 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
 
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
              <h3 className="font-bold text-white mb-6 uppercase tracking-widest text-xs flex items-center gap-2">
-               <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
-               AI Transformation Opportunities
+               <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+               Transformation Opportunities
              </h3>
              <div className="space-y-4">
                 {[
@@ -137,8 +137,8 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
                   "Digital Twin Virtual Tour",
                   "High-Ticket Retargeting Sequence"
                 ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 bg-slate-950 rounded-xl border border-slate-800 hover:border-indigo-500/50 transition-colors group">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                  <div key={i} className="flex items-center gap-4 p-4 bg-slate-950 rounded-xl border border-slate-800 hover:border-emerald-500/50 transition-colors group">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold group-hover:bg-emerald-600 group-hover:text-white transition-all">
                       {i + 1}
                     </div>
                     <span className="text-slate-200 font-medium">{item}</span>
@@ -150,8 +150,8 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
 
         {/* RIGHT COLUMN: Target Intelligence & CRM */}
         <div className="space-y-8">
-          <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-6">
-            <h3 className="font-bold text-indigo-400 mb-4 uppercase tracking-widest text-xs">Target Intelligence</h3>
+          <div className="bg-emerald-600/10 border border-emerald-500/20 rounded-2xl p-6">
+            <h3 className="font-bold text-emerald-400 mb-4 uppercase tracking-widest text-xs">Target Intelligence</h3>
             <div className="space-y-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Contact Protocol</p>
@@ -162,11 +162,11 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
                 <p className="text-sm text-slate-200">{lead.email || 'Not found'}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Combat Readiness</p>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Readiness Score</p>
                 <Tooltip content="Overall attractiveness score (0-100) based on their budget, need for help, and reachability." side="left">
                   <div className="flex items-center gap-3 cursor-help">
                     <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-500" style={{ width: `${lead.leadScore}%` }}></div>
+                      <div className="h-full bg-emerald-500" style={{ width: `${lead.leadScore}%` }}></div>
                     </div>
                     <span className="text-xs font-black text-white">{lead.leadScore}</span>
                   </div>
@@ -175,9 +175,9 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
 
               {/* Mandatory Grounding Sources Display */}
               {lead.groundingSources && lead.groundingSources.length > 0 && (
-                <div className="pt-4 border-t border-indigo-500/20 mt-4">
+                <div className="pt-4 border-t border-emerald-500/20 mt-4">
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                    <span className="text-indigo-400">📡</span> Intelligence Sources
+                    <span className="text-emerald-400">📡</span> Intelligence Sources
                   </p>
                   <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
                     {lead.groundingSources.map((source, idx) => (
@@ -186,9 +186,9 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
                         href={source.uri} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="block p-2 bg-slate-950/50 rounded border border-slate-800 hover:border-indigo-500/50 transition-colors group"
+                        className="block p-2 bg-slate-950/50 rounded border border-slate-800 hover:border-emerald-500/50 transition-colors group"
                       >
-                        <p className="text-[10px] font-bold text-slate-100 truncate group-hover:text-indigo-400">{source.title || 'Linked Source'}</p>
+                        <p className="text-[10px] font-bold text-slate-100 truncate group-hover:text-emerald-400">{source.title || 'Linked Source'}</p>
                         <p className="text-[8px] text-slate-500 truncate">{source.uri}</p>
                       </a>
                     ))}
@@ -206,11 +206,11 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
              
              {/* Status Switcher */}
              <div className="space-y-2 mb-6">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mission Status</p>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lead Status</p>
                 <select 
                   value={currentStatus} 
                   onChange={(e) => handleStatusChange(e.target.value as OutreachStatus)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-indigo-500 focus:outline-none uppercase"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-white focus:border-emerald-500 focus:outline-none uppercase"
                 >
                    {STATUS_OPTIONS.map(s => (
                      <option key={s} value={s}>{s.replace('_', ' ')}</option>
@@ -220,7 +220,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
 
              {/* Tags */}
              <div className="space-y-2 mb-6">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tactical Tags</p>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tags</p>
                 <div className="flex flex-wrap gap-2 mb-2">
                    {lead.tags?.map((t, i) => (
                      <span key={i} className="inline-flex items-center gap-1 bg-slate-800 text-slate-300 text-[10px] font-bold px-2 py-1 rounded border border-slate-700">
@@ -235,7 +235,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
                      onChange={(e) => setLocalTag(e.target.value)}
                      onKeyDown={(e) => e.key === 'Enter' && addTag()}
                      placeholder="Add tag..."
-                     className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                     className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-emerald-500 focus:outline-none"
                    />
                    <button onClick={addTag} className="bg-slate-800 text-white px-3 rounded-lg hover:bg-slate-700 text-xs">+</button>
                 </div>
@@ -247,7 +247,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
                 <textarea 
                   value={localNotes}
                   onChange={handleNotesChange}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-300 focus:border-indigo-500 focus:outline-none resize-none h-32"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-300 focus:border-emerald-500 focus:outline-none resize-none h-32"
                   placeholder="Record tactical observations..."
                 />
              </div>

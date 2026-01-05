@@ -67,7 +67,7 @@ const ModeIcon = ({ id, active }: { id: MainMode, active: boolean }) => {
 const ModuleIcon = ({ id, className = "w-5 h-5" }: { id: SubModule; className?: string }) => {
   const getPath = () => {
     switch (id) {
-      // OPERATE
+      // OPERATE (Operations)
       case 'COMMAND': return <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />;
       case 'WORKSPACE': return <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />;
       case 'TARGET_LIST': return <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />;
@@ -83,19 +83,20 @@ const ModuleIcon = ({ id, className = "w-5 h-5" }: { id: SubModule; className?: 
       case 'WAR_ROOM': return <path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
       case 'PIPELINE': return <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />;
       case 'ANALYTICS': return <path d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />;
-      case 'ANALYTICS_HUB': return <path d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />;
+      // Distinct icon for Analytics Hub (Market Analytics)
+      case 'ANALYTICS_HUB': return <path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />;
       case 'PROMPT_AI': return <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />;
       case 'MODEL_TEST': return <path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.641.32a2 2 0 01-1.76 0l-.641-.32a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547V18a2 2 0 002 2h12a2 2 0 002-2v-2.572zM12 11V3.5l3 3m-3-3l-3 3" />;
       case 'TRANSLATOR': return <path d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />;
       
-      // CREATE
+      // CREATE (Creative)
       case 'VISUAL_STUDIO': return <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />;
       case 'MOCKUPS_4K': return <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />;
       case 'PRODUCT_SYNTH': return <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />;
       case 'FLASH_SPARK': return <path d="M13 10V3L4 14h7v7l9-11h-7z" />;
       case 'MEDIA_VAULT': return <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />;
       
-      // STUDIO
+      // STUDIO (Media)
       case 'VIDEO_PITCH': return <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />;
       case 'VIDEO_AI': return <path d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />;
       case 'CINEMA_INTEL': return <path d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />;
@@ -103,7 +104,7 @@ const ModuleIcon = ({ id, className = "w-5 h-5" }: { id: SubModule; className?: 
       case 'SONIC_STUDIO': return <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />;
       case 'LIVE_SCRIBE': return <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />;
       
-      // SELL
+      // SELL (Sales)
       case 'BUSINESS_ORCHESTRATOR': return <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />;
       case 'DECK_ARCH': return <path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />;
       case 'FUNNEL_MAP': return <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />;
@@ -115,7 +116,7 @@ const ModuleIcon = ({ id, className = "w-5 h-5" }: { id: SubModule; className?: 
       case 'DEMO_SANDBOX': return <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
       case 'AI_CONCIERGE': return <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />;
       
-      // CONTROL
+      // CONTROL (Admin)
       case 'PLAYBOOK': return <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />;
       case 'BILLING': return <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />;
       case 'AFFILIATE': return <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />;
@@ -127,6 +128,7 @@ const ModuleIcon = ({ id, className = "w-5 h-5" }: { id: SubModule; className?: 
       case 'EXPORT_DATA': return <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />;
       case 'PROD_LOG': return <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />;
       case 'CHRONOS': return <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />;
+      case 'CIPHER_NODE': return <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />;
       case 'NEXUS_GRAPH': return <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />;
       default: return <circle cx="12" cy="12" r="2" />;
     }
@@ -139,110 +141,111 @@ const ModuleIcon = ({ id, className = "w-5 h-5" }: { id: SubModule; className?: 
   );
 };
 
-// --- GROUPING LOGIC ---
-const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: string }[]>> = {
+// --- GROUPING LOGIC WITH TOOLTIPS ---
+const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: string; desc: string }[]>> = {
   OPERATE: {
-    "Core Command": [
-      { id: 'COMMAND', label: 'Mission Control' },
-      { id: 'WORKSPACE', label: 'Gemini Workspace' },
-      { id: 'TARGET_LIST', label: 'Target Ledger' },
+    "Operations": [
+      { id: 'COMMAND', label: 'Dashboard', desc: 'Central overview of all lead activities and system status.' },
+      { id: 'WORKSPACE', label: 'Gemini Workspace', desc: 'General purpose AI interaction environment.' },
+      { id: 'TARGET_LIST', label: 'Lead Database', desc: 'Manage and filter your list of identified prospects.' },
     ],
-    "Reconnaissance": [
-      { id: 'RADAR_RECON', label: 'Radar Recon' },
-      { id: 'AUTO_CRAWL', label: 'Auto Crawl' },
-      { id: 'VIRAL_PULSE', label: 'Viral Pulse' },
-      { id: 'HEATMAP', label: 'Theater Heatmap' },
+    "Discovery": [
+      { id: 'RADAR_RECON', label: 'Lead Discovery', desc: 'Find new businesses in specific regions.' },
+      { id: 'AUTO_CRAWL', label: 'Auto-Search', desc: 'Automated background searching for leads.' },
+      { id: 'VIRAL_PULSE', label: 'Trend Monitor', desc: 'Track real-time market trends and news.' },
+      { id: 'HEATMAP', label: 'Market Heatmap', desc: 'Visual density map of opportunities.' },
     ],
-    "Intelligence": [
-      { id: 'DEEP_LOGIC', label: 'Deep Logic' },
-      { id: 'BENCHMARK', label: 'Reverse Engineer' },
-      { id: 'VISION_LAB', label: 'Vision Lab' },
-      { id: 'ARTICLE_INTEL', label: 'Article Intel' },
-      { id: 'FACT_CHECK', label: 'Fact Checker' },
+    "Analysis": [
+      { id: 'DEEP_LOGIC', label: 'Deep Analysis', desc: 'Complex reasoning on specific accounts.' },
+      { id: 'BENCHMARK', label: 'Reverse Engineer', desc: 'Analyze competitor structures.' },
+      { id: 'VISION_LAB', label: 'Vision Analysis', desc: 'Extract data from images and screenshots.' },
+      { id: 'ARTICLE_INTEL', label: 'Content Analysis', desc: 'Summarize and analyze text content.' },
+      { id: 'FACT_CHECK', label: 'Fact Verification', desc: 'Verify claims against trusted sources.' },
     ],
-    "War Room": [
-        { id: 'WAR_ROOM', label: 'Active War Room' },
-        { id: 'PIPELINE', label: 'Pipeline View' },
-        { id: 'ANALYTICS', label: 'Analytics Core' },
-        { id: 'ANALYTICS_HUB', label: 'Dominance Hub' },
+    "Strategy": [
+        { id: 'WAR_ROOM', label: 'Client Strategy', desc: 'Deep dive strategy for specific clients.' },
+        { id: 'PIPELINE', label: 'Sales Pipeline', desc: 'Kanban view of deal stages.' },
+        { id: 'ANALYTICS', label: 'Core Analytics', desc: 'General system performance metrics.' },
+        { id: 'ANALYTICS_HUB', label: 'Market Analytics', desc: 'Deep market share and dominance metrics.' },
     ],
     "Utilities": [
-        { id: 'PROMPT_AI', label: 'Prompt Interface' },
-        { id: 'MODEL_TEST', label: 'Model Bench' },
-        { id: 'TRANSLATOR', label: 'Translator' }
+        { id: 'PROMPT_AI', label: 'Prompt Interface', desc: 'Direct raw interface to the AI models.' },
+        { id: 'MODEL_TEST', label: 'Model Bench', desc: 'Test different model capabilities.' },
+        { id: 'TRANSLATOR', label: 'Localization', desc: 'Translate content for international markets.' }
     ]
   },
   CREATE: {
-    "Visual Forge": [
-      { id: 'VISUAL_STUDIO', label: 'Visual Studio' },
-      { id: 'MOCKUPS_4K', label: '4K Mockups' },
+    "Creative Studio": [
+      { id: 'VISUAL_STUDIO', label: 'Creative Studio', desc: 'Generate high-quality visual assets.' },
+      { id: 'MOCKUPS_4K', label: 'Mockup Generator', desc: 'Create photorealistic product mockups.' },
     ],
-    "Content Synth": [
-      { id: 'PRODUCT_SYNTH', label: 'Product Synth' },
-      { id: 'FLASH_SPARK', label: 'Flash Spark' },
+    "Content": [
+      { id: 'PRODUCT_SYNTH', label: 'Product Design', desc: 'Architect new service offerings.' },
+      { id: 'FLASH_SPARK', label: 'Content Sparks', desc: 'Generate rapid social media hooks.' },
     ],
     "Storage": [
-      { id: 'MEDIA_VAULT', label: 'Media Vault' },
+      { id: 'MEDIA_VAULT', label: 'Asset Library', desc: 'Storage for all generated media.' },
     ]
   },
   STUDIO: {
-    "Video Production": [
-      { id: 'CINEMA_INTEL', label: 'Cinema Intel' },
-      { id: 'VIDEO_PITCH', label: 'Veo Pitch' },
-      { id: 'VIDEO_AI', label: 'Video Audit' },
-      { id: 'MOTION_LAB', label: 'Motion Lab' },
+    "Media Production": [
+      { id: 'CINEMA_INTEL', label: 'Video Analysis', desc: 'Deep understanding of video sources.' },
+      { id: 'VIDEO_PITCH', label: 'Video Gen', desc: 'Create AI-generated video pitches.' },
+      { id: 'VIDEO_AI', label: 'Video Audit', desc: 'Analyze existing video content.' },
+      { id: 'MOTION_LAB', label: 'Motion Design', desc: 'Create animated storyboards.' },
     ],
     "Audio": [
-      { id: 'SONIC_STUDIO', label: 'Sonic Studio' },
-      { id: 'LIVE_SCRIBE', label: 'Live Scribe' },
+      { id: 'SONIC_STUDIO', label: 'Audio Studio', desc: 'Generate voiceovers and audio clips.' },
+      { id: 'LIVE_SCRIBE', label: 'Live Transcribe', desc: 'Real-time audio transcription.' },
     ]
   },
   SELL: {
     "Strategy": [
-      { id: 'BUSINESS_ORCHESTRATOR', label: 'Orchestrator' },
-      { id: 'DECK_ARCH', label: 'Deck Architect' },
-      { id: 'FUNNEL_MAP', label: 'Funnel Map' },
+      { id: 'BUSINESS_ORCHESTRATOR', label: 'Strategy Builder', desc: 'Build comprehensive client strategies.' },
+      { id: 'DECK_ARCH', label: 'Deck Architect', desc: 'Structure sales presentations.' },
+      { id: 'FUNNEL_MAP', label: 'Funnel Architect', desc: 'Map out conversion funnels.' },
     ],
     "Execution": [
-      { id: 'PROPOSALS', label: 'Proposals' },
-      { id: 'SEQUENCER', label: 'Sequencer' },
-      { id: 'PITCH_GEN', label: 'Pitch Generator' },
-      { id: 'VOICE_STRAT', label: 'Voice Strat' },
+      { id: 'PROPOSALS', label: 'Proposal Builder', desc: 'Draft professional proposals.' },
+      { id: 'SEQUENCER', label: 'Campaign Builder', desc: 'Design multi-step outreach sequences.' },
+      { id: 'PITCH_GEN', label: 'Pitch Generator', desc: 'Write elevator pitches.' },
+      { id: 'VOICE_STRAT', label: 'Sales Coach', desc: 'Real-time sales objection handling.' },
     ],
     "Simulation": [
-      { id: 'ROI_CALC', label: 'ROI Calculator' },
-      { id: 'DEMO_SANDBOX', label: 'Demo Sandbox' },
-      { id: 'AI_CONCIERGE', label: 'AI Concierge' },
+      { id: 'ROI_CALC', label: 'ROI Calculator', desc: 'Project returns for clients.' },
+      { id: 'DEMO_SANDBOX', label: 'Growth Simulator', desc: 'Simulate growth scenarios.' },
+      { id: 'AI_CONCIERGE', label: 'AI Agent', desc: 'Simulate chat interactions.' },
     ]
   },
   CONTROL: {
-    "Agency Ops": [
-      { id: 'PLAYBOOK', label: 'Playbook' },
-      { id: 'IDENTITY', label: 'Identity' },
-      { id: 'BILLING', label: 'Billing' },
-      { id: 'AFFILIATE', label: 'Affiliate' },
+    "Admin": [
+      { id: 'PLAYBOOK', label: 'Playbook', desc: 'Agency standard operating procedures.' },
+      { id: 'IDENTITY', label: 'Agency Identity', desc: 'Configure your agency branding.' },
+      { id: 'BILLING', label: 'Billing', desc: 'Track usage and costs.' },
+      { id: 'AFFILIATE', label: 'Affiliate Program', desc: 'Manage partner programs.' },
     ],
     "System": [
-      { id: 'SETTINGS', label: 'Settings' },
-      { id: 'OS_FORGE', label: 'OS Forge' },
-      { id: 'THEME', label: 'Theme Engine' },
-      { id: 'TOKENS', label: 'Token Vault' },
+      { id: 'SETTINGS', label: 'Settings', desc: 'General preferences.' },
+      { id: 'OS_FORGE', label: 'System Config', desc: 'Core system parameters.' },
+      { id: 'THEME', label: 'Theme', desc: 'UI appearance settings.' },
+      { id: 'TOKENS', label: 'Credits', desc: 'Manage AI token usage.' },
     ],
     "Data": [
-        { id: 'EXPORT_DATA', label: 'Export Data' },
-        { id: 'PROD_LOG', label: 'Prod Log' },
-        { id: 'CHRONOS', label: 'Chronos' },
-        { id: 'NEXUS_GRAPH', label: 'Nexus Graph' },
+        { id: 'EXPORT_DATA', label: 'Data Export', desc: 'Download your data.' },
+        { id: 'PROD_LOG', label: 'System Logs', desc: 'View technical operation logs.' },
+        { id: 'CHRONOS', label: 'Timeline', desc: 'Historical event tracking.' },
+        { id: 'CIPHER_NODE', label: 'Security', desc: 'Security settings.' },
+        { id: 'NEXUS_GRAPH', label: 'Entity Graph', desc: 'Visual relationship mapping.' },
     ]
   }
 };
 
 const MODE_COLORS: Record<MainMode, string> = {
-  OPERATE: 'text-indigo-500',
-  CREATE: 'text-violet-500',
-  STUDIO: 'text-amber-500',
+  OPERATE: 'text-emerald-500',
+  CREATE: 'text-emerald-500',
+  STUDIO: 'text-emerald-500',
   SELL: 'text-emerald-500',
-  CONTROL: 'text-cyan-500',
+  CONTROL: 'text-emerald-500',
 };
 
 const MODE_CONFIG: Record<MainMode, any> = {
@@ -299,7 +302,7 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
          {/* LEFT: IDENTITY (Cleaner) */}
          <div className="flex items-center gap-4 w-80 pl-2">
             <h1 className={`text-xl font-black tracking-tight leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-               PROSPECTOR <span className="text-indigo-500 italic">OS</span>
+               PROSPECTOR <span className="text-emerald-500 italic">OS</span>
             </h1>
          </div>
 
@@ -314,7 +317,7 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                         onClick={() => handleModeClick(mode)}
                         className={`flex items-center gap-3 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest transition-all group ${
                            isActive 
-                              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25' 
+                              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25' 
                               : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
                         }`}
                      >
@@ -346,12 +349,12 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
 
             {/* Location Selector (Refined Pill) */}
             <div className="relative group">
-                <div className={`flex items-center gap-3 pl-4 pr-6 h-12 rounded-full border cursor-pointer transition-all shadow-lg hover:shadow-indigo-500/10 ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200'}`}>
-                   <div className="w-6 h-6 rounded-full bg-indigo-500/10 flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <div className={`flex items-center gap-3 pl-4 pr-6 h-12 rounded-full border cursor-pointer transition-all shadow-lg hover:shadow-emerald-500/10 ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 hover:border-emerald-500/50' : 'bg-white border-slate-200'}`}>
+                   <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                      <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                    </div>
                    <div className="flex flex-col relative">
-                       <span className="text-[8px] font-black text-indigo-400/80 uppercase tracking-widest leading-none mb-0.5">THEATER</span>
+                       <span className="text-[8px] font-black text-emerald-400/80 uppercase tracking-widest leading-none mb-0.5">MARKET</span>
                        <select 
                           value={theater} 
                           onChange={(e) => setTheater(e.target.value)}
@@ -398,7 +401,7 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
             {/* Modules List */}
             <div className="flex-1 overflow-y-auto custom-scrollbar py-6 space-y-6">
                {Object.entries(groups).map(([groupName, modules]) => {
-                  const filtered = (modules as { id: SubModule; label: string }[]).filter(m => m.label.toLowerCase().includes(moduleFilter.toLowerCase()));
+                  const filtered = (modules as { id: SubModule; label: string; desc: string }[]).filter(m => m.label.toLowerCase().includes(moduleFilter.toLowerCase()));
                   if (filtered.length === 0) return null;
 
                   return (
@@ -438,18 +441,14 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                                  </button>
                               );
 
-                              // Only wrap in Tooltip if collapsed
-                              if (!isSidebarExpanded) {
-                                return (
-                                  <div key={mod.id} className="w-full flex justify-center">
-                                    <Tooltip content={mod.label} side="right">
-                                      {buttonContent}
-                                    </Tooltip>
-                                  </div>
-                                );
-                              }
-
-                              return buttonContent;
+                              // Wrap in Tooltip
+                              return (
+                                <div key={mod.id} className="w-full flex justify-center">
+                                  <Tooltip content={mod.desc} side="right">
+                                    {buttonContent}
+                                  </Tooltip>
+                                </div>
+                              );
                            })}
                         </div>
                      </div>

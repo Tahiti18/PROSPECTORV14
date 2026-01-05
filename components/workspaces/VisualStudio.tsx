@@ -32,8 +32,8 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
     <div className="max-w-[1550px] mx-auto py-6 space-y-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase leading-none">
-            VISUAL <span className="text-indigo-600 not-italic">STUDIO</span>
+          <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">
+            CREATIVE <span className="text-emerald-600">STUDIO</span>
           </h1>
           <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.5em] mt-4 italic">Gemini 2.5 Flash Image Core</p>
         </div>
@@ -47,7 +47,7 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
               <textarea 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                className="w-full bg-[#020617] border border-slate-800 rounded-[32px] p-8 text-sm font-bold text-slate-300 focus:outline-none focus:border-indigo-500 h-64 resize-none shadow-xl placeholder-slate-700 italic"
+                className="w-full bg-[#020617] border border-slate-800 rounded-[32px] p-8 text-sm font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-64 resize-none shadow-xl placeholder-slate-700 italic"
                 placeholder="Describe the visual asset..."
               />
             </div>
@@ -55,7 +55,7 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
             <button 
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-6 rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border-b-4 border-indigo-700"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-6 rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-700"
             >
               {isGenerating ? 'RENDERING...' : 'GENERATE ASSET'}
             </button>
@@ -74,8 +74,8 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
             )}
             {isGenerating && (
                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center space-y-6">
-                  <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-                  <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] animate-pulse">DIFFUSION MATRIX ACTIVE...</p>
+                  <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em] animate-pulse">DIFFUSION MATRIX ACTIVE...</p>
                </div>
             )}
           </div>

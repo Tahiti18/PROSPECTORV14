@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { generateLeads } from '../../services/geminiService';
@@ -59,13 +60,13 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h2 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.5em] mb-4">Area Scan Initiation</h2>
-        <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">RADAR <span className="text-indigo-600 not-italic">RECON</span></h1>
-        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3">Active Theater: {theater}</p>
+        <h2 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.5em] mb-4">Market Scan Initiation</h2>
+        <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">LEAD <span className="text-emerald-600">DISCOVERY</span></h1>
+        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3">Active Market: {theater}</p>
       </div>
 
       <div className="bg-[#0b1021]/80 border border-slate-800 rounded-[32px] p-10 space-y-8 relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/5 blur-[100px] rounded-full -mr-32 -mt-32"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-600/5 blur-[100px] rounded-full -mr-32 -mt-32"></div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
           <div className="space-y-3">
@@ -73,7 +74,7 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
             <input 
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
-              className="w-full bg-[#020617] border border-slate-800 rounded-xl px-5 py-4 text-sm font-bold text-white focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
+              className="w-full bg-[#020617] border border-slate-800 rounded-xl px-5 py-4 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
               placeholder="e.g. Luxury Real Estate..."
             />
           </div>
@@ -86,7 +87,7 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
                   onClick={() => setLeadCount(count)}
                   className={`flex-1 py-4 rounded-xl text-[10px] font-black border transition-all ${
                     leadCount === count 
-                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' 
+                      ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' 
                       : 'bg-[#020617] border-slate-800 text-slate-500 hover:border-slate-600'
                   }`}
                 >
@@ -99,10 +100,10 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
 
         <button 
           onClick={handleScan}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 py-6 rounded-2xl text-[12px] font-black uppercase tracking-[0.3em] text-white transition-all shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-3 border border-indigo-400/20"
+          className="w-full bg-emerald-600 hover:bg-emerald-500 py-6 rounded-2xl text-[12px] font-black uppercase tracking-[0.3em] text-white transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-3 border border-emerald-400/20"
         >
           <span className="text-xl">📡</span>
-          INITIATE AREA SWEEP
+          INITIATE MARKET SWEEP
         </button>
       </div>
     </div>

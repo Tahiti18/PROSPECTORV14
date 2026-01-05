@@ -9,9 +9,9 @@ interface PipelineProps {
 
 // Updated stages to map new canonical statuses
 const STAGES: { id: string; label: string; statuses: OutreachStatus[] }[] = [
-  { id: 'recon', label: 'THEATER RECON', statuses: ['cold'] },
+  { id: 'recon', label: 'MARKET RECON', statuses: ['cold'] },
   { id: 'staging', label: 'INTEL STAGING', statuses: ['queued'] },
-  { id: 'active', label: 'ACTIVE COMBAT', statuses: ['sent', 'opened'] },
+  { id: 'active', label: 'ACTIVE CAMPAIGN', statuses: ['sent', 'opened'] },
   { id: 'dialogue', label: 'NEGOTIATION', statuses: ['replied', 'booked'] },
   { id: 'closed', label: 'CLOSED / TERMINATED', statuses: ['won', 'lost', 'paused'] }
 ];
@@ -21,9 +21,9 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
     <div className="space-y-12 py-6 animate-in fade-in duration-700 max-w-[1600px] mx-auto">
       <div className="flex justify-between items-end">
         <div className="space-y-2">
-          <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter leading-none">MISSION <span className="text-indigo-600 not-italic">PIPELINE</span></h1>
+          <h1 className="text-5xl font-bold uppercase tracking-tight text-white leading-none">SALES <span className="text-emerald-600">PIPELINE</span></h1>
           <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.3em] flex items-center gap-3">
-            ECONOMIC LENS: PHASE URGENCY VISUALIZATION (DRAG TO PRIORITIZE)
+            DEAL STAGE VISUALIZATION
             <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-500 font-black">i</span>
           </p>
         </div>
@@ -48,9 +48,9 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
             <div key={stage.id} className="space-y-8">
               <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-6 flex items-center justify-between shadow-xl">
                  <div className="flex items-center gap-4">
-                    <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">{stage.label}</h3>
+                    <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">{stage.label}</h3>
                  </div>
-                 <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                 <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-600/20">
                     <span className="text-white font-black italic text-xs">{stageLeads.length}</span>
                  </div>
               </div>
@@ -61,11 +61,11 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
                   return (
                     <div 
                       key={lead.id} 
-                      className={`bg-slate-900 border border-slate-800 rounded-[24px] p-6 space-y-4 relative overflow-hidden transition-all hover:scale-[1.02] cursor-pointer shadow-lg group hover:border-indigo-500/40`}
+                      className={`bg-slate-900 border border-slate-800 rounded-[24px] p-6 space-y-4 relative overflow-hidden transition-all hover:scale-[1.02] cursor-pointer shadow-lg group hover:border-emerald-500/40`}
                     >
                       <div className="flex justify-between items-start">
                          <span className={`px-2 py-0.5 rounded text-[8px] font-black border tracking-widest uppercase ${
-                           lead.assetGrade === 'A' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                           lead.assetGrade === 'A' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'
                          }`}>
                            {lead.assetGrade}
                          </span>
@@ -73,7 +73,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
                       </div>
 
                       <div className="space-y-1">
-                         <h4 className="text-sm font-black text-white italic tracking-tighter uppercase leading-tight group-hover:text-indigo-400 transition-colors truncate">{lead.businessName}</h4>
+                         <h4 className="text-sm font-black text-white uppercase tracking-tight leading-tight group-hover:text-emerald-400 transition-colors truncate">{lead.businessName}</h4>
                          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic truncate">{lead.city}</p>
                       </div>
 
@@ -82,7 +82,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
                             <div className={`w-1.5 h-1.5 rounded-full ${displayStatus === 'cold' ? 'bg-slate-500' : 'bg-emerald-500 animate-pulse'}`}></div>
                             <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{displayStatus}</span>
                          </div>
-                         <span className="text-xs font-black italic text-indigo-400 tracking-tighter">{lead.leadScore}</span>
+                         <span className="text-xs font-black italic text-emerald-400 tracking-tighter">{lead.leadScore}</span>
                       </div>
                     </div>
                   );

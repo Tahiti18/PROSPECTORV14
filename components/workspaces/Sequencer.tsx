@@ -30,7 +30,7 @@ export const Sequencer: React.FC<SequencerProps> = ({ lead }) => {
   if (!lead) {
     return (
       <div className="h-96 flex flex-col items-center justify-center text-slate-500 bg-slate-900/30 border border-slate-800 rounded-[48px] border-dashed">
-        <p className="text-[10px] font-black uppercase tracking-[0.5em]">Locked Target Required for Sequence Generation</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.5em]">Locked Lead Required for Campaign Builder</p>
       </div>
     );
   }
@@ -39,7 +39,7 @@ export const Sequencer: React.FC<SequencerProps> = ({ lead }) => {
     <div className="max-w-5xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">ATTACK <span className="text-indigo-600 not-italic">SEQUENCE</span></h1>
+          <h1 className="text-4xl font-bold uppercase tracking-tight text-white">CAMPAIGN <span className="text-emerald-600">BUILDER</span></h1>
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Multi-Channel Deployment for {lead.businessName}</p>
         </div>
       </div>
@@ -47,27 +47,27 @@ export const Sequencer: React.FC<SequencerProps> = ({ lead }) => {
       <div className="space-y-6">
         {isLoading ? (
           <div className="h-96 bg-[#0b1021] border border-slate-800 rounded-[48px] flex flex-col items-center justify-center space-y-6">
-             <div className="w-1.5 h-16 bg-indigo-500/20 rounded-full relative overflow-hidden">
-                <div className="absolute inset-0 bg-indigo-500 animate-[progress_2s_infinite]"></div>
+             <div className="w-1.5 h-16 bg-emerald-500/20 rounded-full relative overflow-hidden">
+                <div className="absolute inset-0 bg-emerald-500 animate-[progress_2s_infinite]"></div>
              </div>
-             <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] animate-pulse">Architecting 5-Day Combat Flow...</p>
+             <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] animate-pulse">Architecting 5-Day Campaign Flow...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">
              {sequence.map((step, i) => (
-               <div key={i} className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 flex flex-col md:flex-row gap-8 hover:border-indigo-500/40 transition-all group">
+               <div key={i} className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 flex flex-col md:flex-row gap-8 hover:border-emerald-500/40 transition-all group">
                   <div className="md:w-32 flex flex-col items-center justify-center border-r border-slate-800/50 pr-8">
                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">DAY</span>
-                     <span className="text-5xl font-black italic text-indigo-500 tracking-tighter">{step.day}</span>
+                     <span className="text-5xl font-black italic text-emerald-500 tracking-tighter">{step.day}</span>
                   </div>
                   <div className="flex-1 space-y-4">
                      <div className="flex justify-between items-center">
-                        <span className="px-3 py-1 bg-indigo-600/10 border border-indigo-500/20 rounded-lg text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                        <span className="px-3 py-1 bg-emerald-600/10 border border-emerald-500/20 rounded-lg text-[9px] font-black text-emerald-400 uppercase tracking-widest">
                            {step.channel}
                         </span>
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{step.purpose}</span>
                      </div>
-                     <p className="text-slate-300 text-sm leading-relaxed italic border-l-2 border-slate-800 pl-6 py-2 group-hover:border-indigo-500 transition-colors">
+                     <p className="text-slate-300 text-sm leading-relaxed italic border-l-2 border-slate-800 pl-6 py-2 group-hover:border-emerald-500 transition-colors">
                        "{step.content}"
                      </p>
                   </div>

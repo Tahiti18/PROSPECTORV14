@@ -77,7 +77,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
   if (!lead) {
     return (
       <div className="h-96 flex flex-col items-center justify-center text-slate-500 bg-slate-900/30 border border-slate-800 rounded-[48px] border-dashed">
-        <p className="text-[10px] font-black uppercase tracking-[0.5em]">Target Required for Veo Video Forge</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.5em]">Target Required for Veo Video Gen</p>
       </div>
     );
   }
@@ -86,14 +86,14 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
     <div className="max-w-[1600px] mx-auto py-6 space-y-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter leading-none">
-            VIDEO <span className="text-amber-500 not-italic">PITCH</span>
+          <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">
+            VIDEO <span className="text-emerald-500">GENERATOR</span>
           </h1>
           <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.5em] mt-4 italic">Veo 3.1 Generative Video Core</p>
         </div>
         <div className="flex items-center gap-3">
-           <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
-           <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">VEO ENGINE ONLINE</span>
+           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+           <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">VEO ENGINE ONLINE</span>
         </div>
       </div>
 
@@ -105,7 +105,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
               <textarea 
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                className="w-full bg-[#020617] border border-slate-800 rounded-[32px] p-8 text-sm font-bold text-slate-300 focus:outline-none focus:border-amber-500 h-64 resize-none shadow-xl placeholder-slate-700 italic leading-relaxed"
+                className="w-full bg-[#020617] border border-slate-800 rounded-[32px] p-8 text-sm font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-64 resize-none shadow-xl placeholder-slate-700 italic leading-relaxed"
                 placeholder="Describe the video asset (e.g. 'Cinematic drone shot of...')"
               />
             </div>
@@ -113,7 +113,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
             <button 
               onClick={handleForge}
               disabled={isGenerating}
-              className="w-full bg-amber-500 hover:bg-amber-400 text-black py-6 rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-amber-500/20 active:scale-95 border-b-4 border-amber-600 disabled:opacity-50"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-6 rounded-[28px] text-[12px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-700 disabled:opacity-50"
             >
               {isGenerating ? 'RENDERING VIDEO...' : 'GENERATE VEO ASSET'}
             </button>
@@ -124,12 +124,12 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
              <div className="space-y-3 h-64 overflow-y-auto custom-scrollbar pr-2">
                 {SUGGESTIONS.map((cat, i) => (
                   <div key={i} className="space-y-2">
-                     <p className="text-[8px] font-black text-amber-500 uppercase tracking-widest sticky top-0 bg-slate-900/90 py-1">{cat.category}</p>
+                     <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest sticky top-0 bg-slate-900/90 py-1">{cat.category}</p>
                      {cat.prompts.map((p, j) => (
                        <button 
                          key={j}
                          onClick={() => setPrompt(p)}
-                         className="w-full text-left p-3 rounded-xl bg-slate-950 border border-slate-800 text-[10px] text-slate-300 hover:text-white hover:border-amber-500/30 transition-all truncate"
+                         className="w-full text-left p-3 rounded-xl bg-slate-950 border border-slate-800 text-[10px] text-slate-300 hover:text-white hover:border-emerald-500/30 transition-all truncate"
                          title={p}
                        >
                          {p}
@@ -145,7 +145,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
           <div className="bg-[#05091a] border border-slate-800 rounded-[84px] h-full min-h-[700px] flex flex-col items-center justify-center relative overflow-hidden shadow-2xl group">
             
             {/* Background Ambient Effect */}
-            <div className="absolute inset-0 bg-amber-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div className="absolute inset-0 bg-emerald-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
 
             {videoUrl ? (
               <div className="relative w-full h-full flex flex-col">
@@ -177,10 +177,10 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
                <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center space-y-8 z-30">
                   <div className="relative">
                      <div className="w-24 h-24 border-4 border-slate-800 rounded-full"></div>
-                     <div className="absolute inset-0 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                     <div className="absolute inset-0 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                   <div className="text-center space-y-2">
-                     <p className="text-[12px] font-black text-amber-500 uppercase tracking-[0.4em] animate-pulse">VEO MODEL PROCESSING...</p>
+                     <p className="text-[12px] font-black text-emerald-500 uppercase tracking-[0.4em] animate-pulse">VEO MODEL PROCESSING...</p>
                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">ESTIMATED TIME: 30-60 SECONDS</p>
                   </div>
                </div>

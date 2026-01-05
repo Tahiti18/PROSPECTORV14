@@ -60,14 +60,14 @@ export const MediaVault: React.FC = () => {
     <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">MEDIA <span className="text-indigo-600 not-italic">VAULT</span></h1>
+          <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">ASSET <span className="text-emerald-600">LIBRARY</span></h1>
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Persistent Asset Reservoir (Local Storage)</p>
         </div>
         <div className="flex gap-4">
            <button 
              onClick={handleExportVault}
              disabled={assets.length === 0}
-             className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-indigo-600/20"
+             className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-emerald-600/20"
            >
              BACKUP VAULT (EXPORT)
            </button>
@@ -100,8 +100,8 @@ export const MediaVault: React.FC = () => {
          )}
 
          {assets.map(a => (
-           <div key={a.id} className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 space-y-6 hover:border-indigo-500/40 transition-all group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-600/5 blur-[40px] rounded-full"></div>
+           <div key={a.id} className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 space-y-6 hover:border-emerald-500/40 transition-all group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 blur-[40px] rounded-full"></div>
               <div className="flex justify-between items-start relative z-10">
                  <div className={`px-3 py-1 rounded-lg text-[9px] font-black border uppercase tracking-widest ${
                    a.type === 'VIDEO' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 
@@ -141,7 +141,7 @@ export const MediaVault: React.FC = () => {
                  <a 
                    href={a.type === 'TEXT' ? `data:text/plain;charset=utf-8,${encodeURIComponent(a.data)}` : a.data} 
                    download={`POM_${a.id}.${a.type === 'TEXT' ? 'txt' : 'bin'}`} 
-                   className="flex-1 bg-indigo-600/10 border border-indigo-500/20 hover:bg-indigo-600 hover:text-white py-3 rounded-xl text-[8px] font-black text-indigo-400 uppercase tracking-widest transition-all text-center flex items-center justify-center"
+                   className="flex-1 bg-emerald-600/10 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white py-3 rounded-xl text-[8px] font-black text-emerald-400 uppercase tracking-widest transition-all text-center flex items-center justify-center"
                  >
                    DOWNLOAD FILE
                  </a>

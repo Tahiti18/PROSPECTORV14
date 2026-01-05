@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Lead, MainMode, SubModule } from '../../types';
 import { SESSION_ASSETS, orchestrateBusinessPackage, saveAsset, AssetRecord } from '../../services/geminiService';
@@ -231,8 +232,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       {/* HEADER */}
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter leading-none">
-            BUSINESS <span className="text-emerald-500 not-italic">ORCHESTRATOR</span>
+          <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">
+            STRATEGY <span className="text-emerald-500">BUILDER</span>
           </h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">
             STRATEGIC ASSET COMPILATION & SYNTHESIS
@@ -260,7 +261,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
         <div className="lg:col-span-4 space-y-6">
            <div className="bg-[#0b1021] border border-slate-800 rounded-[40px] p-10 shadow-2xl space-y-8">
               <div className="space-y-2">
-                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">SELECT TARGET</label>
+                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">SELECT LEAD</label>
                  <select 
                    value={selectedLeadId}
                    onChange={(e) => setSelectedLeadId(e.target.value)}
@@ -310,9 +311,9 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                                  if (type === 'VIDEO') handleGenerateShortcut('VIDEO_PITCH');
                                  if (type === 'AUDIO') handleGenerateShortcut('SONIC_STUDIO');
                                }}
-                               className="text-[8px] font-black uppercase tracking-widest bg-slate-800 text-slate-400 px-2 py-1 rounded hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                               className="text-[8px] font-black uppercase tracking-widest bg-slate-800 text-slate-400 px-2 py-1 rounded hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
                              >
-                               FORGE
+                               CREATE
                              </button>
                            )}
                         </div>
@@ -329,7 +330,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                            </div>
                         </div>
                       ))}
-                      {leadAssets.length === 0 && <p className="text-[9px] text-rose-500 font-bold uppercase tracking-widest text-center py-4">NO ASSETS FOUND IN VAULT</p>}
+                      {leadAssets.length === 0 && <p className="text-[9px] text-rose-500 font-bold uppercase tracking-widest text-center py-4">NO ASSETS FOUND IN LIBRARY</p>}
                    </div>
 
                    {/* VAULT INJECTOR */}
@@ -357,7 +358,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                         disabled={isOrchestrating}
                         className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800 mt-2"
                       >
-                        {isOrchestrating ? 'SYNTHESIZING...' : (currentDossier ? 'GENERATE NEW VERSION' : 'ASSEMBLE DOSSIER')}
+                        {isOrchestrating ? 'GENERATING...' : (currentDossier ? 'GENERATE NEW VERSION' : 'BUILD STRATEGY')}
                       </button>
                    </div>
                 </div>
@@ -372,8 +373,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
               {!packageData ? (
                  <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20 text-center space-y-6">
                     <span className="text-8xl grayscale">📁</span>
-                    <h3 className="text-4xl font-black italic text-slate-700 uppercase tracking-tighter">WAITING FOR INTEL</h3>
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">SELECT A TARGET AND ASSEMBLE</p>
+                    <h3 className="text-4xl font-bold uppercase tracking-tight text-slate-700">WAITING FOR INPUT</h3>
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">SELECT A LEAD AND BUILD STRATEGY</p>
                  </div>
               ) : (
                  <div className="flex flex-col h-full animate-in zoom-in-95 duration-500">
@@ -405,7 +406,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                        {activeTab === 'strategy' && (
                           <div className="space-y-12">
                              <div className="text-center space-y-4 mb-12">
-                                <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter">{packageData.presentation.title}</h2>
+                                <h2 className="text-4xl font-bold uppercase tracking-tight text-white">{packageData.presentation.title}</h2>
                                 <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] border border-emerald-500/30 px-4 py-1 rounded-full">CONFIDENTIAL</span>
                              </div>
                              <div className="grid gap-8">
@@ -479,8 +480,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                                   </div>
                                 ))}
                              </div>
-                             <div className="bg-indigo-900/10 border border-indigo-500/20 p-8 rounded-[32px]">
-                                <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4">LINKEDIN CONNECT</h3>
+                             <div className="bg-emerald-900/10 border border-emerald-500/20 p-8 rounded-[32px]">
+                                <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-4">LINKEDIN CONNECT</h3>
                                 <p className="text-sm text-slate-300 italic">"{packageData.outreach.linkedin}"</p>
                              </div>
                           </div>

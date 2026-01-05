@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Lead, OutreachStatus } from '../../types';
 import { AutomationOrchestrator } from '../../services/automation/orchestrator';
@@ -13,13 +14,11 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
   const sortedLeads = useMemo(() => {
     let filtered = leads;
     if (statusFilter !== 'ALL') {
-      // Fix: Use outreachStatus preference with strict fallback to legacy status or 'cold'
       filtered = leads.filter(l => (l.outreachStatus ?? l.status ?? 'cold') === statusFilter);
     }
 
     return [...filtered].sort((a, b) => {
       // @ts-ignore
-      // Fix: Use nullish coalescing to allow 0 as a valid value
       const aVal = a[sortConfig.key] ?? '';
       // @ts-ignore
       const bVal = b[sortConfig.key] ?? '';
@@ -51,11 +50,11 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
     <div className="space-y-8 py-6 max-w-[1600px] mx-auto relative px-6 pb-24 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
         <div>
-          <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl">
-            TARGET <span className="text-indigo-600 not-italic">LEDGER</span>
+          <h3 className="text-4xl font-bold text-white uppercase tracking-tight leading-none drop-shadow-2xl">
+            LEAD <span className="text-emerald-600">DATABASE</span>
           </h3>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">
-            DATABASE: {leads.length} RECORDS
+            RECORDS: {leads.length}
           </p>
         </div>
         <div className="flex gap-4">
@@ -71,10 +70,10 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
           </div>
           <button 
             onClick={handleOneClickRun}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-indigo-600/30 transition-all active:scale-95 border border-indigo-500/20 flex items-center gap-2"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-600/30 transition-all active:scale-95 border border-emerald-500/20 flex items-center gap-2"
           >
             <span className="text-lg">⚡</span>
-            RUN BEST LEAD
+            AUTO-ENGAGE LEAD
           </button>
         </div>
       </div>
@@ -90,7 +89,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                 >
                   <div className="flex items-center gap-2">
                     RANK 
-                    <span className={`text-indigo-500 transition-opacity ${sortConfig.key === 'rank' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                    <span className={`text-emerald-500 transition-opacity ${sortConfig.key === 'rank' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
                       {sortConfig.direction === 'asc' ? '↑' : '↓'}
                     </span>
                   </div>
@@ -101,7 +100,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                 >
                   <div className="flex items-center gap-2">
                     IDENTITY
-                    <span className={`text-indigo-500 transition-opacity ${sortConfig.key === 'businessName' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                    <span className={`text-emerald-500 transition-opacity ${sortConfig.key === 'businessName' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
                       {sortConfig.direction === 'asc' ? '↑' : '↓'}
                     </span>
                   </div>
@@ -112,7 +111,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                 >
                   <div className="flex items-center gap-2 justify-center">
                     STATUS
-                    <span className={`text-indigo-500 transition-opacity ${sortConfig.key === 'status' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                    <span className={`text-emerald-500 transition-opacity ${sortConfig.key === 'status' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
                       {sortConfig.direction === 'asc' ? '↑' : '↓'}
                     </span>
                   </div>
@@ -126,7 +125,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                 >
                   <div className="flex items-center gap-2 justify-end">
                     SCORE
-                    <span className={`text-indigo-500 transition-opacity ${sortConfig.key === 'leadScore' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
+                    <span className={`text-emerald-500 transition-opacity ${sortConfig.key === 'leadScore' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
                       {sortConfig.direction === 'asc' ? '↑' : '↓'}
                     </span>
                   </div>
@@ -136,14 +135,13 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
             </thead>
             <tbody className="divide-y divide-slate-800/50">
               {sortedLeads.map((lead) => {
-                // Resolve display status
                 const displayStatus = lead.outreachStatus ?? lead.status ?? 'cold';
                 return (
                   <tr key={lead.id} className={`group hover:bg-white/5 transition-all ${lead.locked ? 'opacity-50 bg-slate-900/50' : 'bg-[#0b1021]'}`}>
                     
                     {/* RANK */}
                     <td className="px-8 py-6">
-                      <span className="text-2xl font-black text-slate-600 italic group-hover:text-indigo-500 transition-colors">
+                      <span className="text-2xl font-black text-slate-600 italic group-hover:text-emerald-500 transition-colors">
                         #{lead.rank}
                       </span>
                     </td>
@@ -153,7 +151,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                       <div className="flex flex-col">
                         <span 
                           onClick={() => onInspect(lead.id)}
-                          className="text-xl font-black text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors leading-none cursor-pointer"
+                          className="text-xl font-bold text-white uppercase tracking-tight group-hover:text-emerald-400 transition-colors leading-none cursor-pointer"
                         >
                           {lead.businessName}
                         </span>
@@ -177,7 +175,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                     <td className="px-8 py-6 text-center">
                       <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-[9px] font-black border uppercase tracking-widest ${
                         displayStatus === 'cold' ? 'bg-slate-800 border-slate-700 text-slate-500' :
-                        displayStatus === 'sent' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' :
+                        displayStatus === 'sent' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
                         displayStatus === 'won' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
                         'bg-slate-800 border-slate-700 text-slate-300'
                       }`}>
@@ -187,7 +185,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
 
                     {/* SOCIAL GAP */}
                     <td className="px-8 py-6 max-w-sm">
-                      <p className="text-[12px] font-medium text-slate-400 line-clamp-2 italic leading-relaxed border-l-2 border-indigo-500/30 pl-4">
+                      <p className="text-[12px] font-medium text-slate-400 line-clamp-2 italic leading-relaxed border-l-2 border-emerald-500/30 pl-4">
                         "{lead.socialGap}"
                       </p>
                     </td>
@@ -196,7 +194,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                     <td className="px-8 py-6 text-right">
                       <span className={`text-5xl font-black italic tracking-tighter ${
                         lead.leadScore >= 80 ? 'text-emerald-500' : 
-                        lead.leadScore >= 60 ? 'text-indigo-500' : 
+                        lead.leadScore >= 60 ? 'text-emerald-500' : 
                         'text-slate-600'
                       }`}>
                         {lead.leadScore}
@@ -207,9 +205,9 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                     <td className="px-8 py-6 text-right">
                       <button 
                         onClick={() => onInspect(lead.id)} 
-                        className="px-8 py-4 bg-white text-black hover:bg-indigo-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
+                        className="px-8 py-4 bg-white text-black hover:bg-emerald-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
                       >
-                        WAR ROOM
+                        STRATEGY
                       </button>
                     </td>
                   </tr>
@@ -219,7 +217,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                 <tr>
                   <td colSpan={6} className="py-32 text-center bg-[#0b1021]">
                     <span className="text-6xl block mb-4 grayscale opacity-20">📂</span>
-                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-[0.4em]">LEDGER EMPTY // INITIATE SCAN</p>
+                    <p className="text-[12px] font-black text-slate-600 uppercase tracking-[0.4em]">DATABASE EMPTY</p>
                   </td>
                 </tr>
               )}
