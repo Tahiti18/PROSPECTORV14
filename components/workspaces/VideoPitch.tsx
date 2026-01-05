@@ -86,7 +86,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
     <div className="max-w-[1600px] mx-auto py-6 space-y-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-6xl font-black italic text-white uppercase tracking-tighter leading-none">
+          <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter leading-none">
             VIDEO <span className="text-amber-500 not-italic">PITCH</span>
           </h1>
           <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.5em] mt-4 italic">Veo 3.1 Generative Video Core</p>

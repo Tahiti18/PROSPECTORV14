@@ -47,7 +47,7 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
   return (
     <div className="max-w-[1550px] mx-auto py-12 space-y-12 animate-in fade-in duration-700">
       <div className="text-center space-y-6">
-        <h1 className="text-7xl font-black italic text-white uppercase tracking-tighter leading-none">
+        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter leading-none">
           MARKET <span className="text-amber-500 uppercase">REVERSE-ENG</span> HUB
         </h1>
         <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.4em]">

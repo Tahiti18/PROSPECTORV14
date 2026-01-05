@@ -48,7 +48,7 @@ export const IntelNode: React.FC<IntelNodeProps> = ({ module, lead }) => {
       <div className="flex justify-between items-start">
         <div className="space-y-4">
            <div className="flex items-center gap-4">
-              <h1 className="text-6xl font-black italic text-white tracking-tighter uppercase leading-none">
+              <h1 className="text-5xl font-black italic text-white tracking-tighter uppercase leading-none">
                 {module.replace('_', ' ')} <span className="text-indigo-500 not-italic">PROTOCOL</span>
               </h1>
               <div className="bg-indigo-600/10 border border-indigo-500/20 px-4 py-2 rounded-xl">

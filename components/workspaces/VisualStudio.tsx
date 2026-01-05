@@ -32,7 +32,7 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
     <div className="max-w-[1550px] mx-auto py-6 space-y-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-6xl font-black italic tracking-tighter text-white uppercase leading-none">
+          <h1 className="text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
             VISUAL <span className="text-indigo-600 not-italic">STUDIO</span>
           </h1>
           <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.5em] mt-4 italic">Gemini 2.5 Flash Image Core</p>

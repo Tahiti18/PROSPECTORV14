@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { MainMode, SubModule } from '../types';
 import { Tooltip } from './Tooltip';
@@ -285,27 +286,24 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col transition-colors duration-300 bg-[#030712] text-slate-100">
+    <div className={`min-h-screen flex flex-col transition-colors duration-300 ${theme === 'dark' ? 'bg-[#030712] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       
       {/* --- COMMAND CENTER HEADER --- */}
-      <header className="h-20 border-b fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 transition-colors bg-[#030712] border-slate-800">
+      <header className={`h-20 border-b fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 transition-colors ${theme === 'dark' ? 'bg-[#030712] border-slate-800' : 'bg-white border-slate-200'}`}>
          
-         {/* LEFT: IDENTITY */}
-         <div className="flex items-center gap-4 w-80">
-            <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 shrink-0">
-               <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            </div>
+         {/* LEFT: IDENTITY (Icon Removed, Text flush) */}
+         <div className="flex items-center gap-4 w-80 pl-2">
             <div className="flex flex-col">
-               <h1 className="text-lg font-black tracking-tight leading-none text-white">
+               <h1 className={`text-lg font-black tracking-tight leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                   PROSPECTOR <span className="text-indigo-500 italic">OS</span>
                </h1>
-               <span className="text-[10px] font-bold text-slate-500 tracking-[0.2em] mt-1">LEAD INTEL ENGINE</span>
+               <span className="text-[10px] font-bold text-slate-500 tracking-[0.2em] mt-1">LEAD INTEL ENGINE V13.2</span>
             </div>
          </div>
 
          {/* CENTER: PILL NAVIGATION */}
          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden lg:block">
-            <nav className="flex items-center gap-1 p-1.5 rounded-full border shadow-2xl bg-[#0b1021] border-slate-800">
+            <nav className={`flex items-center gap-1 p-1.5 rounded-full border shadow-2xl ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800' : 'bg-slate-100 border-slate-200'}`}>
                {(Object.keys(MODE_CONFIG) as MainMode[]).map((mode) => {
                   const isActive = activeMode === mode;
                   return (
@@ -329,30 +327,39 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
          {/* RIGHT: UTILITIES */}
          <div className="flex items-center gap-4 w-80 justify-end">
             
+            {/* Theme Toggle */}
+            <button onClick={toggleTheme} className={`w-12 h-12 rounded-2xl border flex items-center justify-center transition-all ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 text-amber-400 hover:border-slate-700' : 'bg-white border-slate-200 text-amber-500'}`}>
+               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            </button>
+
             {/* Quick Search */}
             <button 
                onClick={onSearchClick}
-               className="hidden md:flex items-center gap-3 px-5 h-12 rounded-2xl border text-xs font-bold transition-all w-56 group bg-[#0b1021] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700"
+               className={`hidden md:flex items-center gap-3 px-5 h-12 rounded-2xl border text-xs font-bold transition-all w-56 group ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700' : 'bg-white border-slate-200 text-slate-500'}`}
             >
                <svg className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                <span className="uppercase tracking-wider">QUICK SEARCH...</span>
-               <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-slate-500">⌘K</span>
+               <span className={`ml-auto text-[9px] font-black px-1.5 py-0.5 rounded ${theme === 'dark' ? 'bg-slate-800 text-slate-500' : 'bg-slate-200 text-slate-600'}`}>⌘K</span>
             </button>
 
-            {/* Location Selector (Tactical Dropdown) */}
+            {/* Location Selector (Pill Style) */}
             <div className="relative group">
-                <div className="flex items-center gap-3 px-5 h-12 rounded-2xl border cursor-pointer transition-all min-w-[180px] bg-[#0b1021] border-slate-800 hover:border-slate-700">
-                   <span className="text-lg">🌍</span>
-                   <select 
-                      value={theater} 
-                      onChange={(e) => setTheater(e.target.value)}
-                      className="bg-transparent text-[10px] font-black uppercase focus:outline-none cursor-pointer border-none w-full truncate text-white"
-                   >
-                      {STRATEGIC_CITIES.map(c => (
-                          <option key={c.city} value={c.city} className="text-slate-900 bg-white">{c.city}</option>
-                      ))}
-                   </select>
-                   <svg className="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                <div className={`flex items-center gap-3 px-6 h-12 rounded-full border cursor-pointer transition-all min-w-[200px] shadow-2xl ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800 hover:border-indigo-500/50' : 'bg-white border-slate-200'}`}>
+                   <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                   <div className="flex flex-col">
+                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none">THEATER</span>
+                       <select 
+                          value={theater} 
+                          onChange={(e) => setTheater(e.target.value)}
+                          className={`bg-transparent text-[11px] font-black uppercase focus:outline-none cursor-pointer border-none w-full truncate appearance-none leading-none mt-0.5 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                          style={{ width: '140px' }}
+                       >
+                          {STRATEGIC_CITIES.map(c => (
+                              <option key={c.city} value={c.city} className="text-slate-900 bg-white">{c.city}</option>
+                          ))}
+                       </select>
+                   </div>
+                   <svg className="w-3 h-3 text-slate-600 ml-auto group-hover:text-indigo-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
                 </div>
             </div>
 
@@ -363,7 +370,7 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
       <div className="flex pt-20 h-screen overflow-hidden">
          
          {/* LEFT SIDEBAR (Contextual Modules Only) */}
-         <aside className={`flex-shrink-0 border-r flex flex-col z-40 transition-all duration-300 ease-in-out bg-[#0b1021] border-slate-800 ${isSidebarExpanded ? 'w-[240px]' : 'w-[80px]'}`}>
+         <aside className={`flex-shrink-0 border-r flex flex-col z-40 transition-all duration-300 ease-in-out ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800' : 'bg-slate-50 border-slate-200'} ${isSidebarExpanded ? 'w-[240px]' : 'w-[80px]'}`}>
             
             {/* Sidebar Expand/Collapse Control */}
             <div className={`p-4 border-b border-slate-800/50 flex items-center justify-center`}>
