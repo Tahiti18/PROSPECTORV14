@@ -15,6 +15,12 @@ export interface AssetRecord {
   timestamp: number;
 }
 
+export interface VeoConfig {
+  aspectRatio: '16:9' | '9:16';
+  resolution: '720p' | '1080p';
+  modelStr: 'veo-3.1-fast-generate-preview' | 'veo-3.1-generate-preview';
+}
+
 export interface BenchmarkReport {
   entityName: string;
   missionSummary: string;
@@ -69,7 +75,6 @@ export const getAI = () => {
   if (!aiInstance) {
     if (!process.env.API_KEY) {
       console.error("API_KEY is missing");
-      // Fallback for dev if env not set, though ideally handled by vite config
       throw new Error("API Key missing");
     }
     aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -128,6 +133,15 @@ export const loggedGenerateContent = async (params: {
 };
 
 // --- IMPLEMENTATIONS ---
+
+export const enhanceVideoPrompt = async (rawPrompt: string): Promise<string> => {
+  const ai = getAI();
+  const res = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Act as a Hollywood Director. Rewrite this video prompt to be extremely detailed, cinematic, and descriptive for an AI video generator. Include lighting, camera movement, and texture details. Keep it under 60 words. Prompt: "${rawPrompt}"`
+  });
+  return res.text || rawPrompt;
+};
 
 export const generateLeads = async (theater: string, niche: string, count: number) => {
   pushLog(`RADAR: SCANNING ${theater} FOR ${niche}...`);
@@ -202,7 +216,6 @@ export const fetchLiveIntel = async (lead: Lead, module: string): Promise<Benchm
 
 export const crawlTheaterSignals = async (theater: string, signal: string) => {
   pushLog(`CRAWL: SEARCHING ${theater} FOR SIGNAL "${signal}"...`);
-  // Re-use generateLeads logic effectively
   return (await generateLeads(theater, signal, 5)).leads;
 };
 
@@ -245,7 +258,6 @@ export const generateOutreachSequence = async (lead: Lead) => {
 export const generateMockup = async (name: string, niche: string, leadId?: string) => {
   pushLog(`MOCKUP: RENDERING 4K ASSET FOR ${name}...`);
   const prompt = `High-end 4k product mockup for ${name}, ${niche}, photorealistic, studio lighting.`;
-  // Using generateVisual which returns base64
   const base64 = await generateVisual(prompt, { id: leadId } as Lead);
   if (base64) {
     saveAsset('IMAGE', `MOCKUP_${name}`, base64, 'MOCKUPS_4K', leadId);
@@ -445,7 +457,6 @@ export const synthesizeArticle = async (url: string, mode: string) => {
 
 export const analyzeVideoUrl = async (url: string, prompt: string, leadId?: string) => {
   pushLog(`VIDEO_INTEL: ANALYZING STREAM...`);
-  // Mock analysis since we can't actually download YouTube videos in browser
   await new Promise(r => setTimeout(r, 2000));
   return `Analysis of ${url}: ${prompt} (Simulated Output: Video content suggests high engagement potential...)`;
 };
@@ -464,39 +475,27 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImage?: s
   const model = "gemini-2.5-flash-image";
   
   let enrichedPrompt = prompt;
-  // Use brand enrichment only for generation, keep editing raw for control
   if (lead?.brandIdentity && !inputImage) {
     const { colors, visualTone, aestheticTags } = lead.brandIdentity;
     enrichedPrompt = `
-      Create a professional image for a business.
+      Create a professional image.
       Brand Context:
       - Colors: ${colors.join(', ')}
-      - Aesthetic Keywords: ${aestheticTags?.join(', ')}
+      - Aesthetic: ${aestheticTags?.join(', ')}
       - Tone: ${visualTone}
-      
       User Prompt: ${prompt}
-      
-      Ensure the image perfectly matches the brand colors and vibe described. High fidelity, photorealistic or stylized as requested.
     `;
   }
 
   try {
       let contents;
       if (inputImage) {
-          // Input image is expected to be a data URL, need to strip header
           const parts = inputImage.split(',');
           if (parts.length > 1) {
             const mimeType = parts[0].split(':')[1].split(';')[0];
             const data = parts[1];
-            
-            contents = {
-                parts: [
-                    { inlineData: { mimeType, data } },
-                    { text: prompt }
-                ]
-            };
+            contents = { parts: [{ inlineData: { mimeType, data } }, { text: prompt }] };
           } else {
-             // Fallback if formatting issue
              contents = { parts: [{ text: enrichedPrompt }] };
           }
       } else {
@@ -504,13 +503,11 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImage?: s
       }
 
       const response = await ai.models.generateContent({ model, contents });
-      
-      // Try to find image in response parts
       const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
       
       if (part?.inlineData?.data) {
         const url = `data:image/png;base64,${part.inlineData.data}`;
-        saveAsset('IMAGE', inputImage ? `EDITED_ASSET_${Date.now()}` : `BRAND_ASSET_${Date.now()}`, url, 'VISUAL_STUDIO', lead?.id);
+        saveAsset('IMAGE', inputImage ? `EDITED_${Date.now()}` : `VISUAL_${Date.now()}`, url, 'VISUAL_STUDIO', lead?.id);
         return url;
       }
       throw new Error("No image data returned");
@@ -555,40 +552,62 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
   return JSON.parse(res);
 };
 
-export const generateVideoPayload = async (prompt: string, leadId?: string, imageDataUrl?: string): Promise<string> => {
-  pushLog("GENERATING VIDEO ASSET (VEO)...");
+export const generateVideoPayload = async (
+  prompt: string, 
+  leadId?: string, 
+  imageStartData?: string, 
+  imageEndData?: string,
+  config?: VeoConfig
+): Promise<string> => {
+  pushLog("GENERATING VIDEO ASSET (VEO 3.1)...");
   const ai = getAI();
-  const model = 'veo-3.1-fast-generate-preview';
+  
+  // Default config if not provided
+  const settings: VeoConfig = config || {
+    aspectRatio: '16:9',
+    resolution: '720p',
+    modelStr: 'veo-3.1-fast-generate-preview'
+  };
 
   try {
-    const config = {
+    const videoConfig: any = {
       numberOfVideos: 1,
-      resolution: '720p',
-      aspectRatio: '16:9'
+      resolution: settings.resolution,
+      aspectRatio: settings.aspectRatio
     };
+
+    // If End Frame exists, add it to config (Only supported on fast-generate for now per docs/constraints)
+    if (imageEndData) {
+      const parts = imageEndData.split(',');
+      if (parts.length === 2) {
+        const mimeType = parts[0].split(':')[1].split(';')[0];
+        const imageBytes = parts[1];
+        videoConfig.lastFrame = { imageBytes, mimeType };
+      }
+    }
 
     let request: any = {
-      model,
+      model: settings.modelStr,
       prompt,
-      config
+      config: videoConfig
     };
 
-    if (imageDataUrl) {
-      const parts = imageDataUrl.split(',');
+    // Add Start Frame if present
+    if (imageStartData) {
+      const parts = imageStartData.split(',');
       if (parts.length === 2) {
         const mimeType = parts[0].split(':')[1].split(';')[0];
         const imageBytes = parts[1];
         request.image = { imageBytes, mimeType };
-        pushLog(`VEO: IMAGE CONTEXT ADDED (${mimeType})`);
+        pushLog(`VEO: REFERENCE IMAGE ADDED (${mimeType})`);
       }
     }
 
     let operation = await ai.models.generateVideos(request);
     
-    // Poll for completion
     const startTime = Date.now();
     while (!operation.done) {
-      if (Date.now() - startTime > 300000) throw new Error("VEO TIMEOUT"); // 5 min timeout
+      if (Date.now() - startTime > 300000) throw new Error("VEO TIMEOUT");
       await new Promise(resolve => setTimeout(resolve, 5000));
       operation = await ai.operations.getVideosOperation({operation: operation});
     }
@@ -596,7 +615,7 @@ export const generateVideoPayload = async (prompt: string, leadId?: string, imag
     const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
     if (!videoUri) throw new Error("No video URI returned from Veo.");
 
-    // Fetch the actual video bytes using the API key
+    // Fetch video blob
     const apiKey = process.env.API_KEY || "";
     const fetchUrl = `${videoUri}&key=${apiKey}`;
     const res = await fetch(fetchUrl);
