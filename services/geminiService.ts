@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { Lead, BrandIdentity } from '../types';
 import { logAiOperation, uuidLike } from './usageLogger';
@@ -133,6 +132,106 @@ export const loggedGenerateContent = async (params: {
 };
 
 // --- IMPLEMENTATIONS ---
+
+export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIdentity> => {
+  pushLog(`DNA: DEEP FORENSIC SCANNING ${url}...`);
+  const ai = getAI();
+  
+  let hostname = '';
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    hostname = url;
+  }
+
+  // 1. Deterministic Asset Recovery (Mathematical Extraction)
+  const deterministicLogo = `https://logo.clearbit.com/${hostname}`;
+  const deterministicIcon = `https://www.google.com/s2/favicons?domain=${hostname}&sz=256`;
+
+  const prompt = `
+    You are a forensic brand design auditor.
+    Analyze the website: ${url} (Business: ${lead.businessName}).
+    
+    Your goal is to extract the EXACT Brand Identity used on the live site.
+    
+    CRITICAL IMAGE EXTRACTION (MANDATORY 12+ IMAGES):
+    1.  Perform a DEEP Google Search for "site:${hostname} OR site:instagram.com/${lead.businessName} OR site:facebook.com/${lead.businessName}".
+    2.  Extract DIRECT, VALID image URLs.
+        - MUST start with http:// or https://.
+        - MUST end with .jpg, .png, .webp, .jpeg.
+        - DO NOT invent or hallucinate URLs like "${hostname}/image1.jpg".
+        - Only return URLs found in the search results or grounding data.
+    3.  Prioritize:
+        - Hero banners from homepage
+        - Product photography
+        - Lifestyle shots of customers
+        - Team/About Us photos
+    
+    CRITICAL BRAND EXTRACTION:
+    1.  COLORS: Find the EXACT Hex codes used for the Primary Brand Color, Secondary/Action Color, Backgrounds, and Accents.
+    2.  FONTS: Identify the font families used for Headers and Body text (e.g. "Montserrat", "Open Sans").
+    3.  COPY: Extract the exact Tagline and a 2-3 sentence Business Overview.
+    
+    Return strictly valid JSON:
+    {
+      "colors": ["#hex", "#hex", "#hex", "#hex", "#hex"],
+      "fontPairing": "HeaderFont / BodyFont",
+      "archetype": "string (e.g. The Explorer, The Sage)",
+      "visualTone": "string (e.g. Coastal, Luxury, Minimalist)",
+      "tagline": "string (The main h1 or slogan)",
+      "brandValues": ["string", "string", "string", "string"],
+      "aestheticTags": ["string", "string", "string", "string"],
+      "voiceTags": ["string", "string", "string"],
+      "mission": "string (Short mission statement)",
+      "businessOverview": "string (2-3 sentences describing what they do)",
+      "extractedImages": ["url1", "url2", "url3", "url4", "url5", "url6", "url7", "url8", "url9", "url10", "url11", "url12"]
+    }
+  `;
+  
+  try {
+    const res = await loggedGenerateContent({
+      ai, module: 'IDENTITY', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
+      contents: prompt,
+      config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
+    });
+    
+    const data = JSON.parse(res);
+    
+    // Post-Process: Inject Deterministic Assets & Filter Stock
+    const rawImages = data.extractedImages || [];
+    const cleanImages = rawImages.filter((img: string) => 
+      img && img.startsWith('http') &&
+      (img.includes('.jpg') || img.includes('.png') || img.includes('.jpeg') || img.includes('.webp') || img.includes('Logo') || img.includes('logo')) &&
+      !img.includes('unsplash.com') && 
+      !img.includes('pexels.com') && 
+      !img.includes('freepik.com')
+    );
+
+    // Ensure we have unique images
+    const uniqueImages = Array.from(new Set([...cleanImages]));
+
+    // Always prepend the real assets we know exist
+    data.extractedImages = [deterministicLogo, deterministicIcon, ...uniqueImages];
+    
+    // Save to Vault for persistence
+    data.extractedImages.forEach((img: string, i: number) => {
+        if (i < 15) saveAsset('IMAGE', `EXTRACTED_ASSET_${i}_${hostname}`, img, 'DNA_EXTRACTOR', lead.id);
+    });
+
+    return data;
+  } catch (e) {
+    console.error("DNA Extraction Failed", e);
+    // Fallback
+    return {
+        colors: ['#000000', '#FFFFFF', '#333333', '#666666', '#999999'],
+        fontPairing: 'Inter / Roboto',
+        archetype: 'Unknown',
+        visualTone: 'Professional',
+        tagline: 'Building the Future',
+        extractedImages: [deterministicLogo, deterministicIcon]
+    } as BrandIdentity;
+  }
+};
 
 export const enhanceVideoPrompt = async (rawPrompt: string): Promise<string> => {
   const ai = getAI();
@@ -542,57 +641,6 @@ export const orchestrateBusinessPackage = async (lead: Lead, assets: AssetRecord
     ai, module: 'BUSINESS_ORCHESTRATOR', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: true,
     contents: prompt,
     config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
-};
-
-export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIdentity> => {
-  pushLog(`DNA: EXTRACTING BRAND FROM ${url}...`);
-  const ai = getAI();
-  
-  const prompt = `
-    You are a world-class Brand Strategist.
-    Analyze the website/brand at: ${url} (Business Name: ${lead.businessName}).
-    
-    CRITICAL: Search for and EXTRACT 4-6 REAL image URLs from this website or its associated social media (Instagram, Facebook, LinkedIn). 
-    Look for:
-    1. The main Logo (PNG/SVG/JPG).
-    2. High-quality Hero Images from the homepage.
-    3. Product or Service photography.
-    
-    If real images are protected or cannot be found, provide 4 highly relevant, high-quality public stock image URLs (e.g. from Unsplash/Pexels) that PERFECTLY match the brand's specific aesthetic and niche.
-    
-    Construct a "Brand DNA" profile with the following exact specifications:
-    
-    1. **Colors**: Extract or generate 5 specific Hex color codes representing the brand palette.
-    2. **Typography**: Identify a premium font pairing.
-    3. **Aesthetic**: List 3-5 keywords describing the visual vibe.
-    4. **Voice**: List 3-5 keywords describing the copy tone.
-    5. **Values**: List 4 core brand values.
-    6. **Tagline**: Write a punchy, memorable 1-sentence tagline.
-    7. **Mission**: Write a 2-sentence "Business Overview" or Mission Statement.
-    8. **Archetype**: Define the Brand Archetype.
-    9. **ExtractedImages**: A list of valid image URLs found or selected.
-
-    Return strictly valid JSON:
-    {
-      "colors": ["#hex", "#hex", "#hex", "#hex", "#hex"],
-      "fontPairing": "HeaderFont / BodyFont",
-      "archetype": "string",
-      "visualTone": "string",
-      "tagline": "string",
-      "brandValues": ["string", "string", "string", "string"],
-      "aestheticTags": ["string", "string", "string"],
-      "voiceTags": ["string", "string", "string"],
-      "mission": "string",
-      "extractedImages": ["url1", "url2", "url3", "url4"]
-    }
-  `;
-  
-  const res = await loggedGenerateContent({
-    ai, module: 'IDENTITY', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
-    contents: prompt,
-    config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
   });
   return JSON.parse(res);
 };
