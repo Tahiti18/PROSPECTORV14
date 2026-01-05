@@ -273,9 +273,11 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
 }) => {
   const [moduleFilter, setModuleFilter] = useState('');
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [marketExpanded, setMarketExpanded] = useState(false);
   const groups = MODULE_GROUPS[activeMode];
   const activeColor = MODE_COLORS[activeMode];
   const mainRef = useRef<HTMLDivElement>(null);
+  const marketRef = useRef<HTMLDivElement>(null);
 
   const handleModeClick = (mode: MainMode) => {
     setActiveMode(mode);
@@ -293,6 +295,19 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
         mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [activeModule]);
+
+  // Click outside to collapse market pill
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (marketRef.current && !marketRef.current.contains(event.target as Node)) {
+        setMarketExpanded(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className={`h-screen w-full flex flex-col overflow-hidden bg-[#020617] text-slate-100`}>
@@ -343,27 +358,33 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-slate-500`}>⌘K</span>
             </button>
 
-            {/* Location Selector (Refined Pill) */}
-            <div className="relative group">
-                <div className={`flex items-center gap-3 pl-4 pr-6 h-12 rounded-full border cursor-pointer transition-all shadow-lg hover:shadow-emerald-500/10 bg-[#0b1021] border-slate-800 hover:border-emerald-500/50`}>
-                   <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
+            {/* Compact Market Selector (Collapsible) */}
+            <div ref={marketRef} className={`relative transition-all duration-300 ease-out ${marketExpanded ? 'w-64' : 'w-[120px]'}`}>
+                <div
+                   onClick={() => setMarketExpanded(true)}
+                   className={`flex items-center gap-3 pl-4 pr-4 h-12 rounded-full border cursor-pointer transition-all shadow-lg hover:shadow-emerald-500/10 bg-[#0b1021] border-slate-800 hover:border-emerald-500/50 overflow-hidden`}
+                >
+                   <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
                       <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                    </div>
-                   <div className="flex flex-col relative">
-                       <span className="text-[8px] font-black text-emerald-400/80 uppercase tracking-widest leading-none mb-0.5">MARKET</span>
-                       <select 
-                          value={theater} 
-                          onChange={(e) => setTheater(e.target.value)}
-                          className={`bg-transparent text-xs font-bold uppercase focus:outline-none cursor-pointer border-none w-full appearance-none leading-none text-slate-200 pr-4`}
+
+                   {marketExpanded ? (
+                       <select
+                          autoFocus
+                          value={theater}
+                          onChange={(e) => {
+                              setTheater(e.target.value);
+                              setMarketExpanded(false);
+                          }}
+                          className={`bg-transparent text-xs font-bold uppercase focus:outline-none cursor-pointer border-none w-full appearance-none leading-none text-white`}
                        >
                           {STRATEGIC_CITIES.map(c => (
                               <option key={c.city} value={c.city} className="text-slate-900 bg-white">{c.city}</option>
                           ))}
                        </select>
-                       <div className="absolute right-0 bottom-0.5 pointer-events-none">
-                          <svg className="w-2 h-2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                       </div>
-                   </div>
+                   ) : (
+                       <span className="text-[10px] font-black text-emerald-400/80 uppercase tracking-widest leading-none whitespace-nowrap">MARKET</span>
+                   )}
                 </div>
             </div>
 
