@@ -224,7 +224,6 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
         { id: 'CHRONOS', label: 'Chronos', desc: 'Timeline view' },
         { id: 'NEXUS_GRAPH', label: 'Nexus Graph', desc: 'Entity relationship view' },
         { id: 'TASKS', label: 'Tasks', desc: 'Mission checklist' },
-        { id: 'CIPHER_NODE', label: 'Cipher Node', desc: 'Security status' },
     ]
   }
 };

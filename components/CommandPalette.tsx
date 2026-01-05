@@ -123,7 +123,6 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'CONTROL', mod: 'CALENDAR', label: 'COMBAT CALENDAR', zone: 'CONTROL ZONE', icon: 'clock' },
   { mode: 'CONTROL', mod: 'PROD_LOG', label: 'PRODUCTION LOGS', zone: 'CONTROL ZONE', icon: 'list' },
   { mode: 'CONTROL', mod: 'SETTINGS', label: 'SYSTEM SETTINGS', zone: 'CONTROL ZONE', icon: 'settings' },
-  { mode: 'CONTROL', mod: 'CIPHER_NODE', label: 'CIPHER SECURITY', zone: 'CONTROL ZONE', icon: 'key' },
   { mode: 'CONTROL', mod: 'NEXUS_GRAPH', label: 'NEXUS GRAPH', zone: 'CONTROL ZONE', icon: 'graph' },
   { mode: 'CONTROL', mod: 'CHRONOS', label: 'CHRONOS LOGS', zone: 'CONTROL ZONE', icon: 'clock' },
   { mode: 'CONTROL', mod: 'TASKS', label: 'MISSION TASKS', zone: 'CONTROL ZONE', icon: 'check' },
@@ -277,7 +276,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
            </div>
            <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">SYSTEM 54 NODES ONLINE</span>
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">SYSTEM 53 NODES ONLINE</span>
            </div>
         </div>
       </div>

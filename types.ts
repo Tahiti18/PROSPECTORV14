@@ -16,7 +16,7 @@ export type SubModule =
   | 'PITCH_GEN' | 'FUNNEL_MAP'
   | 'PLAYBOOK' | 'BILLING' | 'AFFILIATE' | 'IDENTITY' | 'OS_FORGE' | 'EXPORT_DATA' 
   | 'CALENDAR' | 'PROD_LOG' | 'SETTINGS' | 'NEXUS_GRAPH' | 'CHRONOS' 
-  | 'TASKS' | 'THEME' | 'TOKENS' | 'CIPHER_NODE';
+  | 'TASKS' | 'THEME' | 'TOKENS';
 
 export type WorkspaceType = 'dashboard' | 'intelligence' | 'war-room' | 'creative' | 'outreach' | 'identity';
 
