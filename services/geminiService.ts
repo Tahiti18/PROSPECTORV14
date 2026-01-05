@@ -302,11 +302,31 @@ export const generateVisual = async (prompt: string, lead?: Lead): Promise<strin
   } catch(e) { console.error(e); return ""; }
 };
 
-// ... Rest of the existing services preserved ...
-// (fetchLiveIntel, orchestrateBusinessPackage, etc.)
 // Re-exporting necessary items to ensure no break
 export const analyzeLedger = async (leads: Lead[]) => { return { risk: "Low", opportunity: "High" }};
-export const generateLeads = async (region: string, niche: string, count: number) => { return { leads: [], rubric: {}, assets: {} } as EngineResult };
+
+// FIXED: Generate Leads stub now returns a fully populated object matching EngineResult interface to satisfy TypeScript
+export const generateLeads = async (region: string, niche: string, count: number): Promise<EngineResult> => { 
+  return { 
+    leads: [], 
+    rubric: {
+      visual: "N/A",
+      social: "N/A",
+      highTicket: "N/A",
+      reachability: "N/A",
+      grades: { A: "N/A", B: "N/A", C: "N/A" }
+    }, 
+    assets: {
+      emailOpeners: [],
+      fullEmail: "",
+      callOpener: "",
+      voicemail: "",
+      smsFollowup: ""
+    },
+    groundingSources: []
+  };
+};
+
 export const identifySubRegions = async (theater: string) => { return [] as string[] };
 export const crawlTheaterSignals = async (sub: string, sig: string) => { return [] as Lead[] };
 export const fetchViralPulseData = async (niche: string) => { return [] };
