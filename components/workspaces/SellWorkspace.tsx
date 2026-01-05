@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { SubModule, Lead } from '../../types';
 import { generateProposalDraft } from '../../services/geminiService';
@@ -42,7 +41,7 @@ export const SellWorkspace: React.FC<SellWorkspaceProps> = ({ activeModule, lead
       <div className="space-y-12 py-8 max-w-[1550px] mx-auto px-6 animate-in fade-in duration-700">
         <div className="flex justify-between items-center">
           <div className="space-y-2">
-            <h1 className="text-5xl font-black italic tracking-tighter text-white uppercase">MAGIC LINK <span className="text-indigo-600 not-italic">ARCHITECT</span></h1>
+            <h1 className="text-3xl font-black italic text-white uppercase tracking-tighter">MAGIC LINK <span className="text-indigo-600 not-italic">ARCHITECT</span></h1>
             <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">Generate high-value proposal assets for {lockedLead?.businessName || 'Target'}.</p>
           </div>
         </div>
@@ -64,7 +63,7 @@ export const SellWorkspace: React.FC<SellWorkspaceProps> = ({ activeModule, lead
             ) : (
                <div className="absolute inset-0 flex items-center justify-center p-20 text-center opacity-30">
                   <div className="space-y-8">
-                     <div className="text-8xl text-slate-700 font-thin">+</div>
+                     <svg className="w-32 h-32 mx-auto text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                      <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.4em]">
                        {lockedLead ? `READY TO ARCHITECT FOR ${lockedLead.businessName.toUpperCase()}` : 'SELECT A TARGET FROM LEDGER'}
                      </p>

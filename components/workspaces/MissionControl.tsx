@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Lead, MainMode, SubModule } from '../../types';
 import { Tooltip } from '../Tooltip';
@@ -45,7 +44,7 @@ export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, 
     { label: 'API NODES', status: 'STABLE', icon: <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />, color: 'emerald', desc: "The connection to the AI Brain (Gemini) is working perfectly." },
     { label: 'IDENTIFIED', status: `${leads.length} TARGETS`, icon: <ControlIcon type="IDENTIFIED" />, color: 'indigo', desc: "The total number of potential clients you have found and saved so far." },
     { label: 'THREAT SCAN', status: 'OPTIMAL', icon: <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />, color: 'cyan', desc: "No system errors detected. The engine is running at full speed." },
-    { label: 'OS VERSION', status: 'V13.1.2', icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, color: 'violet', desc: "The current version of the Pomelli software you are running." },
+    { label: 'OS STATUS', status: 'ONLINE', icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, color: 'violet', desc: "The Prospector operating system is fully functional." },
   ];
 
   const actions = [
@@ -62,7 +61,7 @@ export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, 
           <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em]">Neural Core Synchronized</span>
         </div>
         
-        <h1 className="text-6xl font-black italic tracking-tighter text-white leading-none uppercase">
+        <h1 className="text-4xl font-black italic tracking-tighter text-white leading-none uppercase">
           MISSION <span className="text-indigo-600 not-italic opacity-70">CONTROL</span>
         </h1>
         <p className="mt-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.6em]">ACTIVE INTELLIGENCE THEATER: <span className="text-indigo-400 italic">{theater}</span></p>

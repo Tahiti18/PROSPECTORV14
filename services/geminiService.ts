@@ -79,19 +79,31 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
   // Add to beginning
   SESSION_ASSETS.unshift(asset); 
   
-  // Rolling Buffer: Keep max 100 items (Upgraded from 30)
-  if (SESSION_ASSETS.length > 100) {
+  // Rolling Buffer: Soft cap at 50 to prevent immediate overflow
+  if (SESSION_ASSETS.length > 50) {
     SESSION_ASSETS.pop();
   }
 
-  // Persist
-  try {
-    localStorage.setItem(STORAGE_KEY_VAULT, JSON.stringify(SESSION_ASSETS));
-    pushLog(`VAULT SECURED: ${title} [${type}]${leadId ? ` (Linked: ${leadId})` : ''}`);
-  } catch (e) {
-    console.warn("Vault Storage Full - Could not persist to disk, kept in memory.", e);
-    pushLog(`VAULT MEMORY ONLY: Storage Quota Exceeded`);
-  }
+  // Persist with Recursive Pruning
+  const persistVault = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY_VAULT, JSON.stringify(SESSION_ASSETS));
+      pushLog(`VAULT SECURED: ${title} [${type}]${leadId ? ` (Linked: ${leadId})` : ''}`);
+    } catch (e) {
+      if (SESSION_ASSETS.length > 5) {
+        // If we hit quota, blindly remove the oldest item (last index) and try again
+        // Keep at least 5 recent items in memory even if disk fails
+        SESSION_ASSETS.pop();
+        console.warn("Storage Quota Exceeded. Pruning oldest asset to make space...");
+        persistVault();
+      } else {
+        console.warn("Vault Storage Full - Could not persist to disk, kept in memory.", e);
+        pushLog(`VAULT MEMORY ONLY: Storage Quota Exceeded`);
+      }
+    }
+  };
+
+  persistVault();
   
   return asset;
 };
@@ -115,6 +127,7 @@ export const importVault = (externalAssets: AssetRecord[]) => {
     pushLog(`VAULT RESTORE: ${addedCount} ASSETS INJECTED.`);
   } catch (e) {
     console.error("Import failed quota", e);
+    alert("Storage quota exceeded during import. Some assets may not be saved.");
   }
   return addedCount;
 };

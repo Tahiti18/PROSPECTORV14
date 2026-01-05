@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { generatePlaybookStrategy } from '../../services/geminiService';
 
@@ -21,7 +20,7 @@ export const ScoringRubricView: React.FC = () => {
   return (
     <div className="space-y-16 max-w-[1400px] mx-auto py-12 px-6 pb-32 animate-in fade-in duration-700">
       <div className="text-center space-y-4">
-        <h1 className="text-7xl font-black italic tracking-tighter text-white uppercase leading-none">THE POMELLI <span className="text-indigo-600 not-italic">PLAYBOOK</span></h1>
+        <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase leading-none">THE PROSPECTOR <span className="text-indigo-600 not-italic">PLAYBOOK</span></h1>
         <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.6em] italic">Master Methodology & Scoring Rubric</h2>
       </div>
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Lead, OutreachStatus } from '../../types';
 import { AutomationOrchestrator } from '../../services/automation/orchestrator';
@@ -52,7 +51,7 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
     <div className="space-y-8 py-6 max-w-[1600px] mx-auto relative px-6 pb-24 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
         <div>
-          <h3 className="text-6xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl">
+          <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl">
             TARGET <span className="text-indigo-600 not-italic">LEDGER</span>
           </h3>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">

@@ -13,6 +13,8 @@ interface LayoutProps {
   setTheater: (t: string) => void;
   theme: 'dark' | 'light';
   toggleTheme: () => void;
+  currentLayout: string;
+  setLayoutMode: (mode: string) => void;
 }
 
 const STRATEGIC_CITIES = [
@@ -45,7 +47,7 @@ const STRATEGIC_CITIES = [
 ];
 
 // Reusable Icon Wrapper
-const IconWrapper = ({ path, className = "w-4 h-4" }: { path: React.ReactNode, className?: string }) => (
+const IconWrapper = ({ path, className = "w-5 h-5" }: { path: React.ReactNode, className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     {path}
   </svg>
@@ -174,7 +176,9 @@ export const Layout: React.FC<LayoutProps> = ({
   theater,
   setTheater,
   theme,
-  toggleTheme
+  toggleTheme,
+  currentLayout,
+  setLayoutMode
 }) => {
   const activeConfig = MODE_CONFIG[activeMode];
 
@@ -183,21 +187,20 @@ export const Layout: React.FC<LayoutProps> = ({
       
       {/* --- TIER 1: STRATEGIC HEADER --- */}
       <header className={`h-24 border-b sticky top-0 z-50 backdrop-blur-xl transition-all duration-500 ${theme === 'dark' ? 'bg-[#0b1021]/95 border-slate-800' : 'bg-white/95 border-slate-200'}`}>
-         <div className="max-w-[1800px] mx-auto px-8 h-full flex items-center justify-between relative">
+         <div className="max-w-[1920px] mx-auto px-10 h-full flex items-center justify-between relative">
             
             {/* Logo */}
             <div className="flex items-center gap-4 w-64">
-               <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                  <span className="text-white font-black text-2xl">P</span>
+               <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                  <span className="text-white font-black text-3xl">P</span>
                </div>
                <div>
-                  <h1 className={`text-xl font-bold leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Pomelli</h1>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">OS V13.2</p>
+                  <h1 className={`text-2xl font-bold leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Prospector OS</h1>
                </div>
             </div>
 
             {/* Centered Main Navigation Tabs */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-3 p-2 rounded-2xl bg-slate-950/80 border border-slate-800/80 shadow-2xl backdrop-blur-md">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-4 p-2.5 rounded-2xl bg-slate-950/80 border border-slate-800/80 shadow-2xl backdrop-blur-md">
                {(Object.keys(MODE_CONFIG) as MainMode[]).map((mode) => {
                  const isActive = activeMode === mode;
                  const config = MODE_CONFIG[mode];
@@ -205,13 +208,13 @@ export const Layout: React.FC<LayoutProps> = ({
                    <button
                      key={mode}
                      onClick={() => setActiveMode(mode)}
-                     className={`relative px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-3 ${
+                     className={`relative px-10 py-4 rounded-xl text-sm font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-3 ${
                        isActive 
                          ? `text-white border-2 ${config.borderClass} ${config.bgClass} shadow-lg ${config.shadowClass}` 
                          : 'text-slate-400 hover:text-white border-2 border-transparent hover:bg-slate-900'
                      }`}
                    >
-                     <span className={isActive ? 'opacity-100 text-white' : 'opacity-60'}>{config.icon}</span>
+                     <span className={isActive ? 'opacity-100 text-white scale-110' : 'opacity-60'}>{config.icon}</span>
                      {mode}
                    </button>
                  );
@@ -220,21 +223,40 @@ export const Layout: React.FC<LayoutProps> = ({
 
             {/* Right Actions */}
             <div className="flex items-center gap-6 w-64 justify-end">
+               {/* Layout Switcher */}
+               <div className="relative group">
+                  <button 
+                    className={`p-4 rounded-2xl transition-all border-2 flex items-center justify-center ${theme === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border-slate-200'}`}
+                    title="Switch Layout"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                  </button>
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-[#0b1021] border border-slate-800 rounded-xl shadow-2xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                     <button onClick={() => setLayoutMode('LEGACY')} className="w-full text-left px-4 py-3 text-[10px] font-bold text-indigo-400 bg-indigo-900/10 hover:bg-indigo-900/20 transition-colors border-b border-slate-800">
+                        LEGACY (HORIZONTAL)
+                     </button>
+                     <button onClick={() => setLayoutMode('COMMAND')} className="w-full text-left px-4 py-3 text-[10px] font-bold text-slate-400 hover:text-white hover:bg-slate-900 transition-colors border-b border-slate-800">
+                        COMMAND (SIDEBAR)
+                     </button>
+                     <button onClick={() => setLayoutMode('ZENITH')} className="w-full text-left px-4 py-3 text-[10px] font-bold text-indigo-400 bg-indigo-900/10 hover:bg-indigo-900/20 transition-colors">
+                        ZENITH (TOP NAV)
+                     </button>
+                  </div>
+               </div>
+
                <button 
                  onClick={onSearchClick}
-                 className={`p-3 rounded-xl transition-all border-2 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border-slate-200'}`}
+                 className={`p-4 rounded-2xl transition-all border-2 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border-slate-200'}`}
                  title="Command K"
                >
                   <IconWrapper path={<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />} />
                </button>
 
-               <div className="w-px h-8 bg-slate-800/50"></div>
-
                <div className="relative group">
                  <select 
                    value={theater} 
                    onChange={(e) => setTheater(e.target.value)}
-                   className={`bg-transparent text-xs font-bold uppercase focus:outline-none cursor-pointer border-none max-w-[140px] truncate py-2 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                   className={`bg-transparent text-sm font-bold uppercase focus:outline-none cursor-pointer border-none max-w-[160px] truncate py-3 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
                  >
                     {STRATEGIC_CITIES.map(c => (
                       <option key={c.city} value={c.city}>{c.city}</option>
@@ -245,7 +267,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
                <button
                  onClick={toggleTheme}
-                 className={`p-3 rounded-xl transition-all border-2 ${theme === 'dark' ? 'border-slate-800 hover:bg-slate-900 text-slate-500 hover:text-slate-300' : 'hover:bg-slate-100 text-slate-400 border-transparent'}`}
+                 className={`p-4 rounded-2xl transition-all border-2 ${theme === 'dark' ? 'border-slate-800 hover:bg-slate-900 text-slate-500 hover:text-slate-300' : 'hover:bg-slate-100 text-slate-400 border-transparent'}`}
                >
                   {theme === 'dark' ? '🌙' : '☀️'}
                </button>
@@ -255,7 +277,7 @@ export const Layout: React.FC<LayoutProps> = ({
 
       {/* --- TIER 2: TACTICAL SUB-MODULES (THE 54 BUTTONS) --- */}
       <div className={`border-b sticky top-24 z-40 transition-colors duration-500 shadow-md ${theme === 'dark' ? 'bg-[#05091a] border-slate-800' : 'bg-slate-50 border-slate-200'} backdrop-blur-md`}>
-         <div className="max-w-[1800px] mx-auto px-8 py-4 flex items-center justify-start overflow-x-auto custom-scrollbar no-scrollbar">
+         <div className="max-w-[1920px] mx-auto px-10 py-5 flex items-center justify-start overflow-x-auto custom-scrollbar no-scrollbar">
             <div className="flex gap-3">
                {SUB_MODULES[activeMode].map((mod) => {
                  const isActive = activeModule === mod.id;
@@ -263,9 +285,9 @@ export const Layout: React.FC<LayoutProps> = ({
                    <button
                      key={mod.id}
                      onClick={() => setActiveModule(mod.id)}
-                     className={`px-6 py-3 rounded-lg text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 ${
+                     className={`px-8 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 ${
                        isActive
-                         ? `text-white ${activeConfig.borderClass} ${activeConfig.bgClass} shadow-lg ${activeConfig.shadowClass}`
+                         ? `text-white ${activeConfig.borderClass} ${activeConfig.bgClass} shadow-lg ${activeConfig.shadowClass} scale-[1.02]`
                          : theme === 'dark' 
                            ? 'bg-slate-900/40 border-slate-800 text-slate-400 hover:text-white hover:border-slate-600 hover:bg-slate-800' 
                            : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'
@@ -280,7 +302,7 @@ export const Layout: React.FC<LayoutProps> = ({
       </div>
 
       {/* --- MAIN CONTENT AREA --- */}
-      <main className="relative min-h-[calc(100vh-160px)]">
+      <main className="relative min-h-[calc(100vh-180px)]">
          {/* Background Ambient Glow based on Mode */}
          <div className={`fixed inset-0 pointer-events-none opacity-[0.03] transition-colors duration-1000 ${activeConfig.bgClass.replace('/20', '/10')}`}></div>
          {children}

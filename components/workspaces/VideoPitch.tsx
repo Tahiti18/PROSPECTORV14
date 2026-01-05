@@ -164,7 +164,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
             ) : (
               <div className="relative z-10 flex flex-col items-center text-center space-y-8 px-20 opacity-30">
                  <div className="w-32 h-32 rounded-full border-4 border-slate-800 flex items-center justify-center">
-                    <span className="text-6xl grayscale">🎥</span>
+                    <svg className="w-16 h-16 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
                  </div>
                  <h4 className="text-4xl font-black italic text-slate-700 uppercase tracking-tighter">VEO STANDBY</h4>
                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] max-w-md leading-relaxed">

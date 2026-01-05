@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { generateLeads } from '../../services/geminiService';
@@ -61,7 +60,7 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
         <h2 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.5em] mb-4">Area Scan Initiation</h2>
-        <h1 className="text-5xl font-black text-white italic tracking-tighter uppercase leading-none">RADAR <span className="text-indigo-600 not-italic">RECON</span></h1>
+        <h1 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">RADAR <span className="text-indigo-600 not-italic">RECON</span></h1>
         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3">Active Theater: {theater}</p>
       </div>
 

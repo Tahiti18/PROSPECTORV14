@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Lead, MainMode, SubModule } from '../../types';
 import { SESSION_ASSETS, orchestrateBusinessPackage, saveAsset, AssetRecord } from '../../services/geminiService';
@@ -232,7 +231,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       {/* HEADER */}
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-6xl font-black italic text-white uppercase tracking-tighter leading-none">
+          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter leading-none">
             BUSINESS <span className="text-emerald-500 not-italic">ORCHESTRATOR</span>
           </h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">

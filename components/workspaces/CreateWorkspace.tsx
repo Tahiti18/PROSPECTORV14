@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SubModule, Lead } from '../../types';
 
@@ -13,7 +12,7 @@ export const CreateWorkspace: React.FC<CreateWorkspaceProps> = ({ activeModule, 
     <div className="space-y-12 py-12 max-w-[1550px] mx-auto px-6 animate-in fade-in duration-700">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-6xl font-black italic tracking-tighter text-white uppercase leading-none">
+          <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase leading-none">
             {activeModule.replace('_', ' ')} <span className="text-indigo-600 not-italic">FORGE</span>
           </h1>
           <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.5em] mt-4 italic">High-Resolution Neural Synthesis Protocol Active</p>
@@ -76,8 +75,14 @@ export const CreateWorkspace: React.FC<CreateWorkspaceProps> = ({ activeModule, 
             
             {/* Visual placeholder */}
             <div className="relative z-10 flex flex-col items-center text-center space-y-8 px-20">
-               <div className="w-24 h-24 bg-slate-900 border border-slate-800 rounded-[32px] flex items-center justify-center text-5xl opacity-40 group-hover:opacity-100 group-hover:scale-110 group-hover:border-indigo-500/40 transition-all shadow-2xl">
-                  {activeModule.includes('VIDEO') ? '📹' : activeModule.includes('VISUAL') ? '🎨' : '🧪'}
+               <div className="w-24 h-24 bg-slate-900 border border-slate-800 rounded-[32px] flex items-center justify-center text-indigo-500 opacity-40 group-hover:opacity-100 group-hover:scale-110 group-hover:border-indigo-500/40 transition-all shadow-2xl">
+                  {activeModule.includes('VIDEO') ? (
+                    <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 7l-7 5 7 5V7z" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+                  ) : activeModule.includes('VISUAL') ? (
+                    <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l5 5" /></svg>
+                  ) : (
+                    <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.641.32a2 2 0 01-1.76 0l-.641-.32a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547V18a2 2 0 002 2h12a2 2 0 002-2v-2.572zM12 11V3.5l3 3m-3-3l-3 3" /></svg>
+                  )}
                </div>
                <div className="space-y-4">
                   <h4 className="text-3xl font-black italic text-slate-800 uppercase tracking-tighter group-hover:text-slate-200 transition-colors">FORGE_IDLE</h4>
