@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { MainMode, SubModule } from '../types';
 import { Tooltip } from './Tooltip';
@@ -101,4 +100,149 @@ const Icons = {
   // Sell Icons
   Briefcase: <IconWrapper path={<><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></>} />,
   Contract: <IconWrapper path={<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />} />,
-  Calc: <IconWrapper path={<><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="
+  Calc: <IconWrapper path={<><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="M16 18h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /><path d="M16 14h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /></>} />,
+  Link: <IconWrapper path={<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />} />,
+  Columns: <IconWrapper path={<path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18" />} />,
+  Sandbox: <IconWrapper path={<path d="M12 2l9 4.9V17L12 22l-9-4.9V7z" />} />,
+  Edit: <IconWrapper path={<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />} />,
+  Mic: <IconWrapper path={<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />} />,
+  Bot: <IconWrapper path={<rect x="3" y="11" width="18" height="10" rx="2" />} />,
+  Megaphone: <IconWrapper path={<path d="M22 8.35V2.36a1 1 0 0 0-1.42-.86l-7.1 3.53a3 3 0 0 0-1.63 2.68v7.58a3 3 0 0 0 1.63 2.68l7.1 3.53a1 1 0 0 0 1.42-.86v-5.99" />} />,
+  Flow: <IconWrapper path={<polyline points="16 18 22 12 16 6" />} />,
+
+  // Control Icons
+  Book: <IconWrapper path={<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />} />,
+  Card: <IconWrapper path={<rect x="1" y="4" width="22" height="16" rx="2" ry="2" />} />,
+  Handshake: <IconWrapper path={<path d="M12 12l8-8V2" />} />,
+  Building: <IconWrapper path={<path d="M12 12V2" />} />,
+  Cog: <IconWrapper path={<circle cx="12" cy="12" r="3" />} />,
+  Key: <IconWrapper path={<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />} />,
+  Network: <IconWrapper path={<circle cx="12" cy="12" r="10" />} />,
+  Clock: <IconWrapper path={<circle cx="12" cy="12" r="10" />} />,
+  List: <IconWrapper path={<line x1="8" y1="6" x2="21" y2="6" />} />,
+  Theme: <IconWrapper path={<circle cx="12" cy="12" r="10" />} />,
+  Token: <IconWrapper path={<circle cx="12" cy="12" r="10" />} />,
+};
+
+export const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  activeMode, 
+  setActiveMode,
+  activeModule,
+  onSearchClick,
+  theater,
+  setTheater,
+  theme,
+  toggleTheme
+}) => {
+  // Sidebar items corresponding to MainMode
+  const navItems: { mode: MainMode; label: string; icon: React.ReactNode }[] = [
+    { mode: 'OPERATE', label: 'OPERATE', icon: Icons.Operate },
+    { mode: 'CREATE', label: 'CREATE', icon: Icons.Create },
+    { mode: 'STUDIO', label: 'STUDIO', icon: Icons.Studio },
+    { mode: 'SELL', label: 'SELL', icon: Icons.Sell },
+    { mode: 'CONTROL', label: 'CONTROL', icon: Icons.Control },
+  ];
+
+  return (
+    <div className={`min-h-screen flex flex-col md:flex-row transition-colors duration-300 ${theme === 'dark' ? 'bg-[#020617] text-slate-300' : 'bg-slate-50 text-slate-900'}`}>
+      {/* Sidebar */}
+      <aside className={`w-full md:w-64 flex-shrink-0 flex flex-col border-r transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0b1021] border-slate-800' : 'bg-white border-slate-200'}`}>
+        {/* Logo Area */}
+        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+              <span className="text-white font-black text-xl">P</span>
+            </div>
+            <div>
+              <h1 className={`text-lg font-bold leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Pomelli</h1>
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1">OS V13.2</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
+          {navItems.map((item) => (
+            <button
+              key={item.mode}
+              onClick={() => setActiveMode(item.mode)}
+              className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${
+                activeMode === item.mode
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                  : 'text-slate-500 hover:bg-slate-800/50 hover:text-slate-200'
+              }`}
+            >
+              <div className={`p-1 ${activeMode === item.mode ? 'text-white' : 'text-current'}`}>
+                {item.icon}
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>
+              {activeMode === item.mode && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
+              )}
+            </button>
+          ))}
+        </nav>
+
+        {/* Footer Actions */}
+        <div className="p-4 border-t border-slate-800/50 space-y-3">
+           <button 
+             onClick={onSearchClick}
+             className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${theme === 'dark' ? 'bg-slate-900 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+           >
+              <span className="text-lg">🔍</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">COMMAND K</span>
+           </button>
+           
+           <button
+             onClick={toggleTheme}
+             className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${theme === 'dark' ? 'hover:bg-slate-900 text-slate-500 hover:text-slate-300' : 'hover:bg-slate-100 text-slate-400'}`}
+           >
+              <span className="text-lg">{theme === 'dark' ? '🌙' : '☀️'}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{theme === 'dark' ? 'DARK MODE' : 'LIGHT MODE'}</span>
+           </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className={`h-20 border-b flex items-center justify-between px-8 sticky top-0 z-40 backdrop-blur-xl ${theme === 'dark' ? 'bg-[#020617]/80 border-slate-800' : 'bg-slate-50/80 border-slate-200'}`}>
+           <div className="flex items-center gap-4">
+              <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border ${theme === 'dark' ? 'text-slate-400 border-slate-800' : 'text-slate-500 border-slate-300'}`}>
+                 {activeMode} / {activeModule.replace('_', ' ')}
+              </span>
+           </div>
+
+           <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest hidden sm:inline">THEATER:</span>
+                 <select 
+                   value={theater} 
+                   onChange={(e) => setTheater(e.target.value)}
+                   className={`bg-transparent text-[10px] font-bold uppercase focus:outline-none cursor-pointer border-none ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                 >
+                    {STRATEGIC_CITIES.map(c => (
+                      <option key={c.city} value={c.city}>{c.city} [{c.tier}]</option>
+                    ))}
+                 </select>
+              </div>
+              
+              <div className="w-px h-6 bg-slate-800/50 hidden sm:block"></div>
+
+              <div className="flex items-center gap-3">
+                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border-2 border-white/10 shadow-lg"></div>
+                 <div className="hidden sm:block text-right">
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>AGENT ZERO</p>
+                    <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">COMMANDER</p>
+                 </div>
+              </div>
+           </div>
+        </header>
+
+        <main className="flex-1 relative overflow-y-auto overflow-x-hidden">
+           {children}
+        </main>
+      </div>
+    </div>
+  );
+};
