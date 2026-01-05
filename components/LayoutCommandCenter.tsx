@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { MainMode, SubModule } from '../types';
 
@@ -63,6 +62,7 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
   CREATE: {
     "Creative Studio": [
       { id: 'VISUAL_STUDIO', label: 'Creative Studio' },
+      { id: 'BRAND_DNA', label: 'Brand DNA' },
       { id: 'MOCKUPS_4K', label: 'Mockup Generator' },
     ],
     "Assets": [
@@ -80,7 +80,7 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
     ],
     "Audio": [
       { id: 'SONIC_STUDIO', label: 'Audio Studio' },
-      { id: 'LIVE_SCRIBE', label: 'Live Transcribe' },
+      { id: 'LIVE_SCRIBE', label: 'Live Scribe' },
     ]
   },
   SELL: {
@@ -123,12 +123,12 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
   }
 };
 
-const MODE_CONFIG: Record<MainMode, { color: string; bg: string; icon: React.ReactNode }> = {
-  OPERATE: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: Icons.OPERATE },
-  CREATE: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: Icons.CREATE },
-  STUDIO: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: Icons.STUDIO },
-  SELL: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: Icons.SELL },
-  CONTROL: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: Icons.CONTROL },
+const MODE_CONFIG: Record<MainMode, { color: string; bg: string; shadowClass: string; icon: React.ReactNode }> = {
+  OPERATE: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.OPERATE },
+  CREATE: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.CREATE },
+  STUDIO: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.STUDIO },
+  SELL: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.SELL },
+  CONTROL: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.CONTROL },
 };
 
 export const LayoutCommandCenter: React.FC<LayoutProps> = ({ 

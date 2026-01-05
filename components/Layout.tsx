@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { MainMode, SubModule } from '../types';
 
@@ -88,6 +87,7 @@ const SUB_MODULES: Record<MainMode, { id: SubModule; label: string }[]> = {
   ],
   CREATE: [
     { id: 'VISUAL_STUDIO', label: 'Visual Studio' },
+    { id: 'BRAND_DNA', label: 'Brand DNA' },
     { id: 'MOCKUPS_4K', label: '4K Mockups' },
     { id: 'PRODUCT_SYNTH', label: 'Product Synth' },
     { id: 'FLASH_SPARK', label: 'Flash Spark' },

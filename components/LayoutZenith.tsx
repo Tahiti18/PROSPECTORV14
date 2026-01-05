@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { MainMode, SubModule } from '../types';
 import { Tooltip } from './Tooltip';
@@ -65,7 +64,7 @@ const ModeIcon = ({ id, active }: { id: MainMode, active: boolean }) => {
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
   // OPERATE
-  COMMAND: <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />,
+  COMMAND: <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />,
   RADAR_RECON: <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />, 
   AUTO_CRAWL: <path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />,
   VIRAL_PULSE: <path d="M13 10V3L4 14h7v7l9-11h-7z" />,
@@ -90,6 +89,7 @@ const MODULE_ICONS: Record<string, React.ReactNode> = {
 
   // CREATE
   VISUAL_STUDIO: <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+  BRAND_DNA: <path d="M2 12h20" />,
   MOCKUPS_4K: <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />,
   PRODUCT_SYNTH: <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />,
   FLASH_SPARK: <path d="M13 10V3L4 14h7v7l9-11h-7z" />,
@@ -167,6 +167,7 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
   CREATE: {
     "Creative Studio": [
       { id: 'VISUAL_STUDIO', label: 'Creative Studio', desc: 'Generate brand imagery' },
+      { id: 'BRAND_DNA', label: 'Brand DNA', desc: 'Extract Visual Identity' },
       { id: 'MOCKUPS_4K', label: 'Mockup Forge', desc: 'Create high-res product mockups' },
     ],
     "Assets": [

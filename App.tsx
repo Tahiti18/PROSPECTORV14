@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MainMode, SubModule, Lead, ComputeStats } from './types';
 import { Layout } from './components/Layout';
@@ -54,6 +53,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { subscribeToCompute } from './services/computeTracker';
 import { IntelNode } from './components/workspaces/IntelNode';
 import { AutoCrawl } from './components/workspaces/AutoCrawl';
+import { BrandDNA } from './components/workspaces/BrandDNA';
 
 const STORAGE_KEY_LEADS = 'prospector_os_leads_v1';
 const STORAGE_KEY_THEATER = 'prospector_os_theater_v1';
@@ -199,6 +199,7 @@ const App: React.FC = () => {
         case 'PRODUCT_SYNTH': return <ProductSynth lead={lockedLead} />;
         case 'FLASH_SPARK': return <FlashSpark lead={lockedLead} />;
         case 'MEDIA_VAULT': return <MediaVault />;
+        case 'BRAND_DNA': return <BrandDNA lead={lockedLead} onUpdateLead={handleUpdateLead} />;
         default: return <CreateWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
       }
     }

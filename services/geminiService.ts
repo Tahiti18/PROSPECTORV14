@@ -131,6 +131,17 @@ export const loggedGenerateContent = async (params: {
   }
 };
 
+const safeJsonParse = (text: string) => {
+  try {
+    // Remove markdown code blocks if present
+    const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
+    return JSON.parse(cleanText);
+  } catch (e) {
+    console.warn("JSON Parse Error, attempting recovery", e);
+    return null;
+  }
+};
+
 // --- IMPLEMENTATIONS ---
 
 export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIdentity> => {
@@ -172,7 +183,7 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
     2.  FONTS: Identify the font families used for Headers and Body text (e.g. "Montserrat", "Open Sans").
     3.  COPY: Extract the exact Tagline and a 2-3 sentence Business Overview.
     
-    Return strictly valid JSON:
+    Return strictly valid JSON (do not add markdown blocks):
     {
       "colors": ["#hex", "#hex", "#hex", "#hex", "#hex"],
       "fontPairing": "HeaderFont / BodyFont",
@@ -195,7 +206,19 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
       config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
     });
     
-    const data = JSON.parse(res);
+    let data = safeJsonParse(res);
+    
+    // Safety fallback if parsing failed completely
+    if (!data) {
+        data = {
+            colors: ['#000000', '#FFFFFF', '#333333', '#666666', '#999999'],
+            fontPairing: 'Inter / Roboto',
+            archetype: 'Unknown',
+            visualTone: 'Professional',
+            tagline: 'Building the Future',
+            extractedImages: []
+        };
+    }
     
     // Post-Process: Inject Deterministic Assets & Filter Stock
     const rawImages = data.extractedImages || [];
@@ -221,7 +244,7 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
     return data;
   } catch (e) {
     console.error("DNA Extraction Failed", e);
-    // Fallback
+    // Hard Fallback to prevent crash
     return {
         colors: ['#000000', '#FFFFFF', '#333333', '#666666', '#999999'],
         fontPairing: 'Inter / Roboto',
