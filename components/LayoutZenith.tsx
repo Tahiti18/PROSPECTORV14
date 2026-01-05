@@ -55,232 +55,213 @@ const STRATEGIC_CITIES = [
 const ModeIcon = ({ id, active }: { id: MainMode, active: boolean }) => {
   const cn = active ? "text-white" : "text-slate-400 group-hover:text-white";
   switch(id) {
-    case 'OPERATE': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>; // Stack
-    case 'CREATE': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>; // Pen
-    case 'STUDIO': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>; // Camera
-    case 'SELL': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>; // Dollar
-    case 'CONTROL': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>; // Lock
+    case 'OPERATE': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>; 
+    case 'CREATE': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>; 
+    case 'STUDIO': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>; 
+    case 'SELL': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>; 
+    case 'CONTROL': return <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>; 
   }
 }
 
-// --- SIDEBAR MODULE ICONS ---
-const ModuleIcon = ({ id, className = "w-5 h-5" }: { id: SubModule; className?: string }) => {
-  const getPath = () => {
-    switch (id) {
-      // OPERATE (Operations)
-      case 'COMMAND': return <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />;
-      case 'WORKSPACE': return <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />;
-      case 'TARGET_LIST': return <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />;
-      case 'RADAR_RECON': return <path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
-      case 'AUTO_CRAWL': return <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />;
-      case 'VIRAL_PULSE': return <path d="M13 10V3L4 14h7v7l9-11h-7z" />;
-      case 'HEATMAP': return <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />;
-      case 'DEEP_LOGIC': return <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />;
-      case 'BENCHMARK': return <path d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />;
-      case 'VISION_LAB': return <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />;
-      case 'ARTICLE_INTEL': return <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />;
-      case 'FACT_CHECK': return <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />;
-      case 'WAR_ROOM': return <path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
-      case 'PIPELINE': return <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />;
-      case 'ANALYTICS': return <path d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />;
-      // Distinct icon for Analytics Hub (Market Analytics)
-      case 'ANALYTICS_HUB': return <path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />;
-      case 'PROMPT_AI': return <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />;
-      case 'MODEL_TEST': return <path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.641.32a2 2 0 01-1.76 0l-.641-.32a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547V18a2 2 0 002 2h12a2 2 0 002-2v-2.572zM12 11V3.5l3 3m-3-3l-3 3" />;
-      case 'TRANSLATOR': return <path d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />;
-      
-      // CREATE (Creative)
-      case 'VISUAL_STUDIO': return <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />;
-      case 'MOCKUPS_4K': return <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />;
-      case 'PRODUCT_SYNTH': return <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />;
-      case 'FLASH_SPARK': return <path d="M13 10V3L4 14h7v7l9-11h-7z" />;
-      case 'MEDIA_VAULT': return <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />;
-      
-      // STUDIO (Media)
-      case 'VIDEO_PITCH': return <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />;
-      case 'VIDEO_AI': return <path d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />;
-      case 'CINEMA_INTEL': return <path d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />;
-      case 'MOTION_LAB': return <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
-      case 'SONIC_STUDIO': return <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />;
-      case 'LIVE_SCRIBE': return <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />;
-      
-      // SELL (Sales)
-      case 'BUSINESS_ORCHESTRATOR': return <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />;
-      case 'DECK_ARCH': return <path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />;
-      case 'FUNNEL_MAP': return <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />;
-      case 'PROPOSALS': return <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />;
-      case 'SEQUENCER': return <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />;
-      case 'PITCH_GEN': return <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />;
-      case 'VOICE_STRAT': return <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />;
-      case 'ROI_CALC': return <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
-      case 'DEMO_SANDBOX': return <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
-      case 'AI_CONCIERGE': return <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />;
-      
-      // CONTROL (Admin)
-      case 'PLAYBOOK': return <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />;
-      case 'BILLING': return <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />;
-      case 'AFFILIATE': return <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />;
-      case 'IDENTITY': return <path d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />;
-      case 'SETTINGS': return <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />;
-      case 'OS_FORGE': return <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />;
-      case 'THEME': return <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />;
-      case 'TOKENS': return <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />;
-      case 'EXPORT_DATA': return <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />;
-      case 'PROD_LOG': return <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />;
-      case 'CHRONOS': return <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />;
-      case 'CIPHER_NODE': return <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />;
-      case 'NEXUS_GRAPH': return <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />;
-      default: return <circle cx="12" cy="12" r="2" />;
-    }
-  };
+const MODULE_ICONS: Record<string, React.ReactNode> = {
+  // OPERATE
+  COMMAND: <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />,
+  RADAR_RECON: <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9" />, 
+  AUTO_CRAWL: <path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />,
+  VIRAL_PULSE: <path d="M13 10V3L4 14h7v7l9-11h-7z" />,
+  
+  // CRM
+  TARGET_LIST: <path d="M4 6h16M4 10h16M4 14h16M4 18h16" />,
+  WAR_ROOM: <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />,
+  PIPELINE: <path d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />,
+  ANALYTICS_HUB: <path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />,
+  
+  // ANALYSIS
+  BENCHMARK: <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
+  VISION_LAB: <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />, 
+  DEEP_LOGIC: <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />,
+  ARTICLE_INTEL: <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />,
+  
+  // UTILS
+  WORKSPACE: <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />,
+  PROMPT_AI: <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />,
+  MODEL_TEST: <path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.641.32a2 2 0 01-1.76 0l-.641-.32a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547V18a2 2 0 002 2h12a2 2 0 002-2v-2.572zM12 11V3.5l3 3m-3-3l-3 3" />,
+  TRANSLATOR: <path d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />,
 
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      {getPath()}
-    </svg>
-  );
+  // CREATE
+  VISUAL_STUDIO: <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />,
+  MOCKUPS_4K: <path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />,
+  PRODUCT_SYNTH: <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />,
+  FLASH_SPARK: <path d="M13 10V3L4 14h7v7l9-11h-7z" />,
+  MEDIA_VAULT: <path d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />,
+
+  // STUDIO
+  CINEMA_INTEL: <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />,
+  VIDEO_PITCH: <path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />,
+  VIDEO_AI: <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />,
+  MOTION_LAB: <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />,
+  SONIC_STUDIO: <path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />,
+  LIVE_SCRIBE: <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />,
+
+  // SELL
+  BUSINESS_ORCHESTRATOR: <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />,
+  DECK_ARCH: <path d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2V5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />,
+  FUNNEL_MAP: <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />,
+  PROPOSALS: <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
+  SEQUENCER: <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />,
+  PITCH_GEN: <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />,
+  VOICE_STRAT: <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />,
+  ROI_CALC: <path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />,
+  DEMO_SANDBOX: <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />,
+  AI_CONCIERGE: <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />,
+
+  // CONTROL
+  PLAYBOOK: <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />,
+  IDENTITY: <path d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />,
+  BILLING: <path d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />,
+  AFFILIATE: <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />,
+  SETTINGS: <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />,
+  OS_FORGE: <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />,
+  THEME: <path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />,
+  TOKENS: <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />,
+  EXPORT_DATA: <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />,
+  PROD_LOG: <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />,
+  CHRONOS: <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />,
+  NEXUS_GRAPH: <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />,
+  TASKS: <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 };
 
-// --- GROUPING LOGIC WITH TOOLTIPS ---
+const ModuleIcon = ({ id, className }: { id: string, className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {MODULE_ICONS[id] || <circle cx="12" cy="12" r="10" />}
+  </svg>
+);
+
 const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: string; desc: string }[]>> = {
   OPERATE: {
-    "Operations": [
-      { id: 'COMMAND', label: 'Dashboard', desc: 'Central overview of all lead activities and system status.' },
-      { id: 'WORKSPACE', label: 'Gemini Workspace', desc: 'General purpose AI interaction environment.' },
-      { id: 'TARGET_LIST', label: 'Lead Database', desc: 'Manage and filter your list of identified prospects.' },
+    "Research": [
+      { id: 'COMMAND', label: 'Dashboard', desc: 'Mission Control Overview' },
+      { id: 'RADAR_RECON', label: 'Lead Discovery', desc: 'Find new targets in specific regions' },
+      { id: 'AUTO_CRAWL', label: 'Auto Search', desc: 'Automated signal extraction' },
+      { id: 'VIRAL_PULSE', label: 'Trend Monitor', desc: 'Real-time trend analysis' },
     ],
-    "Discovery": [
-      { id: 'RADAR_RECON', label: 'Lead Discovery', desc: 'Find new businesses in specific regions.' },
-      { id: 'AUTO_CRAWL', label: 'Auto-Search', desc: 'Automated background searching for leads.' },
-      { id: 'VIRAL_PULSE', label: 'Trend Monitor', desc: 'Track real-time market trends and news.' },
-      { id: 'HEATMAP', label: 'Market Heatmap', desc: 'Visual density map of opportunities.' },
+    "CRM & Strategy": [
+      { id: 'TARGET_LIST', label: 'Lead Database', desc: 'Manage your prospects' },
+      { id: 'WAR_ROOM', label: 'Account Strategy', desc: 'Deep dive on specific lead' },
+      { id: 'PIPELINE', label: 'Sales Pipeline', desc: 'Kanban view of deals' },
+      { id: 'ANALYTICS_HUB', label: 'Market Analytics', desc: 'Aggregate data insights' },
     ],
-    "Analysis": [
-      { id: 'DEEP_LOGIC', label: 'Deep Analysis', desc: 'Complex reasoning on specific accounts.' },
-      { id: 'BENCHMARK', label: 'Reverse Engineer', desc: 'Analyze competitor structures.' },
-      { id: 'VISION_LAB', label: 'Vision Analysis', desc: 'Extract data from images and screenshots.' },
-      { id: 'ARTICLE_INTEL', label: 'Content Analysis', desc: 'Summarize and analyze text content.' },
-      { id: 'FACT_CHECK', label: 'Fact Verification', desc: 'Verify claims against trusted sources.' },
-    ],
-    "Strategy": [
-        { id: 'WAR_ROOM', label: 'Client Strategy', desc: 'Deep dive strategy for specific clients.' },
-        { id: 'PIPELINE', label: 'Sales Pipeline', desc: 'Kanban view of deal stages.' },
-        { id: 'ANALYTICS', label: 'Core Analytics', desc: 'General system performance metrics.' },
-        { id: 'ANALYTICS_HUB', label: 'Market Analytics', desc: 'Deep market share and dominance metrics.' },
+    "Analysis Tools": [
+      { id: 'BENCHMARK', label: 'Reverse Engineer', desc: 'Deconstruct competitor sites' },
+      { id: 'VISION_LAB', label: 'Vision Analysis', desc: 'AI image analysis' },
+      { id: 'DEEP_LOGIC', label: 'Deep Analysis', desc: 'Complex reasoning tasks' },
+      { id: 'ARTICLE_INTEL', label: 'Content Analysis', desc: 'Summarize and analyze text' },
     ],
     "Utilities": [
-        { id: 'PROMPT_AI', label: 'Prompt Interface', desc: 'Direct raw interface to the AI models.' },
-        { id: 'MODEL_TEST', label: 'Model Bench', desc: 'Test different model capabilities.' },
-        { id: 'TRANSLATOR', label: 'Localization', desc: 'Translate content for international markets.' }
+        { id: 'WORKSPACE', label: 'Gemini Workspace', desc: 'General AI task runner' },
+        { id: 'PROMPT_AI', label: 'Prompt Interface', desc: 'Direct LLM interaction' },
+        { id: 'MODEL_TEST', label: 'Model Bench', desc: 'Compare model performance' },
+        { id: 'TRANSLATOR', label: 'Translator', desc: 'Language localization' }
     ]
   },
   CREATE: {
     "Creative Studio": [
-      { id: 'VISUAL_STUDIO', label: 'Creative Studio', desc: 'Generate high-quality visual assets.' },
-      { id: 'MOCKUPS_4K', label: 'Mockup Generator', desc: 'Create photorealistic product mockups.' },
+      { id: 'VISUAL_STUDIO', label: 'Visual Studio', desc: 'Generate brand imagery' },
+      { id: 'MOCKUPS_4K', label: 'Mockup Forge', desc: 'Create high-res product mockups' },
     ],
-    "Content": [
-      { id: 'PRODUCT_SYNTH', label: 'Product Design', desc: 'Architect new service offerings.' },
-      { id: 'FLASH_SPARK', label: 'Content Sparks', desc: 'Generate rapid social media hooks.' },
-    ],
-    "Storage": [
-      { id: 'MEDIA_VAULT', label: 'Asset Library', desc: 'Storage for all generated media.' },
+    "Assets": [
+      { id: 'PRODUCT_SYNTH', label: 'Product Design', desc: 'Architect new offers' },
+      { id: 'FLASH_SPARK', label: 'Flash Spark', desc: 'Viral content ideation' },
+      { id: 'MEDIA_VAULT', label: 'Media Vault', desc: 'Manage generated assets' },
     ]
   },
   STUDIO: {
-    "Media Production": [
-      { id: 'CINEMA_INTEL', label: 'Video Analysis', desc: 'Deep understanding of video sources.' },
-      { id: 'VIDEO_PITCH', label: 'Video Gen', desc: 'Create AI-generated video pitches.' },
-      { id: 'VIDEO_AI', label: 'Video Audit', desc: 'Analyze existing video content.' },
-      { id: 'MOTION_LAB', label: 'Motion Design', desc: 'Create animated storyboards.' },
+    "Video": [
+      { id: 'VIDEO_PITCH', label: 'Veo Pitch', desc: 'AI Video Generation' },
+      { id: 'VIDEO_AI', label: 'Video Audit', desc: 'Analyze video content' },
+      { id: 'CINEMA_INTEL', label: 'Cinema Intel', desc: 'Deep video understanding' },
+      { id: 'MOTION_LAB', label: 'Motion Lab', desc: 'Motion graphics concepts' },
     ],
     "Audio": [
-      { id: 'SONIC_STUDIO', label: 'Audio Studio', desc: 'Generate voiceovers and audio clips.' },
-      { id: 'LIVE_SCRIBE', label: 'Live Transcribe', desc: 'Real-time audio transcription.' },
+      { id: 'SONIC_STUDIO', label: 'Sonic Studio', desc: 'AI Voice Generation' },
+      { id: 'LIVE_SCRIBE', label: 'Live Scribe', desc: 'Real-time audio transcription' },
     ]
   },
   SELL: {
     "Strategy": [
-      { id: 'BUSINESS_ORCHESTRATOR', label: 'Strategy Builder', desc: 'Build comprehensive client strategies.' },
-      { id: 'DECK_ARCH', label: 'Deck Architect', desc: 'Structure sales presentations.' },
-      { id: 'FUNNEL_MAP', label: 'Funnel Architect', desc: 'Map out conversion funnels.' },
+      { id: 'BUSINESS_ORCHESTRATOR', label: 'Orchestrator', desc: 'Full campaign strategy' },
+      { id: 'DECK_ARCH', label: 'Deck Architect', desc: 'Pitch deck builder' },
+      { id: 'FUNNEL_MAP', label: 'Funnel Map', desc: 'Sales funnel visualization' },
     ],
     "Execution": [
-      { id: 'PROPOSALS', label: 'Proposal Builder', desc: 'Draft professional proposals.' },
-      { id: 'SEQUENCER', label: 'Campaign Builder', desc: 'Design multi-step outreach sequences.' },
-      { id: 'PITCH_GEN', label: 'Pitch Generator', desc: 'Write elevator pitches.' },
-      { id: 'VOICE_STRAT', label: 'Sales Coach', desc: 'Real-time sales objection handling.' },
+      { id: 'PROPOSALS', label: 'Proposals', desc: 'Draft sales proposals' },
+      { id: 'SEQUENCER', label: 'Sequencer', desc: 'Outreach campaigns' },
+      { id: 'PITCH_GEN', label: 'Pitch Gen', desc: 'Elevator pitch generator' },
+      { id: 'VOICE_STRAT', label: 'Voice Strat', desc: 'Real-time sales coaching' },
     ],
     "Simulation": [
-      { id: 'ROI_CALC', label: 'ROI Calculator', desc: 'Project returns for clients.' },
-      { id: 'DEMO_SANDBOX', label: 'Growth Simulator', desc: 'Simulate growth scenarios.' },
-      { id: 'AI_CONCIERGE', label: 'AI Agent', desc: 'Simulate chat interactions.' },
+      { id: 'ROI_CALC', label: 'ROI Calc', desc: 'Value projection' },
+      { id: 'DEMO_SANDBOX', label: 'Demo Sandbox', desc: 'Growth simulation' },
+      { id: 'AI_CONCIERGE', label: 'AI Concierge', desc: 'Chatbot simulation' },
     ]
   },
   CONTROL: {
-    "Admin": [
-      { id: 'PLAYBOOK', label: 'Playbook', desc: 'Agency standard operating procedures.' },
-      { id: 'IDENTITY', label: 'Agency Identity', desc: 'Configure your agency branding.' },
-      { id: 'BILLING', label: 'Billing', desc: 'Track usage and costs.' },
-      { id: 'AFFILIATE', label: 'Affiliate Program', desc: 'Manage partner programs.' },
+    "Operations": [
+      { id: 'PLAYBOOK', label: 'Playbook', desc: 'Agency methodology' },
+      { id: 'IDENTITY', label: 'Identity', desc: 'Brand identity configuration' },
+      { id: 'BILLING', label: 'Billing', desc: 'Cost management' },
+      { id: 'AFFILIATE', label: 'Affiliate', desc: 'Partner program setup' },
     ],
     "System": [
-      { id: 'SETTINGS', label: 'Settings', desc: 'General preferences.' },
-      { id: 'OS_FORGE', label: 'System Config', desc: 'Core system parameters.' },
-      { id: 'THEME', label: 'Theme', desc: 'UI appearance settings.' },
-      { id: 'TOKENS', label: 'Credits', desc: 'Manage AI token usage.' },
+      { id: 'SETTINGS', label: 'Settings', desc: 'Global configuration' },
+      { id: 'OS_FORGE', label: 'OS Forge', desc: 'System prompts' },
+      { id: 'THEME', label: 'Theme', desc: 'UI customization' },
+      { id: 'TOKENS', label: 'Tokens', desc: 'Usage stats' },
     ],
-    "Data": [
-        { id: 'EXPORT_DATA', label: 'Data Export', desc: 'Download your data.' },
-        { id: 'PROD_LOG', label: 'System Logs', desc: 'View technical operation logs.' },
-        { id: 'CHRONOS', label: 'Timeline', desc: 'Historical event tracking.' },
-        { id: 'CIPHER_NODE', label: 'Security', desc: 'Security settings.' },
-        { id: 'NEXUS_GRAPH', label: 'Entity Graph', desc: 'Visual relationship mapping.' },
+    "Logs": [
+        { id: 'EXPORT_DATA', label: 'Export Data', desc: 'Backup and export' },
+        { id: 'PROD_LOG', label: 'Prod Log', desc: 'System logs' },
+        { id: 'CHRONOS', label: 'Chronos', desc: 'Timeline view' },
+        { id: 'NEXUS_GRAPH', label: 'Nexus Graph', desc: 'Entity relationship view' },
+        { id: 'TASKS', label: 'Tasks', desc: 'Mission checklist' },
+        { id: 'CIPHER_NODE', label: 'Cipher Node', desc: 'Security status' },
     ]
   }
 };
 
-// UNIFIED EMERALD THEME FOR ALL MODES
-const MODE_COLORS: Record<MainMode, string> = {
-  OPERATE: 'text-emerald-500',
-  CREATE: 'text-emerald-500',
-  STUDIO: 'text-emerald-500',
-  SELL: 'text-emerald-500',
-  CONTROL: 'text-emerald-500',
-};
-
 const MODE_CONFIG: Record<MainMode, any> = {
-  OPERATE: {},
-  CREATE: {},
-  STUDIO: {},
-  SELL: {},
-  CONTROL: {},
+  OPERATE: { color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  CREATE: { color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  STUDIO: { color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  SELL: { color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  CONTROL: { color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
 };
 
 export const LayoutZenith: React.FC<LayoutProps> = ({ 
   children, 
   activeMode, 
-  setActiveMode,
-  activeModule,
-  setActiveModule,
-  onSearchClick,
-  theater,
-  setTheater,
-  theme,
-  toggleTheme,
-  currentLayout,
-  setLayoutMode
+  setActiveMode, 
+  activeModule, 
+  setActiveModule, 
+  onSearchClick, 
+  theater, 
+  setTheater, 
+  theme, 
+  toggleTheme, 
+  currentLayout, 
+  setLayoutMode 
 }) => {
   const [moduleFilter, setModuleFilter] = useState('');
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [marketExpanded, setMarketExpanded] = useState(false);
   const groups = MODULE_GROUPS[activeMode];
-  const activeColor = MODE_COLORS[activeMode];
+  const activeConfig = MODE_CONFIG[activeMode];
   const mainRef = useRef<HTMLDivElement>(null);
   const marketRef = useRef<HTMLDivElement>(null);
 
   const handleModeClick = (mode: MainMode) => {
     setActiveMode(mode);
+    // Set default module for each mode
     switch (mode) {
       case 'OPERATE': setActiveModule('COMMAND'); break;
       case 'CREATE': setActiveModule('VISUAL_STUDIO'); break;
@@ -296,7 +277,6 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
     }
   }, [activeModule]);
 
-  // Click outside to collapse market pill
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (marketRef.current && !marketRef.current.contains(event.target as Node)) {
@@ -311,22 +291,21 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
 
   return (
     <div className={`h-screen w-full flex flex-col overflow-hidden bg-[#020617] text-slate-100`}>
-      
-      {/* --- COMMAND CENTER HEADER (Flex Item, Not Fixed) --- */}
       <header className={`h-20 flex-none border-b z-[100] flex items-center justify-between px-8 bg-[#030712] border-slate-800`}>
-         
-         {/* LEFT: IDENTITY (Cleaner) */}
          <div className="flex items-center gap-4 w-80 pl-2">
             <h1 className={`text-xl font-black tracking-tight leading-none text-white`}>
                PROSPECTOR <span className="text-emerald-500 italic">OS</span>
             </h1>
          </div>
 
-         {/* CENTER: PILL NAVIGATION (Relative positioning context is header) */}
          <div className="absolute left-1/2 top-10 -translate-x-1/2 -translate-y-1/2 hidden xl:block pointer-events-auto">
             <nav className={`flex items-center gap-1 p-1.5 rounded-full border shadow-2xl bg-[#0b1021] border-slate-800`}>
                {(Object.keys(MODE_CONFIG) as MainMode[]).map((mode) => {
                   const isActive = activeMode === mode;
+                  const label = mode === 'OPERATE' ? 'RESEARCH' : 
+                                mode === 'STUDIO' ? 'MEDIA' : 
+                                mode === 'SELL' ? 'OUTREACH' : 
+                                mode === 'CONTROL' ? 'ADMIN' : mode;
                   return (
                      <button
                         key={mode}
@@ -338,36 +317,27 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                         }`}
                      >
                         <ModeIcon id={mode} active={isActive} />
-                        {mode}
+                        {label}
                      </button>
                   );
                })}
             </nav>
          </div>
 
-         {/* RIGHT: UTILITIES (High Z-Index, Solid BG) */}
          <div className={`flex items-center gap-4 w-auto justify-end z-50 pl-4 py-2 bg-[#030712]`}>
-            
-            {/* Quick Search */}
             <button 
                onClick={onSearchClick}
                className={`flex items-center gap-3 px-4 h-12 rounded-2xl border text-xs font-bold transition-all group bg-[#0b1021] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700`}
             >
-               <svg className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                <span className="uppercase tracking-wider hidden md:block">SEARCH</span>
                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-800 text-slate-500`}>⌘K</span>
             </button>
 
-            {/* Compact Market Selector (Collapsible) */}
             <div ref={marketRef} className={`relative transition-all duration-300 ease-out ${marketExpanded ? 'w-64' : 'w-[120px]'}`}>
                 <div
                    onClick={() => setMarketExpanded(true)}
                    className={`flex items-center gap-3 pl-4 pr-4 h-12 rounded-full border cursor-pointer transition-all shadow-lg hover:shadow-emerald-500/10 bg-[#0b1021] border-slate-800 hover:border-emerald-500/50 overflow-hidden`}
                 >
-                   <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-                      <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                   </div>
-
                    {marketExpanded ? (
                        <select
                           autoFocus
@@ -383,40 +353,25 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                           ))}
                        </select>
                    ) : (
-                       <span className="text-[10px] font-black text-emerald-400/80 uppercase tracking-widest leading-none whitespace-nowrap">MARKET</span>
+                       <span className="text-[10px] font-black text-emerald-400/80 uppercase tracking-widest leading-none whitespace-nowrap w-full text-center">MARKET</span>
                    )}
                 </div>
             </div>
-
          </div>
       </header>
 
-      {/* --- 2. MAIN WORKSPACE CONTAINER --- */}
-      {/* Takes remaining height, Sidebar and Main scroll independently */}
       <div className="flex-1 flex overflow-hidden">
-         
-         {/* LEFT SIDEBAR (Contextual Modules Only) */}
          <aside className={`flex-shrink-0 border-r flex flex-col z-40 h-full overflow-hidden transition-all duration-300 ease-in-out bg-[#0b1021] border-slate-800 ${isSidebarExpanded ? 'w-[240px]' : 'w-[80px]'}`}>
-            
-            {/* Sidebar Expand/Collapse Control */}
             <div className={`p-4 border-b border-slate-800/50 flex items-center justify-center shrink-0`}>
                <button 
                  onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
                  className="p-2 rounded-lg hover:bg-slate-800 text-slate-500 transition-colors w-full flex items-center justify-center"
-                 title={isSidebarExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
                >
-                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                   {isSidebarExpanded ? (
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                   ) : (
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                   )}
-                 </svg>
+                 {isSidebarExpanded ? '«' : '»'}
                </button>
             </div>
 
-            {/* Modules List */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar py-6 space-y-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar py-6 space-y-6 pb-40">
                {Object.entries(groups).map(([groupName, modules]) => {
                   const filtered = (modules as { id: SubModule; label: string; desc: string }[]).filter(m => m.label.toLowerCase().includes(moduleFilter.toLowerCase()));
                   if (filtered.length === 0) return null;
@@ -432,37 +387,28 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                         <div className={`space-y-1 ${isSidebarExpanded ? 'px-4' : 'px-2'}`}>
                            {filtered.map(mod => {
                               const isActive = activeModule === mod.id;
-                              
-                              const buttonContent = (
-                                 <button
-                                    key={mod.id}
-                                    onClick={() => setActiveModule(mod.id)}
-                                    className={`w-full rounded-xl transition-all relative flex items-center group ${
-                                       isSidebarExpanded 
-                                         ? 'px-3 py-2.5 justify-between text-left' 
-                                         : 'p-3 justify-center'
-                                    } ${
-                                       isActive 
-                                          ? 'bg-slate-800 text-white shadow-md' 
-                                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-                                    }`}
-                                 >
-                                    <div className={`flex items-center ${isSidebarExpanded ? 'gap-3' : ''}`}>
-                                      <ModuleIcon id={mod.id} className={`${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'} ${isSidebarExpanded ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                                      {isSidebarExpanded && (
-                                        <span className="text-[10px] font-bold uppercase tracking-wide truncate">{mod.label}</span>
-                                      )}
-                                    </div>
-                                    
-                                    {isActive && isSidebarExpanded && <div className={`w-1.5 h-1.5 rounded-full ${activeColor.replace('text', 'bg')}`}></div>}
-                                 </button>
-                              );
-
-                              // Wrap in Tooltip
                               return (
-                                <div key={mod.id} className="w-full flex justify-center">
+                                 <div key={mod.id} className="w-full flex justify-center">
                                   <Tooltip content={mod.desc} side="right">
-                                    {buttonContent}
+                                     <button
+                                        onClick={() => setActiveModule(mod.id)}
+                                        className={`w-full rounded-xl transition-all relative flex items-center group ${
+                                           isSidebarExpanded 
+                                             ? 'px-3 py-2.5 justify-between text-left' 
+                                             : 'p-3 justify-center'
+                                        } ${
+                                           isActive 
+                                              ? 'bg-slate-800 text-white shadow-md' 
+                                              : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                                        }`}
+                                     >
+                                        <div className={`flex items-center ${isSidebarExpanded ? 'gap-3' : ''}`}>
+                                          <ModuleIcon id={mod.id} className={`${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'} ${isSidebarExpanded ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                                          {isSidebarExpanded && (
+                                            <span className="text-[10px] font-bold uppercase tracking-wide truncate">{mod.label}</span>
+                                          )}
+                                        </div>
+                                     </button>
                                   </Tooltip>
                                 </div>
                               );
@@ -474,19 +420,15 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
             </div>
          </aside>
 
-         {/* MAIN STAGE */}
          <main 
             ref={mainRef}
             className="flex-1 h-full overflow-y-auto custom-scrollbar relative bg-[#020617] p-8 md:p-12"
          >
-            {/* Ambient Background Glow */}
-            <div className={`fixed inset-0 pointer-events-none opacity-[0.03] transition-colors duration-1000 ${activeColor.replace('text', 'bg')}`}></div>
-            
+            <div className={`fixed inset-0 pointer-events-none opacity-[0.03] transition-colors duration-1000 ${activeConfig.bg}`}></div>
             <div className="max-w-[1920px] mx-auto pb-32">
                {children}
             </div>
          </main>
-
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ export const IdentityNode: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">AGENCY <span className="text-indigo-600 not-italic">IDENTITY</span></h1>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">AGENCY <span className="text-emerald-600 not-italic">IDENTITY</span></h1>
         <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic">Credentials & Brand Matrix Forge</p>
       </div>
 
@@ -48,7 +48,7 @@ export const IdentityNode: React.FC = () => {
               </div>
               <button 
                 onClick={handleForge}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
               >
                 INITIALIZE BRAND FORGE
               </button>
@@ -57,19 +57,19 @@ export const IdentityNode: React.FC = () => {
 
          {isLoading && (
             <div className="py-20 flex flex-col items-center justify-center space-y-6">
-               <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-               <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] animate-pulse">Architecting Corporate Persona...</p>
+               <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+               <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] animate-pulse">Architecting Corporate Persona...</p>
             </div>
          )}
 
          {identity && (
            <div className="flex flex-col items-center text-center space-y-8 animate-in zoom-in-95 duration-700">
-              <div className="w-32 h-32 bg-indigo-600 rounded-[32px] flex items-center justify-center text-white text-6xl font-black shadow-2xl shadow-indigo-600/30">
+              <div className="w-32 h-32 bg-emerald-600 rounded-[32px] flex items-center justify-center text-white text-6xl font-black shadow-2xl shadow-emerald-600/30">
                  {identity.name ? identity.name.charAt(0) : 'A'}
               </div>
               <div>
                  <h3 className="text-4xl font-black italic text-white uppercase tracking-tighter">{identity.name}</h3>
-                 <p className="text-sm font-bold text-indigo-400 italic tracking-wide mt-2">"{identity.tagline}"</p>
+                 <p className="text-sm font-bold text-emerald-400 italic tracking-wide mt-2">"{identity.tagline}"</p>
               </div>
               <div className="bg-slate-950 border border-slate-800 p-8 rounded-[32px] w-full">
                  <p className="text-[11px] font-medium text-slate-300 leading-relaxed italic">

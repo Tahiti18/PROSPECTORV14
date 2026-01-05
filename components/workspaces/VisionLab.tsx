@@ -94,30 +94,30 @@ export const VisionLab: React.FC<VisionLabProps> = ({ lead }) => {
         </div>
 
         <div className="lg:col-span-7">
-           <div className="bg-white border border-slate-200 rounded-[64px] h-full min-h-[700px] flex flex-col shadow-2xl overflow-hidden relative">
-              <div className="p-12 border-b border-slate-100 flex items-center gap-6">
-                 <div className="w-14 h-14 bg-black rounded-3xl flex items-center justify-center shadow-xl">
+           <div className="bg-[#0b1021] border border-slate-800 rounded-[64px] h-full min-h-[700px] flex flex-col shadow-2xl overflow-hidden relative">
+              <div className="p-12 border-b border-slate-800/50 flex items-center gap-6">
+                 <div className="w-14 h-14 bg-slate-950 border border-slate-800 rounded-3xl flex items-center justify-center shadow-xl">
                     <span className="text-2xl">👁️</span>
                  </div>
                  <div>
-                    <h3 className="text-2xl font-black italic text-black uppercase tracking-tighter">INTELLIGENCE OUTPUT</h3>
+                    <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter">INTELLIGENCE OUTPUT</h3>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em]">GEMINI 3 PRO VISION CORE</p>
                  </div>
               </div>
 
-              <div className="flex-1 p-16 relative overflow-y-auto custom-scrollbar-light">
+              <div className="flex-1 p-16 relative overflow-y-auto custom-scrollbar">
                  {isLoading ? (
                    <div className="h-full flex flex-col items-center justify-center space-y-6 animate-pulse">
-                      <div className="w-16 h-16 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin"></div>
+                      <div className="w-16 h-16 border-4 border-slate-800 border-t-emerald-500 rounded-full animate-spin"></div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">DECODING PIXEL MATRIX...</p>
                    </div>
                  ) : analysis ? (
-                   <div className="prose prose-slate max-w-none text-slate-800 font-sans leading-relaxed whitespace-pre-wrap">
+                   <div className="prose prose-invert max-w-none text-slate-300 font-sans leading-relaxed whitespace-pre-wrap">
                       {analysis}
                    </div>
                  ) : (
                    <div className="h-full flex flex-col items-center justify-center text-center p-20 opacity-20">
-                      <h4 className="text-4xl font-black italic text-slate-800 uppercase tracking-tighter">OPTIC SENSOR IDLE</h4>
+                      <h4 className="text-4xl font-black italic text-slate-700 uppercase tracking-tighter">OPTIC SENSOR IDLE</h4>
                    </div>
                  )}
               </div>

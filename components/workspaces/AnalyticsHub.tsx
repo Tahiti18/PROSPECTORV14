@@ -11,23 +11,16 @@ export const AnalyticsHub: React.FC<AnalyticsHubProps> = ({ leads }) => {
   const [analysis, setAnalysis] = useState<{ risk: string; opportunity: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Real calculations based on current ledger
   const stats = useMemo(() => {
     const totalLeads = leads.length;
     const gradeA = leads.filter(l => l.assetGrade === 'A').length;
-    
-    // Logic: Grade A = €50k, Grade B = €20k, Grade C = €5k
     const pipelineValue = leads.reduce((acc, l) => {
       if (l.assetGrade === 'A') return acc + 50000;
       if (l.assetGrade === 'B') return acc + 20000;
       return acc + 5000;
     }, 0);
-
-    // Leakage logic: (100 - leadScore) * some factor
     const leakage = leads.reduce((acc, l) => acc + (100 - l.leadScore) * 1000, 0);
-    
     const avgScore = totalLeads ? Math.round(leads.reduce((a, b) => a + b.leadScore, 0) / totalLeads) : 0;
-
     return {
       totalLeads,
       gradeA,
@@ -58,29 +51,22 @@ export const AnalyticsHub: React.FC<AnalyticsHubProps> = ({ leads }) => {
     { label: 'TOTAL PIPELINE VALUE', val: `€${stats.pipelineValue}M`, sub: 'CALCULATED FROM DATABASE' },
     { label: 'TOTAL REVENUE GAP', val: `€${stats.leakage}M`, sub: 'EST. OPPORTUNITY COST' },
     { label: 'HIGH-PROB LEADS', val: stats.gradeA.toString(), sub: 'GRADE-A LEAD DENSITY', dark: true },
-    { label: 'MARKET INDEX', val: `${stats.dominance}%`, sub: 'MEAN PROSPECT READINESS', emerald: true },
+    { label: 'MARKET INDEX', val: `${stats.dominance}%`, sub: 'MEAN PROSPECT READINESS', indigo: true },
   ];
 
   return (
     <div className="max-w-[1550px] mx-auto py-10 space-y-16 animate-in fade-in duration-700">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">
-          MARKET <span className="text-emerald-500">ANALYTICS</span>
-        </h1>
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] italic">
-          AGGREGATE INTELLIGENCE FOR {leads.length} ACTIVE RECORDS
-        </p>
+        <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">MARKET <span className="text-emerald-500">ANALYTICS</span></h1>
+        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] italic">AGGREGATE INTELLIGENCE FOR {leads.length} ACTIVE RECORDS</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {metrics.map((m, i) => (
-          <div key={i} className={`p-10 rounded-[48px] border flex flex-col space-y-4 shadow-2xl transition-all hover:scale-[1.03] ${
-            m.emerald ? 'bg-emerald-600 border-emerald-500' : 
-            m.dark ? 'bg-[#020617] border-slate-800' : 'bg-[#0b1021] border-slate-800'
-          }`}>
-             <p className={`text-[10px] font-black uppercase tracking-widest ${m.emerald ? 'text-emerald-200' : 'text-slate-500'}`}>{m.label}</p>
-             <h3 className={`text-5xl font-black italic tracking-tighter ${m.emerald ? 'text-white' : 'text-white'}`}>{m.val}</h3>
-             <p className={`text-[8px] font-black uppercase tracking-widest ${m.emerald ? 'text-emerald-300' : 'text-emerald-400'}`}>{m.sub}</p>
+          <div key={i} className={`p-10 rounded-[48px] border flex flex-col space-y-4 shadow-2xl transition-all hover:scale-[1.03] ${m.indigo ? 'bg-emerald-600 border-emerald-500' : m.dark ? 'bg-[#020617] border-slate-800' : 'bg-[#0b1021] border-slate-800'}`}>
+             <p className={`text-[10px] font-black uppercase tracking-widest ${m.indigo ? 'text-emerald-200' : 'text-slate-500'}`}>{m.label}</p>
+             <h3 className={`text-5xl font-black italic tracking-tighter ${m.indigo ? 'text-white' : 'text-white'}`}>{m.val}</h3>
+             <p className={`text-[8px] font-black uppercase tracking-widest ${m.indigo ? 'text-emerald-300' : 'text-emerald-400'}`}>{m.sub}</p>
           </div>
         ))}
       </div>

@@ -24,7 +24,7 @@ export const TranslatorNode: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">TRANS <span className="text-indigo-600 not-italic">LATOR</span></h1>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">TRANS <span className="text-emerald-600 not-italic">LATOR</span></h1>
         <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Tactical Theater Localization</p>
       </div>
 
@@ -36,7 +36,7 @@ export const TranslatorNode: React.FC = () => {
                   <textarea 
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-sm font-bold text-slate-300 focus:outline-none focus:border-indigo-500 h-48 resize-none shadow-xl italic"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-sm font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-48 resize-none shadow-xl italic"
                     placeholder="Enter outreach copy..."
                   />
                </div>
@@ -44,7 +44,7 @@ export const TranslatorNode: React.FC = () => {
                   <select 
                     value={lang}
                     onChange={(e) => setLang(e.target.value)}
-                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-[10px] font-black text-slate-300 focus:outline-none focus:border-indigo-500 uppercase tracking-widest"
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-[10px] font-black text-slate-300 focus:outline-none focus:border-emerald-500 uppercase tracking-widest"
                   >
                     <option value="GERMAN">GERMAN</option>
                     <option value="FRENCH">FRENCH</option>
@@ -55,7 +55,7 @@ export const TranslatorNode: React.FC = () => {
                   <button 
                     onClick={handleTranslate}
                     disabled={isLoading}
-                    className="bg-indigo-600 hover:bg-indigo-500 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border border-indigo-400/20"
+                    className="bg-emerald-600 hover:bg-emerald-500 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border border-emerald-400/20"
                   >
                     {isLoading ? 'SYNCING...' : 'LOCALIZE'}
                   </button>
@@ -65,7 +65,7 @@ export const TranslatorNode: React.FC = () => {
             <div className="bg-[#020617] border border-slate-800 rounded-[32px] p-8 min-h-[250px] relative overflow-hidden">
                {isLoading ? (
                  <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
-                    <div className="w-10 h-10 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                    <div className="w-10 h-10 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
                     <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest animate-pulse">Linguistic Mesh processing...</p>
                  </div>
                ) : result ? (

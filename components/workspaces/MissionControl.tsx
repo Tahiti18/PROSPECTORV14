@@ -9,9 +9,6 @@ interface MissionControlProps {
   onNavigate: (mode: MainMode, mod: SubModule) => void;
 }
 
-/**
- * ICON REGISTRY
- */
 const ControlIcon = ({ type }: { type: string }) => {
   switch (type) {
     case 'IDENTIFIED':
@@ -28,7 +25,7 @@ const ControlIcon = ({ type }: { type: string }) => {
           <path d="M12 2v20M2 12h20" />
         </React.Fragment>
       );
-    case 'PAYLOAD':
+    case 'ASSET':
       return (
         <React.Fragment>
           <path d="M23 7l-7 5 7 5V7z" />
@@ -44,14 +41,14 @@ export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, 
   const stats = [
     { label: 'API NODES', status: 'STABLE', icon: <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />, color: 'emerald', desc: "The connection to the AI Brain (Gemini) is working perfectly." },
     { label: 'IDENTIFIED', status: `${leads.length} LEADS`, icon: <ControlIcon type="IDENTIFIED" />, color: 'emerald', desc: "The total number of potential clients you have found and saved so far." },
-    { label: 'THREAT SCAN', status: 'OPTIMAL', icon: <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />, color: 'emerald', desc: "No system errors detected. The engine is running at full speed." },
+    { label: 'SYSTEM HEALTH', status: 'OPTIMAL', icon: <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />, color: 'emerald', desc: "No system errors detected. The engine is running at full speed." },
     { label: 'OS STATUS', status: 'ONLINE', icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, color: 'emerald', desc: "The Prospector operating system is fully functional." },
   ];
 
   const actions = [
     { id: 'RADAR_RECON', mode: 'OPERATE' as MainMode, title: 'LEAD DISCOVERY', desc: 'INITIATE MARKET SCAN', icon: <ControlIcon type="RADAR" />, theme: 'emerald', help: "Start here! Use the radar to scan a specific city and find businesses that match your criteria." },
     { id: 'TARGET_LIST', mode: 'OPERATE' as MainMode, title: 'LEAD DATABASE', desc: 'ACCESS RECORDS', icon: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 7H20v10H6.5" />, theme: 'emerald', help: "View your saved list of potential clients. Sort them by score and pick who to contact." },
-    { id: 'VIDEO_PITCH', mode: 'CREATE' as MainMode, title: 'ASSET STUDIO', desc: 'GENERATE CONTENT', icon: <ControlIcon type="PAYLOAD" />, theme: 'emerald', help: "Go to the creative studio to generate custom videos or images to send to your leads." }
+    { id: 'VIDEO_PITCH', mode: 'CREATE' as MainMode, title: 'ASSET STUDIO', desc: 'GENERATE CONTENT', icon: <ControlIcon type="ASSET" />, theme: 'emerald', help: "Go to the creative studio to generate custom videos or images to send to your leads." }
   ];
 
   return (

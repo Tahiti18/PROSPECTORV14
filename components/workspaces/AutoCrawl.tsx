@@ -11,16 +11,14 @@ interface AutoCrawlProps {
 export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => {
   const [signal, setSignal] = useState('Businesses with no recent social media posts');
   const [isCrawling, setIsCrawling] = useState(false);
-  const [sessionLeads, setSessionLeads] = useState<Lead[]>([]); // Only for display
+  const [sessionLeads, setSessionLeads] = useState<Lead[]>([]);
   const [activeSector, setActiveSector] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [logs, sessionLeads]);
 
   const addLog = (msg: string) => setLogs(prev => [...prev, `[${new Date().toLocaleTimeString().split(' ')[0]}] ${msg}`]);
@@ -35,25 +33,18 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
     try {
       addLog(`INITIALIZING SEARCH PROTOCOL FOR MARKET: ${theater}`);
       addLog(`DECOMPOSING REGION INTO STRATEGIC VECTORS...`);
-      
-      // Step 1: Identify Sub-Regions
       const subRegions = await identifySubRegions(theater);
       addLog(`IDENTIFIED ${subRegions.length} HIGH-VALUE SECTORS: ${subRegions.join(', ')}`);
 
-      // Step 2: Iterate and Crawl
       let totalFound = 0;
-      
       for (let i = 0; i < subRegions.length; i++) {
         const sector = subRegions[i];
         setActiveSector(sector);
         addLog(`ENGAGING SECTOR ${i + 1}/${subRegions.length}: ${sector.toUpperCase()}`);
-        
         try {
           const newLeads = await crawlTheaterSignals(sector, signal);
-          
           if (newLeads.length > 0) {
             addLog(`SUCCESS: ${newLeads.length} SIGNALS EXTRACTED FROM ${sector}`);
-            // STREAMING MODE: Immediately add to global ledger
             onNewLeads(newLeads);
             setSessionLeads(prev => [...prev, ...newLeads]);
             totalFound += newLeads.length;
@@ -63,15 +54,11 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
         } catch (err) {
           addLog(`ERROR: VECTOR FAILURE IN ${sector}`);
         }
-
         setProgress(Math.round(((i + 1) / subRegions.length) * 100));
-        // Small tactical delay to prevent rate limits and allow UI to breathe
         await new Promise(r => setTimeout(r, 800));
       }
-
       addLog(`SEARCH COMPLETE. ${totalFound} TARGETS SECURED IN DATABASE.`);
       setActiveSector(null);
-
     } catch (e) {
       console.error("Swarm logic failed:", e);
       addLog("CRITICAL FAILURE: SEARCH ABORTED.");
@@ -88,7 +75,6 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* CONTROL PANEL */}
         <div className="bg-[#0b1021] border border-slate-800 rounded-[40px] p-8 shadow-2xl space-y-8">
           <div className="space-y-3">
              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Vulnerability Signal</label>
@@ -99,7 +85,6 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
               placeholder="e.g. Hiring high-ticket sales agents, No video content on landing page..."
              />
           </div>
-
           <button 
             onClick={handleCrawl}
             disabled={isCrawling}
@@ -107,8 +92,6 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
           >
             {isCrawling ? 'SEARCH ACTIVE...' : 'INITIATE AUTO-SEARCH'}
           </button>
-
-          {/* LIVE TERMINAL */}
           <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 h-64 overflow-y-auto custom-scrollbar font-mono text-[9px] space-y-2 shadow-inner" ref={scrollRef}>
             {logs.length === 0 && <span className="text-slate-600 italic">SYSTEM READY. AWAITING COMMAND.</span>}
             {logs.map((log, i) => (
@@ -120,7 +103,6 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
           </div>
         </div>
 
-        {/* RESULTS FEED */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center bg-[#0b1021]/50 border border-slate-800 p-4 rounded-2xl">
             <div className="flex items-center gap-4">

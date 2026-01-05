@@ -64,7 +64,7 @@ const Icon = ({ name }: { name: string }) => {
 };
 
 const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string; icon: string }[] = [
-  // --- OPERATE ZONE (INDIGO) ---
+  // --- OPERATE ZONE ---
   { mode: 'OPERATE', mod: 'COMMAND', label: 'MISSION CONTROL', zone: 'OPERATE ZONE', icon: 'chart' },
   { mode: 'OPERATE', mod: 'RADAR_RECON', label: 'RADAR RECON', zone: 'OPERATE ZONE', icon: 'radar' },
   { mode: 'OPERATE', mod: 'AUTO_CRAWL', label: 'AUTO CRAWL SWARM', zone: 'OPERATE ZONE', icon: 'crawl' },
@@ -85,14 +85,14 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'OPERATE', mod: 'FACT_CHECK', label: 'FACT CHECKER', zone: 'OPERATE ZONE', icon: 'check' },
   { mode: 'OPERATE', mod: 'TRANSLATOR', label: 'TACTICAL TRANSLATOR', zone: 'OPERATE ZONE', icon: 'globe' },
 
-  // --- CREATE ZONE (VIOLET) ---
+  // --- CREATE ZONE ---
   { mode: 'CREATE', mod: 'VISUAL_STUDIO', label: 'VISUAL STUDIO', zone: 'CREATE ZONE', icon: 'art' },
   { mode: 'CREATE', mod: 'MOCKUPS_4K', label: '4K MOCKUP FORGE', zone: 'CREATE ZONE', icon: 'monitor' },
   { mode: 'CREATE', mod: 'PRODUCT_SYNTH', label: 'PRODUCT SYNTH', zone: 'CREATE ZONE', icon: 'dna' },
   { mode: 'CREATE', mod: 'FLASH_SPARK', label: 'FLASH SPARK', zone: 'CREATE ZONE', icon: 'pulse' },
   { mode: 'CREATE', mod: 'MEDIA_VAULT', label: 'MEDIA VAULT', zone: 'CREATE ZONE', icon: 'vault' },
 
-  // --- STUDIO ZONE (AMBER) ---
+  // --- STUDIO ZONE ---
   { mode: 'STUDIO', mod: 'VIDEO_PITCH', label: 'VIDEO FAST', zone: 'STUDIO ZONE', icon: 'video' },
   { mode: 'STUDIO', mod: 'VIDEO_AI', label: 'VIDEO AUDIT', zone: 'STUDIO ZONE', icon: 'film' },
   { mode: 'STUDIO', mod: 'CINEMA_INTEL', label: 'CINEMA INTEL', zone: 'STUDIO ZONE', icon: 'video' },
@@ -100,7 +100,7 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'STUDIO', mod: 'SONIC_STUDIO', label: 'SONIC STUDIO', zone: 'STUDIO ZONE', icon: 'music' },
   { mode: 'STUDIO', mod: 'LIVE_SCRIBE', label: 'LIVE SCRIBE', zone: 'STUDIO ZONE', icon: 'pen' },
 
-  // --- SELL ZONE (EMERALD) ---
+  // --- SELL ZONE ---
   { mode: 'SELL', mod: 'BUSINESS_ORCHESTRATOR', label: 'BUSINESS ORCHESTRATOR', zone: 'SELL ZONE', icon: 'book' },
   { mode: 'SELL', mod: 'PROPOSALS', label: 'PROPOSAL ARCHITECT', zone: 'SELL ZONE', icon: 'file' },
   { mode: 'SELL', mod: 'ROI_CALC', label: 'ROI CALCULATOR', zone: 'SELL ZONE', icon: 'calc' },
@@ -113,7 +113,7 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
   { mode: 'SELL', mod: 'PITCH_GEN', label: 'PITCH GENERATOR', zone: 'SELL ZONE', icon: 'chat' },
   { mode: 'SELL', mod: 'FUNNEL_MAP', label: 'FUNNEL MAPPER', zone: 'SELL ZONE', icon: 'funnel' },
 
-  // --- CONTROL ZONE (SLATE) ---
+  // --- CONTROL ZONE ---
   { mode: 'CONTROL', mod: 'PLAYBOOK', label: 'AGENCY PLAYBOOK', zone: 'CONTROL ZONE', icon: 'book' },
   { mode: 'CONTROL', mod: 'BILLING', label: 'THEATER BILLING', zone: 'CONTROL ZONE', icon: 'money' },
   { mode: 'CONTROL', mod: 'AFFILIATE', label: 'AFFILIATE MATRIX', zone: 'CONTROL ZONE', icon: 'hub' },
@@ -133,28 +133,28 @@ const MODULE_DATA: { mode: MainMode; mod: SubModule; label: string; zone: string
 
 const ZONE_STYLES: Record<string, { headerBg: string; headerText: string; hoverBg: string; hoverText: string; iconBg: string; border: string }> = {
   'OPERATE ZONE': {
-    headerBg: 'bg-indigo-950/80',
-    headerText: 'text-indigo-400',
-    hoverBg: 'hover:bg-indigo-600/10',
-    hoverText: 'group-hover:text-indigo-400',
-    iconBg: 'group-hover:bg-indigo-600 group-hover:text-white',
-    border: 'border-indigo-500/30'
+    headerBg: 'bg-emerald-950/80',
+    headerText: 'text-emerald-400',
+    hoverBg: 'hover:bg-emerald-600/10',
+    hoverText: 'group-hover:text-emerald-400',
+    iconBg: 'group-hover:bg-emerald-600 group-hover:text-white',
+    border: 'border-emerald-500/30'
   },
   'CREATE ZONE': {
-    headerBg: 'bg-violet-950/80',
-    headerText: 'text-violet-400',
-    hoverBg: 'hover:bg-violet-600/10',
-    hoverText: 'group-hover:text-violet-400',
-    iconBg: 'group-hover:bg-violet-600 group-hover:text-white',
-    border: 'border-violet-500/30'
+    headerBg: 'bg-emerald-950/80',
+    headerText: 'text-emerald-400',
+    hoverBg: 'hover:bg-emerald-600/10',
+    hoverText: 'group-hover:text-emerald-400',
+    iconBg: 'group-hover:bg-emerald-600 group-hover:text-white',
+    border: 'border-emerald-500/30'
   },
   'STUDIO ZONE': { 
-    headerBg: 'bg-amber-950/80',
-    headerText: 'text-amber-400',
-    hoverBg: 'hover:bg-amber-600/10',
-    hoverText: 'group-hover:text-amber-400',
-    iconBg: 'group-hover:bg-amber-500 group-hover:text-black',
-    border: 'border-amber-500/30'
+    headerBg: 'bg-emerald-950/80',
+    headerText: 'text-emerald-400',
+    hoverBg: 'hover:bg-emerald-600/10',
+    hoverText: 'group-hover:text-emerald-400',
+    iconBg: 'group-hover:bg-emerald-600 group-hover:text-white',
+    border: 'border-emerald-500/30'
   },
   'SELL ZONE': { 
     headerBg: 'bg-emerald-950/80',
@@ -165,12 +165,12 @@ const ZONE_STYLES: Record<string, { headerBg: string; headerText: string; hoverB
     border: 'border-emerald-500/30'
   },
   'CONTROL ZONE': { 
-    headerBg: 'bg-slate-950/80',
-    headerText: 'text-slate-400',
-    hoverBg: 'hover:bg-slate-600/10',
-    hoverText: 'group-hover:text-slate-400',
-    iconBg: 'group-hover:bg-slate-600 group-hover:text-white',
-    border: 'border-slate-500/30'
+    headerBg: 'bg-emerald-950/80',
+    headerText: 'text-emerald-400',
+    hoverBg: 'hover:bg-emerald-600/10',
+    hoverText: 'group-hover:text-emerald-400',
+    iconBg: 'group-hover:bg-emerald-600 group-hover:text-white',
+    border: 'border-emerald-500/30'
   }
 };
 
@@ -202,7 +202,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
         
         {/* SEARCH HEADER */}
         <div className="p-6 border-b border-slate-800/50 flex items-center gap-5 shrink-0">
-          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/30 shrink-0 animate-pulse">
+          <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/30 shrink-0 animate-pulse">
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth="3" strokeLinecap="round"/></svg>
           </div>
           <input

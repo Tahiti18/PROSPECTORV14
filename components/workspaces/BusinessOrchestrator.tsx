@@ -31,7 +31,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   // Filter Vault for selected lead
   const targetLead = leads.find(l => l.id === selectedLeadId);
   
-  // FIX: Force poll assets every second to catch updates from other modules
   useEffect(() => {
     const interval = setInterval(() => {
       setRefreshKey(k => k + 1);
@@ -41,15 +40,9 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   
   const leadAssets = useMemo(() => {
     if (!targetLead) return [];
-    
-    // Dependency on refreshKey forces re-calc after upload/poll
     const _ = refreshKey; 
-
     return SESSION_ASSETS.filter(a => {
-      // Precise Match (Primary)
       if (a.leadId && a.leadId === targetLead.id) return true;
-      
-      // Fuzzy Match (Legacy Fallback)
       const searchTerms = targetLead.businessName.toLowerCase().split(' ');
       const titleLower = a.title.toLowerCase();
       return searchTerms.some(term => term.length > 3 && titleLower.includes(term));
@@ -63,7 +56,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     AUDIO: leadAssets.filter(a => a.type === 'AUDIO').length,
   };
 
-  // Re-hydration Effect
   useEffect(() => {
     if (targetLead) {
       const savedDossiers = dossierStorage.getAllByLead(targetLead.id);
@@ -84,15 +76,10 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     setIsOrchestrating(true);
     try {
       const result = await orchestrateBusinessPackage(targetLead, leadAssets);
-      
-      // PERSISTENCE LAYER: Auto-Save
-      // Only save IDs, not blobs
       const saved = dossierStorage.save(targetLead, result, leadAssets.map(a => a.id));
-      
       setPackageData(result);
       setCurrentDossier(saved);
       setHistory(prev => [saved, ...prev]);
-      
     } catch (e) {
       console.error(e);
       alert("Orchestration failed. Check API connectivity.");
@@ -127,37 +114,14 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       await navigator.clipboard.writeText(md);
       alert("Full dossier markdown copied to clipboard.");
     } catch (e) {
-      // Fallback for older browsers or strict permissions (iOS/Safari)
-      const ta = document.createElement("textarea");
-      ta.value = md;
-      ta.style.position = 'fixed';
-      ta.style.left = '-9999px';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      try {
-        document.execCommand("copy");
-        alert("Copied (fallback mode) ✓");
-      } catch (err) {
-        alert("Copy failed. Please select text manually.");
-      }
-      document.body.removeChild(ta);
+      // Fallback
+      alert("Copy failed. Please export instead.");
     }
   };
 
   const handleSaveSnapshot = () => {
     if (!targetLead || !packageData) return;
     const saved = dossierStorage.save(targetLead, packageData, leadAssets.map(a => a.id));
-    
-    // Safety Assertion: Ensure we aren't saving heavy blobs in the dossier record
-    const isDev = !!(import.meta as any).env?.DEV;
-    if (isDev) {
-      const s = JSON.stringify(saved);
-      if (s.includes("data:image") || (s.includes("base64") && s.length > 20000)) {
-        console.warn("CRITICAL WARNING: Dossier snapshot contains heavy payload. Verify asset linking.");
-      }
-    }
-
     setHistory(prev => [saved, ...prev]);
     setCurrentDossier(saved);
     alert(`Snapshot v${saved.version} saved successfully.`);
@@ -176,53 +140,40 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     setUploadError("");
     setUploadStatus("Reading file...");
 
-    // Guardrail A: Size Check (25MB Limit)
     const MAX_MB = 25;
     if (file.size > MAX_MB * 1024 * 1024) {
-      setUploadError(`File too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max ${MAX_MB}MB.`);
+      setUploadError(`File too large. Max ${MAX_MB}MB.`);
       setUploadStatus("");
-      if (fileInputRef.current) fileInputRef.current.value = ''; // Reset for retry
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
     const reader = new FileReader();
-    
     reader.onload = (ev) => {
       try {
         const result = ev.target?.result as string;
         let type: AssetRecord['type'] = 'TEXT';
-        
         if (file.type.startsWith('image/')) type = 'IMAGE';
         else if (file.type.startsWith('video/')) type = 'VIDEO';
         else if (file.type.startsWith('audio/')) type = 'AUDIO';
         
         setUploadStatus("Encrypting to Vault...");
-        
-        // This pushes to SESSION_ASSETS (Vault) - Base64 is allowed here
         saveAsset(type, `UPLOAD: ${file.name}`, result, 'MEDIA_VAULT', targetLead.id);
-        
-        setRefreshKey(prev => prev + 1); // Force asset list refresh
+        setRefreshKey(prev => prev + 1);
         setUploadStatus(`Uploaded ✓ ${file.name}`);
-        
         setTimeout(() => setUploadStatus(""), 3000);
       } catch (err) {
-        setUploadError("Vault Write Failed: Storage Full?");
+        setUploadError("Vault Write Failed");
         setUploadStatus("");
       }
     };
-
-    reader.onerror = () => {
-        setUploadError("File Read Error");
-        setUploadStatus("");
-    };
+    reader.onerror = () => { setUploadError("File Read Error"); setUploadStatus(""); };
 
     if (file.type.startsWith('text/') || file.type === 'application/json') {
         reader.readAsText(file);
     } else {
         reader.readAsDataURL(file);
     }
-    
-    // Reset input to allow re-uploading same file
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -261,7 +212,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
         <div className="lg:col-span-4 space-y-6">
            <div className="bg-[#0b1021] border border-slate-800 rounded-[40px] p-10 shadow-2xl space-y-8">
               <div className="space-y-2">
-                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">SELECT LEAD</label>
+                 <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-1">SELECT LEAD</label>
                  <select 
                    value={selectedLeadId}
                    onChange={(e) => setSelectedLeadId(e.target.value)}
@@ -349,7 +300,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                         <span>⬆️</span> QUICK UPLOAD ASSET
                       </button>
                       
-                      {/* Upload Status Feedback */}
                       {uploadStatus && <div className="text-[9px] text-emerald-400 font-bold text-center mb-2 animate-pulse">{uploadStatus}</div>}
                       {uploadError && <div className="text-[9px] text-rose-500 font-bold text-center mb-2">{uploadError}</div>}
 
@@ -368,7 +318,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
         {/* RIGHT: OUTPUT DOSSIER */}
         <div className="lg:col-span-8">
-           <div className="bg-[#05091a] border border-slate-800 rounded-[48px] min-h-[700px] flex flex-col shadow-2xl relative overflow-hidden">
+           <div className="bg-[#0b1021] border border-slate-800 rounded-[48px] min-h-[700px] flex flex-col shadow-2xl relative overflow-hidden">
               
               {!packageData ? (
                  <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20 text-center space-y-6">
@@ -401,7 +351,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                     </div>
 
                     {/* CONTENT AREA */}
-                    <div className="flex-1 p-12 overflow-y-auto custom-scrollbar relative">
+                    <div className="flex-1 p-12 overflow-y-auto custom-scrollbar relative bg-[#020617]">
                        
                        {activeTab === 'strategy' && (
                           <div className="space-y-12">
@@ -438,7 +388,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                        {activeTab === 'narrative' && (
                           <div className="max-w-3xl mx-auto space-y-8">
                              <div className="bg-slate-900 border border-slate-800 p-10 rounded-[40px] shadow-xl">
-                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">EXECUTIVE NARRATIVE</h3>
+                                <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-6">EXECUTIVE NARRATIVE</h3>
                                 <div className="prose prose-invert max-w-none">
                                    <p className="text-lg text-slate-300 leading-relaxed font-serif italic whitespace-pre-wrap">
                                       {packageData.narrative}

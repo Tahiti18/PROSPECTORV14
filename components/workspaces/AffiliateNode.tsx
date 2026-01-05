@@ -22,7 +22,7 @@ export const AffiliateNode: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">PARTNER <span className="text-indigo-600 not-italic">ARCHITECT</span></h1>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">PARTNER <span className="text-emerald-600 not-italic">ARCHITECT</span></h1>
         <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Affiliate Matrix Generator</p>
       </div>
 
@@ -31,13 +31,13 @@ export const AffiliateNode: React.FC = () => {
             <input 
               value={niche}
               onChange={(e) => setNiche(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-bold text-sm focus:outline-none focus:border-indigo-500"
+              className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white font-bold text-sm focus:outline-none focus:border-emerald-500"
               placeholder="Target Niche for Partners..."
             />
             <button 
               onClick={handleGenerate}
               disabled={isLoading}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
             >
               {isLoading ? 'ARCHITECTING...' : 'GENERATE PROGRAM'}
             </button>
@@ -60,7 +60,7 @@ export const AffiliateNode: React.FC = () => {
                  </div>
               </div>
               <div className="bg-slate-950 border border-slate-800 p-8 rounded-3xl relative">
-                 <div className="absolute -top-3 left-8 bg-indigo-600 px-3 py-1 rounded text-[8px] font-black text-white uppercase tracking-widest">RECRUITMENT SCRIPT</div>
+                 <div className="absolute -top-3 left-8 bg-emerald-600 px-3 py-1 rounded text-[8px] font-black text-white uppercase tracking-widest">RECRUITMENT SCRIPT</div>
                  <p className="text-slate-400 text-xs leading-relaxed font-mono whitespace-pre-wrap">{program.recruitScript}</p>
               </div>
            </div>

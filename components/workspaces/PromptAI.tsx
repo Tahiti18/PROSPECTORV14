@@ -44,12 +44,12 @@ export const PromptAI: React.FC<PromptAIProps> = ({ lead }) => {
     <div className="max-w-5xl mx-auto py-8 h-[80vh] flex flex-col animate-in fade-in duration-500">
       <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-6">
         <div>
-          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">PROMPT <span className="text-indigo-600 not-italic">AI</span></h1>
+          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">PROMPT <span className="text-emerald-600 not-italic">AI</span></h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-1 italic">Direct Tactical Interface</p>
         </div>
         {lead && (
-          <div className="px-4 py-1.5 bg-indigo-600/10 border border-indigo-500/20 rounded-lg">
-             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Target Context Active</span>
+          <div className="px-4 py-1.5 bg-emerald-600/10 border border-emerald-500/20 rounded-lg">
+             <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Target Context Active</span>
           </div>
         )}
       </div>
@@ -66,7 +66,7 @@ export const PromptAI: React.FC<PromptAIProps> = ({ lead }) => {
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[80%] px-6 py-4 rounded-2xl text-sm font-medium leading-relaxed ${
                 m.role === 'user' 
-                  ? 'bg-indigo-600 text-white shadow-lg' 
+                  ? 'bg-emerald-600 text-white shadow-lg' 
                   : 'bg-slate-900 border border-slate-800 text-slate-300'
               }`}>
                 {m.text}
@@ -76,9 +76,9 @@ export const PromptAI: React.FC<PromptAIProps> = ({ lead }) => {
           {isLoading && (
             <div className="flex justify-start">
                <div className="bg-slate-900 border border-slate-800 px-6 py-4 rounded-2xl flex gap-1">
-                  <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></div>
-                  <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                  <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"></div>
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
                </div>
             </div>
           )}
@@ -90,12 +90,12 @@ export const PromptAI: React.FC<PromptAIProps> = ({ lead }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-6 py-4 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all font-bold"
+            className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-6 py-4 text-sm text-white focus:outline-none focus:border-emerald-500 transition-all font-bold"
             placeholder="INPUT COMMAND OR TACTICAL QUERY..."
           />
           <button 
             onClick={handleSend}
-            className="bg-indigo-600 hover:bg-indigo-500 px-8 rounded-xl text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
+            className="bg-emerald-600 hover:bg-emerald-500 px-8 rounded-xl text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-emerald-600/20 active:scale-95"
           >
             SEND
           </button>

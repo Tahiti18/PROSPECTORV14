@@ -18,7 +18,7 @@ export const IntelligenceWorkspace: React.FC<IntelligenceWorkspaceProps> = ({ le
   const handleRunDiscovery = async () => {
     setLoading(true);
     try {
-      const result = await generateLeads(region, nicheHint);
+      const result = await generateLeads(region, nicheHint, 10);
       // Map result.leads to our component-friendly Lead objects
       const formattedLeads: Lead[] = result.leads.map((l: any, i: number) => ({
         ...l,

@@ -39,7 +39,7 @@ export const ProductSynth: React.FC<ProductSynthProps> = ({ lead }) => {
     <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">PRODUCT <span className="text-indigo-600 not-italic">SYNTH</span></h1>
+          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">PRODUCT <span className="text-emerald-600 not-italic">SYNTH</span></h1>
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Offer Architecture for {lead.businessName}</p>
         </div>
       </div>
@@ -48,15 +48,15 @@ export const ProductSynth: React.FC<ProductSynthProps> = ({ lead }) => {
         <div className="bg-[#0b1021] border border-slate-800 rounded-[48px] p-16 shadow-2xl relative min-h-[500px] flex flex-col justify-center text-center">
            {isLoading ? (
              <div className="space-y-6">
-                <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mx-auto"></div>
+                <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto"></div>
                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] animate-pulse">Calculating Market Lift Factors...</p>
              </div>
            ) : product && (
              <div className="space-y-8 animate-in zoom-in-95 duration-700">
                 <div className="space-y-2">
-                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em]">PROTOTYPE_ID: ALPHA_7</span>
+                   <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">PROTOTYPE_ID: ALPHA_7</span>
                    <h2 className="text-5xl font-black italic text-white tracking-tighter uppercase leading-none">{product.productName}</h2>
-                   <p className="text-indigo-400 text-lg font-bold italic tracking-tight">{product.tagline}</p>
+                   <p className="text-emerald-400 text-lg font-bold italic tracking-tight">{product.tagline}</p>
                 </div>
                 <div className="py-8 border-y border-slate-800/50">
                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] mb-2">TARGET PRICE POINT</p>
@@ -75,8 +75,8 @@ export const ProductSynth: React.FC<ProductSynthProps> = ({ lead }) => {
            ) : product?.features && (
              <div className="space-y-4">
                 {product.features.map((f: string, i: number) => (
-                  <div key={i} className="flex items-center gap-6 p-5 bg-slate-950 border border-slate-800 rounded-2xl group hover:border-indigo-500/40 transition-all">
-                     <div className="w-8 h-8 rounded-lg bg-indigo-600/10 flex items-center justify-center font-black text-indigo-400">0{i+1}</div>
+                  <div key={i} className="flex items-center gap-6 p-5 bg-slate-950 border border-slate-800 rounded-2xl group hover:border-emerald-500/40 transition-all">
+                     <div className="w-8 h-8 rounded-lg bg-emerald-600/10 flex items-center justify-center font-black text-emerald-400">0{i+1}</div>
                      <p className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">{f}</p>
                   </div>
                 ))}

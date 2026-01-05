@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Lead, OutreachChannel, OutreachMode } from '../../types';
 import { outreachService } from '../../services/outreachService';
@@ -209,13 +210,13 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({ isOpen, onClose, d
                <div className="flex gap-2">
                  <button 
                    onClick={() => handleChannelSwitch('GMAIL')}
-                   className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${channel === 'GMAIL' ? 'bg-rose-500 text-white border-rose-600' : 'bg-slate-900 text-slate-500 border-slate-800'}`}
+                   className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${channel === 'GMAIL' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-900 text-slate-500 border-slate-800'}`}
                  >
                    GMAIL
                  </button>
                  <button 
                    onClick={() => handleChannelSwitch('LINKEDIN')}
-                   className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${channel === 'LINKEDIN' ? 'bg-indigo-500 text-white border-indigo-600' : 'bg-slate-900 text-slate-500 border-slate-800'}`}
+                   className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${channel === 'LINKEDIN' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-slate-900 text-slate-500 border-slate-800'}`}
                  >
                    LINKEDIN
                  </button>
@@ -272,7 +273,7 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({ isOpen, onClose, d
                      </button>
                      <button 
                        onClick={() => setSendMode('TEST')}
-                       className={`flex-1 py-2 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${sendMode === 'TEST' ? 'bg-amber-500 text-black shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                       className={`flex-1 py-2 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${sendMode === 'TEST' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                      >
                        TEST
                      </button>
@@ -284,7 +285,7 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({ isOpen, onClose, d
                     <input 
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
-                      className="w-full bg-slate-950 border border-amber-500/30 rounded-lg px-3 py-2 text-xs text-amber-100 focus:outline-none focus:border-amber-500 placeholder-slate-700"
+                      className="w-full bg-slate-950 border border-emerald-500/30 rounded-lg px-3 py-2 text-xs text-emerald-100 focus:outline-none focus:border-emerald-500 placeholder-slate-700"
                       placeholder="admin@agency.com"
                     />
                  </div>
@@ -297,7 +298,7 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({ isOpen, onClose, d
                   <div className="flex gap-2">
                      <button 
                        onClick={() => setPreviewMode(previewMode === 'TEXT' ? 'HTML' : 'TEXT')}
-                       className="text-[9px] font-black text-indigo-400 hover:text-white uppercase tracking-widest transition-colors"
+                       className="text-[9px] font-black text-emerald-400 hover:text-white uppercase tracking-widest transition-colors"
                      >
                        {previewMode === 'TEXT' ? 'SHOW HTML' : 'SHOW TEXT'}
                      </button>
@@ -359,7 +360,7 @@ export const OutreachModal: React.FC<OutreachModalProps> = ({ isOpen, onClose, d
                  className={`w-full py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 ${
                    sendMode === 'LIVE' 
                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20' 
-                     : 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20'
+                     : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20'
                  }`}
                >
                  {isSending ? (

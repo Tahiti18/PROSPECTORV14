@@ -57,7 +57,6 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* Left Column - Parameters */}
         <div className="lg:col-span-4 space-y-8">
            <div className="bg-[#0b1021] border border-slate-800 rounded-[48px] p-12 shadow-2xl space-y-12 relative overflow-hidden">
               <div className="space-y-8">
@@ -107,39 +106,38 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
            </div>
         </div>
 
-        {/* Right Column - Output */}
         <div className="lg:col-span-8">
-           <div className="bg-white border border-slate-200 rounded-[56px] min-h-[700px] flex flex-col relative shadow-2xl overflow-hidden">
-              <div className="p-10 border-b border-slate-100 flex items-center gap-6">
-                 <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center shadow-xl">
+           <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] min-h-[700px] flex flex-col relative shadow-2xl overflow-hidden">
+              <div className="p-10 border-b border-slate-800 flex items-center gap-6">
+                 <div className="w-14 h-14 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-center shadow-xl">
                     <span className="text-2xl">🧪</span>
                  </div>
                  <div>
-                    <h3 className="text-xl font-black italic text-black uppercase tracking-tighter">REASONING OUTPUT</h3>
+                    <h3 className="text-xl font-black italic text-white uppercase tracking-tighter">REASONING OUTPUT</h3>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">HIGH-COMPUTE LOGICAL EXTRACTION</p>
                  </div>
               </div>
 
-              <div className="flex-1 p-16 relative overflow-y-auto custom-scrollbar-light">
+              <div className="flex-1 p-16 relative overflow-y-auto custom-scrollbar">
                  {isThinking ? (
                    <div className="h-full flex flex-col items-center justify-center space-y-8 animate-pulse">
-                      <div className="w-20 h-1 bg-slate-100 rounded-full relative overflow-hidden">
+                      <div className="w-20 h-1 bg-slate-800 rounded-full relative overflow-hidden">
                          <div className="absolute inset-0 bg-emerald-500 animate-[loading_1.5s_infinite]"></div>
                       </div>
                       <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.5em]">SYSTEM 2: COGNITIVE CHAINING...</p>
                    </div>
                  ) : output ? (
-                   <div className="prose prose-slate max-w-none">
-                      <div className="text-slate-800 text-lg leading-relaxed whitespace-pre-wrap font-sans">
+                   <div className="prose prose-invert max-w-none">
+                      <div className="text-slate-300 text-lg leading-relaxed whitespace-pre-wrap font-sans">
                         {output}
                       </div>
                    </div>
                  ) : (
                    <div className="h-full flex flex-col items-center justify-center text-center space-y-8 opacity-20">
-                      <div className="text-[120px] grayscale brightness-200 select-none">⚡</div>
+                      <div className="text-[120px] grayscale brightness-50 select-none">⚡</div>
                       <div className="space-y-2">
-                        <h4 className="text-4xl font-black italic text-slate-800 uppercase tracking-tighter">COGNITIVE HUB IDLE</h4>
-                        <p className="text-[11px] text-slate-500 font-black uppercase tracking-[0.4em] max-w-xs mx-auto">
+                        <h4 className="text-4xl font-black italic text-slate-500 uppercase tracking-tighter">COGNITIVE HUB IDLE</h4>
+                        <p className="text-[11px] text-slate-600 font-black uppercase tracking-[0.4em] max-w-xs mx-auto">
                           ACTIVATE THE REASONING BUDGET AND PROVIDE STRATEGIC PARAMETERS TO BEGIN MULTI-MODAL LOGICAL DECODING.
                         </p>
                       </div>
@@ -155,9 +153,6 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(200%); }
         }
-        .custom-scrollbar-light::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar-light::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar-light::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
       `}</style>
     </div>
   );

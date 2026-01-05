@@ -37,7 +37,7 @@ export const DemoSandbox: React.FC<DemoSandboxProps> = ({ lead }) => {
   return (
     <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">DEMO <span className="text-indigo-600 not-italic">SANDBOX</span></h1>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">DEMO <span className="text-emerald-600 not-italic">SANDBOX</span></h1>
         <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Predictive Growth Modeling for {lead.businessName}</p>
       </div>
 
@@ -50,7 +50,7 @@ export const DemoSandbox: React.FC<DemoSandboxProps> = ({ lead }) => {
                 type="number"
                 value={ltv}
                 onChange={(e) => setLtv(parseInt(e.target.value) || 0)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-5 text-white font-black text-xl focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-5 text-white font-black text-xl focus:outline-none focus:border-emerald-500 transition-all shadow-inner"
                />
             </div>
             <div className="space-y-4">
@@ -59,13 +59,13 @@ export const DemoSandbox: React.FC<DemoSandboxProps> = ({ lead }) => {
                 type="number"
                 value={volume}
                 onChange={(e) => setVolume(parseInt(e.target.value) || 0)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-5 text-white font-black text-xl focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-5 text-white font-black text-xl focus:outline-none focus:border-emerald-500 transition-all shadow-inner"
                />
             </div>
             <button 
               onClick={handleSimulate}
               disabled={isLoading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 py-6 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border border-indigo-400/20"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 py-6 rounded-2xl text-[11px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border border-emerald-400/20"
             >
               {isLoading ? 'SIMULATING...' : 'INITIATE SIMULATION'}
             </button>
@@ -75,8 +75,8 @@ export const DemoSandbox: React.FC<DemoSandboxProps> = ({ lead }) => {
         <div className="lg:col-span-8 bg-[#05091a] border border-slate-800 rounded-[48px] p-16 min-h-[600px] relative overflow-hidden shadow-2xl">
            {isLoading ? (
              <div className="absolute inset-0 flex flex-col items-center justify-center space-y-6">
-                <div className="w-1.5 h-16 bg-indigo-500/20 rounded-full relative overflow-hidden mx-auto">
-                   <div className="absolute inset-0 bg-indigo-500 animate-[progress_2s_infinite]"></div>
+                <div className="w-1.5 h-16 bg-emerald-500/20 rounded-full relative overflow-hidden mx-auto">
+                   <div className="absolute inset-0 bg-emerald-500 animate-[progress_2s_infinite]"></div>
                 </div>
                 <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] animate-pulse italic">Crunshing Market Variance Probabilities...</p>
              </div>

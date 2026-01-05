@@ -8,27 +8,43 @@ interface ControlWorkspaceProps {
 
 export const ControlWorkspace: React.FC<ControlWorkspaceProps> = ({ activeModule }) => {
   return (
-    <div className="p-20 text-center bg-[#0a0f1e] border border-slate-800 rounded-3xl">
-      <div className="text-4xl mb-4">🔒</div>
-      <h3 className="text-xs font-black uppercase tracking-widest text-slate-100">Control Subsystem: {activeModule}</h3>
-      <p className="text-[10px] text-slate-500 mt-2 font-bold uppercase tracking-widest">Accessing Cipher Nodes...</p>
-      
-      <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-        {[1,2,3,4].map(i => (
-          <div key={i} className="h-24 bg-[#020617] border border-slate-800 rounded-xl flex items-center justify-center">
-            <div className="w-8 h-1 bg-slate-800 rounded-full overflow-hidden">
-               <div className="w-1/2 h-full bg-indigo-500 animate-[loading_2s_infinite_ease-in-out]"></div>
-            </div>
-          </div>
-        ))}
+    <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
+      <div className="text-center">
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">
+          {activeModule.replace('_', ' ')} <span className="text-emerald-600 not-italic">MODULE</span>
+        </h1>
+        <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">
+          System Control & Configuration Node
+        </p>
       </div>
-      
-      <style>{`
-        @keyframes loading {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(200%); }
-        }
-      `}</style>
+
+      <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl flex flex-col items-center justify-center space-y-10 relative overflow-hidden min-h-[400px]">
+         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #10b981 1px, transparent 0)', backgroundSize: '48px 48px' }}></div>
+         
+         <div className="w-24 h-24 bg-slate-950 border border-slate-800 rounded-3xl flex items-center justify-center relative z-10 shadow-xl">
+            <span className="text-4xl">⚙️</span>
+         </div>
+
+         <div className="text-center max-w-lg relative z-10 space-y-4">
+            <h3 className="text-xl font-bold text-white uppercase tracking-tight">Active Configuration Panel</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+               You have accessed the <strong>{activeModule}</strong> control interface. 
+               This module is currently active and monitoring system parameters. 
+               Advanced configuration options will appear here dynamically based on system state.
+            </p>
+         </div>
+
+         <div className="grid grid-cols-2 gap-4 w-full max-w-md relative z-10 pt-8">
+            <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
+               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</span>
+               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">ONLINE</span>
+            </div>
+            <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl flex justify-between items-center">
+               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Latency</span>
+               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">12ms</span>
+            </div>
+         </div>
+      </div>
     </div>
   );
 };

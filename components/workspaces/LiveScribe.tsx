@@ -54,7 +54,7 @@ export const LiveScribe: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">LIVE <span className="text-indigo-600 not-italic">SCRIBE</span></h1>
+        <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">LIVE <span className="text-emerald-600 not-italic">SCRIBE</span></h1>
         <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Real-Time Combat Transcription</p>
       </div>
 
@@ -68,7 +68,7 @@ export const LiveScribe: React.FC = () => {
             </div>
             <button 
               onClick={toggleSession}
-              className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-rose-600 text-white' : 'bg-indigo-600 text-white'}`}
+              className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`}
             >
               {isActive ? 'STOP SCRIBE' : 'INITIATE SCRIBE'}
             </button>
@@ -76,7 +76,7 @@ export const LiveScribe: React.FC = () => {
 
          <div className="bg-slate-950 border border-slate-800 rounded-3xl p-10 h-96 overflow-y-auto custom-scrollbar font-mono text-[11px] space-y-4 shadow-inner relative z-10">
             {transcripts.map((t, i) => (
-              <div key={i} className={`p-3 rounded-xl border ${t.startsWith('USER') ? 'bg-indigo-600/5 border-indigo-500/10 text-indigo-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
+              <div key={i} className={`p-3 rounded-xl border ${t.startsWith('USER') ? 'bg-emerald-600/5 border-emerald-500/10 text-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-400'}`}>
                 {t}
               </div>
             ))}

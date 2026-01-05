@@ -16,21 +16,15 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
 
   const handleScan = async () => {
     if (!process.env.API_KEY) {
-      alert("SYSTEM ERROR: API Key is missing.\n\nFOR RAILWAY:\nGo to Settings > Variables and add API_KEY.\n\nFOR LOCAL/DEV:\nCreate a .env file in the root with: API_KEY=your_key");
+      alert("SYSTEM ERROR: API Key is missing.");
       return;
     }
-    
     setLoading(true);
     try {
       const [result] = await Promise.all([
         generateLeads(theater, niche, leadCount),
         new Promise(resolve => setTimeout(resolve, 8000))
       ]);
-      
-      if (!result || !result.leads || !Array.isArray(result.leads)) {
-        throw new Error("The AI returned an invalid data structure. This usually happens if search citations interfere with the JSON.");
-      }
-
       const formattedLeads: Lead[] = result.leads.map((l: any, i: number) => ({
         ...l,
         id: l.id || `L-${Date.now()}-${i}`,
@@ -45,11 +39,10 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
         socialGap: l.socialGap || 'No manual social gap detected yet.',
         groundingSources: result.groundingSources || []
       }));
-
       onLeadsGenerated(formattedLeads);
     } catch (e) {
-      console.error("Discovery Engine Error:", e);
-      alert(`CRITICAL ERROR: Intelligence gathering failed.\n\nPotential Causes:\n1. Invalid API Key or Quota Exceeded\n2. AI returned unstructured text\n3. Network Timeout\n\nCheck 'Prod Log' in the sidebar for technical trace.`);
+      console.error(e);
+      alert(`Discovery failed.`);
     } finally {
       setLoading(false);
     }
@@ -60,14 +53,13 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h2 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.5em] mb-4">Market Scan Initiation</h2>
+        <h2 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.5em] mb-4">Market Discovery Initiation</h2>
         <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">LEAD <span className="text-emerald-600">DISCOVERY</span></h1>
         <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-3">Active Market: {theater}</p>
       </div>
 
       <div className="bg-[#0b1021]/80 border border-slate-800 rounded-[32px] p-10 space-y-8 relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-600/5 blur-[100px] rounded-full -mr-32 -mt-32"></div>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
           <div className="space-y-3">
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Target Niche</label>
@@ -79,7 +71,7 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
             />
           </div>
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Scan Intensity</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Scan Volume</label>
             <div className="flex gap-2">
               {[6, 12, 18, 30].map(count => (
                 <button
@@ -97,13 +89,12 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
             </div>
           </div>
         </div>
-
         <button 
           onClick={handleScan}
           className="w-full bg-emerald-600 hover:bg-emerald-500 py-6 rounded-2xl text-[12px] font-black uppercase tracking-[0.3em] text-white transition-all shadow-xl shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-3 border border-emerald-400/20"
         >
           <span className="text-xl">📡</span>
-          INITIATE MARKET SWEEP
+          START MARKET SCAN
         </button>
       </div>
     </div>

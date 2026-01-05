@@ -88,7 +88,7 @@ export const ViralPulse: React.FC<ViralPulseProps> = ({ lead }) => {
                        {trends.map((t, i) => (
                          <div key={i} className="p-6 bg-[#020617] border border-slate-800 rounded-2xl flex justify-between items-center group hover:border-emerald-500/40 transition-all">
                             <span className="text-sm font-black italic text-slate-200 uppercase tracking-tighter">{t.label}</span>
-                            <span className={`text-[10px] font-black uppercase ${t.type === 'up' ? 'text-emerald-400' : 'text-amber-500'}`}>
+                            <span className={`text-[10px] font-black uppercase ${t.type === 'up' ? 'text-emerald-400' : 'text-emerald-500'}`}>
                                {t.type === 'up' ? '▲' : '▼'} {t.val}K VELOCITY
                             </span>
                          </div>
@@ -116,7 +116,7 @@ export const ViralPulse: React.FC<ViralPulseProps> = ({ lead }) => {
                    <div key={i} className="space-y-3">
                       <div className="flex justify-between items-end">
                          <span className="text-[11px] font-black text-slate-100 uppercase tracking-widest truncate max-w-[200px]">{t.label}</span>
-                         <span className={`text-[10px] font-black uppercase flex items-center gap-1 ${t.type === 'up' ? 'text-emerald-400' : 'text-amber-500'}`}>
+                         <span className={`text-[10px] font-black uppercase flex items-center gap-1 ${t.type === 'up' ? 'text-emerald-400' : 'text-emerald-500'}`}>
                            {t.type === 'up' ? '▲' : '▼'} {t.val}K
                          </span>
                       </div>

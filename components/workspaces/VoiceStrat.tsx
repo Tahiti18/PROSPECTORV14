@@ -42,7 +42,6 @@ export const VoiceStrat: React.FC<VoiceStratProps> = ({ lead }) => {
           },
           onmessage: async (message) => {
              // Basic audio output processing would go here
-             // For brevity in the 54-node sprint, we focus on the connection logic.
           },
           onclose: () => setIsActive(false),
           onerror: (e) => console.error("Voice Strat Error:", e)
@@ -66,16 +65,16 @@ export const VoiceStrat: React.FC<VoiceStratProps> = ({ lead }) => {
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
-        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">VOICE <span className="text-indigo-600 not-italic">STRAT</span></h1>
+        <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">VOICE <span className="text-emerald-600 not-italic">STRAT</span></h1>
         <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic italic">Real-Time Sales Coaching for {lead.businessName}</p>
       </div>
 
       <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl flex flex-col items-center space-y-10 relative overflow-hidden">
-         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #4f46e5 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #10b981 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
          
-         <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-700 relative z-10 ${isActive ? 'bg-indigo-600 shadow-[0_0_50px_rgba(79,70,229,0.4)] scale-110' : 'bg-slate-900 border border-slate-800'}`}>
+         <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-700 relative z-10 ${isActive ? 'bg-emerald-600 shadow-[0_0_50px_rgba(16,185,129,0.4)] scale-110' : 'bg-slate-900 border border-slate-800'}`}>
             <span className="text-4xl">{isActive ? '🎙️' : '🔘'}</span>
-            {isActive && <div className="absolute inset-0 rounded-full border border-indigo-500 animate-ping"></div>}
+            {isActive && <div className="absolute inset-0 rounded-full border border-emerald-500 animate-ping"></div>}
          </div>
 
          <div className="text-center space-y-4 relative z-10">
@@ -89,7 +88,7 @@ export const VoiceStrat: React.FC<VoiceStratProps> = ({ lead }) => {
 
          <button 
            onClick={toggleSession}
-           className={`px-12 py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all relative z-10 ${isActive ? 'bg-rose-600 text-white hover:bg-rose-500 shadow-xl shadow-rose-600/20' : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-xl shadow-indigo-600/20'}`}
+           className={`px-12 py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all relative z-10 ${isActive ? 'bg-rose-600 text-white hover:bg-rose-500 shadow-xl shadow-rose-600/20' : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-xl shadow-emerald-600/20'}`}
          >
            {isActive ? 'DISCONNECT LINK' : 'ESTABLISH LINK'}
          </button>

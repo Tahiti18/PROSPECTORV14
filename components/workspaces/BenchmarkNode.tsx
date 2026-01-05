@@ -31,16 +31,15 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
     }
   };
 
-  // Robust cleaning to remove AI boilerplate and redundancy
   const clean = (text: string) => {
     if (!text) return "";
     return text
-      .replace(/Note:.*$/m, '') // Remove "Note: " lines
-      .replace(/Let's stick to.*$/m, '') // Remove schema reminders
+      .replace(/Note:.*$/m, '')
+      .replace(/Let's stick to.*$/m, '')
       .replace(/Synthesized SpecSpecificity.*$/m, '')
-      .replace(/[#*]/g, '') // Remove markdown markers
-      .replace(/^- /gm, '') // Remove bullet starts
-      .replace(/\n\n+/g, '\n\n') // Normalize paragraphs
+      .replace(/[#*]/g, '')
+      .replace(/^- /gm, '')
+      .replace(/\n\n+/g, '\n\n')
       .trim();
   };
 
@@ -76,7 +75,6 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
          {report && (
            <div className="mt-16 space-y-20 animate-in slide-in-from-bottom-8 duration-700">
               
-              {/* APEX HEADER */}
               <div className="space-y-4">
                  <h2 className="text-6xl font-black italic text-white tracking-tighter uppercase leading-none">
                     {report.entityName}
@@ -87,7 +85,6 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-                 {/* DUAL STACKS - Technical Bullets */}
                  <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="space-y-8">
                        <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] italic mb-6">VISUAL / MOTION STACK</h3>
@@ -103,7 +100,6 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                                 </p>
                              </li>
                           ))}
-                          {report.visualStack.length === 0 && <p className="text-[9px] text-slate-600 uppercase italic">Analysis pending...</p>}
                        </ul>
                     </div>
                     <div className="space-y-8">
@@ -120,12 +116,10 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                                 </p>
                              </li>
                           ))}
-                          {report.sonicStack.length === 0 && <p className="text-[9px] text-slate-600 uppercase italic">Analysis pending...</p>}
                        </ul>
                     </div>
                  </div>
 
-                 {/* HIGHLIGHT CARDS */}
                  <div className="lg:col-span-5 space-y-10">
                     <div className="bg-emerald-600 p-12 rounded-[48px] shadow-2xl space-y-6 relative overflow-hidden group">
                        <div className="absolute top-0 right-0 p-8 opacity-10 text-6xl font-black italic select-none uppercase">GAP</div>
@@ -151,31 +145,28 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                  </div>
               </div>
 
-              {/* MASSIVE TECHNICAL PROTOCOL SECTION */}
-              <div className="bg-white border border-slate-200 rounded-[84px] p-24 shadow-2xl relative overflow-hidden">
+              {/* REPLACED WHITE SECTION WITH DARK */}
+              <div className="bg-[#0b1021] border border-slate-800 rounded-[84px] p-24 shadow-2xl relative overflow-hidden">
                  <div className="absolute top-0 left-0 w-full h-4 bg-emerald-500"></div>
                  <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1.2px, transparent 1.2px)', backgroundSize: '40px 40px' }}></div>
                  
-                 <div className="flex items-center gap-8 mb-20 border-b border-slate-100 pb-12 relative z-10">
-                    <div className="w-16 h-16 bg-black rounded-[24px] flex items-center justify-center shadow-2xl">
+                 <div className="flex items-center gap-8 mb-20 border-b border-slate-800 pb-12 relative z-10">
+                    <div className="w-16 h-16 bg-slate-900 border border-slate-700 rounded-[24px] flex items-center justify-center shadow-2xl">
                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2.5"/></svg>
                     </div>
                     <div>
-                       <h3 className="text-4xl font-black italic text-black uppercase tracking-tighter">DEEP ARCHITECTURE PROTOCOL</h3>
+                       <h3 className="text-4xl font-black italic text-white uppercase tracking-tighter">DEEP ARCHITECTURE PROTOCOL</h3>
                        <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.5em] mt-1 italic">EXHAUSTIVE TECHNICAL & MONETIZATION SYNOPSIS</p>
                     </div>
                  </div>
                  
                  <div className="max-w-none relative z-10 space-y-12">
                     {clean(report.deepArchitecture).split('\n\n').map((para, pIdx) => (
-                      <p key={pIdx} className="text-slate-800 text-xl font-medium leading-[1.8] font-sans tracking-tight text-justify">
-                         {para}
-                      </p>
+                      <p key={pIdx} className="text-slate-300 text-xl font-medium leading-[1.8] font-sans tracking-tight text-justify">{para}</p>
                     ))}
                  </div>
 
-                 {/* VERIFIABLE NODES */}
-                 <div className="mt-24 pt-16 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-16 relative z-10">
+                 <div className="mt-24 pt-16 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-16 relative z-10">
                     <div className="space-y-8">
                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.5em] italic flex items-center gap-4">
                           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
@@ -183,19 +174,17 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                        </h4>
                        <div className="grid grid-cols-1 gap-4">
                           {report.sources.map((s, i) => (
-                             <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="p-6 bg-slate-50 border border-slate-100 rounded-[28px] hover:border-emerald-500/30 transition-all group flex flex-col gap-1 shadow-sm">
-                                <p className="text-[11px] font-black text-slate-800 uppercase truncate group-hover:text-emerald-500 transition-colors">{s.title}</p>
-                                <p className="text-[8px] text-slate-400 truncate italic font-bold tracking-widest">{s.uri}</p>
+                             <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="p-6 bg-slate-900 border border-slate-800 rounded-[28px] hover:border-emerald-500/30 transition-all group flex flex-col gap-1 shadow-sm">
+                                <p className="text-[11px] font-black text-slate-300 uppercase truncate group-hover:text-emerald-500 transition-colors">{s.title}</p>
+                                <p className="text-[8px] text-slate-500 truncate italic font-bold tracking-widest">{s.uri}</p>
                              </a>
                           ))}
-                          {report.sources.length === 0 && <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic text-center py-6 opacity-40">No external nodes detected in crawl.</p>}
                        </div>
                     </div>
-                    <div className="bg-slate-950 p-12 rounded-[56px] flex flex-col items-center justify-center text-center space-y-6 shadow-2xl relative group overflow-hidden">
-                       <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                       <span className="text-[11px] font-black text-slate-600 uppercase tracking-[0.6em] relative z-10">SYSTEM_VERDICT</span>
+                    <div className="bg-slate-950 border border-slate-800 p-12 rounded-[56px] flex flex-col items-center justify-center text-center space-y-6 shadow-2xl relative group overflow-hidden">
+                       <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.6em] relative z-10">SYSTEM_VERDICT</span>
                        <p className="text-3xl font-black italic text-white uppercase tracking-tighter leading-none relative z-10">PRIME TRANSFORMATION TARGET</p>
-                       <p className="text-[9px] text-indigo-400/60 font-black uppercase tracking-[0.4em] relative z-10">DEPLOY 4K PAYLOAD IMMEDIATELY</p>
+                       <p className="text-[9px] text-emerald-400/60 font-black uppercase tracking-[0.4em] relative z-10">DEPLOY 4K PAYLOAD IMMEDIATELY</p>
                     </div>
                  </div>
               </div>

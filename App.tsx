@@ -54,6 +54,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { subscribeToCompute } from './services/computeTracker';
 import { IntelNode } from './components/workspaces/IntelNode';
 import { AutoCrawl } from './components/workspaces/AutoCrawl';
+import { CipherNode } from './components/workspaces/CipherNode';
 
 const STORAGE_KEY_LEADS = 'prospector_os_leads_v1';
 const STORAGE_KEY_THEATER = 'prospector_os_theater_v1';
@@ -241,6 +242,7 @@ const App: React.FC = () => {
         case 'TASKS': return <TasksNode lead={lockedLead} />;
         case 'THEME': return <ThemeNode />;
         case 'TOKENS': return <TokenNode />;
+        case 'CIPHER_NODE': return <CipherNode />;
         default: return <ControlWorkspace activeModule={activeModule} />;
       }
     }

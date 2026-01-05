@@ -7,7 +7,6 @@ interface PipelineProps {
   onUpdateStatus: (id: string, status: OutreachStatus) => void;
 }
 
-// Updated stages to map new canonical statuses
 const STAGES: { id: string; label: string; statuses: OutreachStatus[] }[] = [
   { id: 'recon', label: 'MARKET RECON', statuses: ['cold'] },
   { id: 'staging', label: 'INTEL STAGING', statuses: ['queued'] },
@@ -41,9 +40,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         {STAGES.map((stage) => {
-          // Robust status fallback: check outreachStatus -> status -> 'cold'
           const stageLeads = leads.filter(l => stage.statuses.includes(l.outreachStatus ?? l.status ?? 'cold'));
-          
           return (
             <div key={stage.id} className="space-y-8">
               <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-6 flex items-center justify-between shadow-xl">
@@ -59,24 +56,17 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
                 {stageLeads.map((lead, i) => {
                   const displayStatus = lead.outreachStatus ?? lead.status ?? 'cold';
                   return (
-                    <div 
-                      key={lead.id} 
-                      className={`bg-slate-900 border border-slate-800 rounded-[24px] p-6 space-y-4 relative overflow-hidden transition-all hover:scale-[1.02] cursor-pointer shadow-lg group hover:border-emerald-500/40`}
-                    >
+                    <div key={lead.id} className={`bg-slate-900 border border-slate-800 rounded-[24px] p-6 space-y-4 relative overflow-hidden transition-all hover:scale-[1.02] cursor-pointer shadow-lg group hover:border-emerald-500/40`}>
                       <div className="flex justify-between items-start">
-                         <span className={`px-2 py-0.5 rounded text-[8px] font-black border tracking-widest uppercase ${
-                           lead.assetGrade === 'A' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'
-                         }`}>
+                         <span className={`px-2 py-0.5 rounded text-[8px] font-black border tracking-widest uppercase ${lead.assetGrade === 'A' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>
                            {lead.assetGrade}
                          </span>
                          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{displayStatus}</span>
                       </div>
-
                       <div className="space-y-1">
                          <h4 className="text-sm font-black text-white uppercase tracking-tight leading-tight group-hover:text-emerald-400 transition-colors truncate">{lead.businessName}</h4>
                          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest italic truncate">{lead.city}</p>
                       </div>
-
                       <div className="pt-4 border-t border-slate-800 flex justify-between items-center">
                          <div className="flex items-center gap-2">
                             <div className={`w-1.5 h-1.5 rounded-full ${displayStatus === 'cold' ? 'bg-slate-500' : 'bg-emerald-500 animate-pulse'}`}></div>
@@ -87,12 +77,7 @@ export const Pipeline: React.FC<PipelineProps> = ({ leads, onUpdateStatus }) => 
                     </div>
                   );
                 })}
-                
-                {stageLeads.length === 0 && (
-                   <div className="h-full flex flex-col items-center justify-center text-center opacity-20">
-                      <h4 className="text-xl font-black italic text-slate-800 uppercase tracking-tighter">EMPTY</h4>
-                   </div>
-                )}
+                {stageLeads.length === 0 && <div className="h-full flex flex-col items-center justify-center text-center opacity-20"><h4 className="text-xl font-black italic text-slate-800 uppercase tracking-tighter">EMPTY</h4></div>}
               </div>
             </div>
           );

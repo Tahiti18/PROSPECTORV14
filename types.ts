@@ -49,6 +49,14 @@ export interface OutreachLog {
   status?: 'SENT' | 'FAILED'; 
 }
 
+export interface BrandIdentity {
+  colors: string[];
+  fontPairing: string;
+  archetype: string;
+  visualTone: string;
+  logoUrl?: string;
+}
+
 export interface Lead {
   id: string;
   rank: number;
@@ -65,6 +73,9 @@ export interface Lead {
   bestAngle: string;
   personalizedHook: string;
   
+  // Brand DNA (Pomelli Engine)
+  brandIdentity?: BrandIdentity;
+
   // CRM Status Contract
   status?: OutreachStatus; // Legacy support (Optional)
   outreachStatus?: OutreachStatus; // Canonical CRM Field (Source of Truth)

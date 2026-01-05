@@ -12,7 +12,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({ leads, theater }) => {
     <div className="space-y-10 py-4 animate-in fade-in duration-500">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">HOT <span className="text-indigo-600 not-italic">ZONE</span></h1>
+          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">HOT <span className="text-emerald-600 not-italic">ZONE</span></h1>
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Opportunity Density: {theater}</p>
         </div>
       </div>
@@ -32,12 +32,12 @@ export const Heatmap: React.FC<HeatmapProps> = ({ leads, theater }) => {
                  <g key={l.id} className="group cursor-pointer">
                    <circle 
                     cx={x} cy={y} r={r} 
-                    className="fill-indigo-600 animate-pulse" 
+                    className="fill-emerald-600 animate-pulse" 
                     style={{ fillOpacity: opacity * 0.3, animationDuration: `${3 - (l.leadScore/50)}s` }} 
                    />
                    <circle 
                     cx={x} cy={y} r={4} 
-                    className="fill-indigo-400" 
+                    className="fill-emerald-400" 
                    />
                    <text x={x+10} y={y+5} className="text-[10px] font-black fill-slate-500 group-hover:fill-white uppercase opacity-0 group-hover:opacity-100 transition-all">
                      {l.businessName}
@@ -49,11 +49,11 @@ export const Heatmap: React.FC<HeatmapProps> = ({ leads, theater }) => {
            
            <div className="absolute bottom-10 left-10 flex gap-6">
               <div className="flex items-center gap-2">
-                 <div className="w-3 h-3 rounded-full bg-indigo-600/20 border border-indigo-500/40"></div>
+                 <div className="w-3 h-3 rounded-full bg-emerald-600/20 border border-emerald-500/40"></div>
                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Low Opportunity</span>
               </div>
               <div className="flex items-center gap-2">
-                 <div className="w-3 h-3 rounded-full bg-indigo-600 shadow-[0_0_10px_rgba(79,70,229,0.5)]"></div>
+                 <div className="w-3 h-3 rounded-full bg-emerald-600 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Critical Strike Zone</span>
               </div>
            </div>
@@ -69,7 +69,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({ leads, theater }) => {
                       <p className="text-[10px] font-black text-slate-200 uppercase truncate max-w-[150px]">{l.businessName}</p>
                       <p className="text-[8px] text-slate-500 font-bold uppercase">{l.niche}</p>
                     </div>
-                    <span className={`text-[11px] font-black italic ${l.leadScore > 80 ? 'text-emerald-400' : 'text-indigo-400'}`}>
+                    <span className={`text-[11px] font-black italic ${l.leadScore > 80 ? 'text-emerald-400' : 'text-emerald-600'}`}>
                       {l.leadScore}
                     </span>
                   </div>

@@ -24,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate }) => {
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 z-[60]">
       <div className="p-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
             <span className="text-white font-black text-xl">P</span>
           </div>
           <div>
@@ -45,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate }) => {
                     onClick={() => onNavigate(item.id)}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group ${
                       active === item.id 
-                        ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' 
+                        ? 'bg-emerald-600/10 text-emerald-400 border border-emerald-500/20' 
                         : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'
                     }`}
                   >
@@ -53,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate }) => {
                       {item.icon}
                     </span>
                     {item.label}
-                    {active === item.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>}
+                    {active === item.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>}
                   </button>
                 </Tooltip>
               </div>
@@ -64,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate }) => {
 
       <div className="p-4 border-t border-slate-800 bg-slate-900/50">
         <div className="bg-slate-800/50 p-3 rounded-xl flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 border border-white/10 shrink-0"></div>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 border border-white/10 shrink-0"></div>
           <div className="min-w-0">
             <p className="text-xs font-bold text-slate-100 truncate">Agent Zero</p>
             <p className="text-[10px] text-slate-500 truncate">Lead Outreach Lead</p>

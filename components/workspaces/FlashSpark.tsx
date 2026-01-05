@@ -40,13 +40,13 @@ export const FlashSpark: React.FC<FlashSparkProps> = ({ lead }) => {
     <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
-          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">FLASH <span className="text-indigo-600 not-italic">SPARK</span></h1>
+          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">FLASH <span className="text-emerald-600 not-italic">SPARK</span></h1>
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Rapid Content Velocity for {lead.businessName}</p>
         </div>
         <button 
           onClick={handleForge}
           disabled={isLoading}
-          className="bg-indigo-600 hover:bg-indigo-500 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border border-indigo-400/20"
+          className="bg-emerald-600 hover:bg-emerald-500 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-white transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border border-emerald-400/20"
         >
           {isLoading ? 'SPARKING...' : 'RE-GENERATE SPARKS'}
         </button>
@@ -58,15 +58,15 @@ export const FlashSpark: React.FC<FlashSparkProps> = ({ lead }) => {
             <div key={i} className="h-40 bg-slate-900 border border-slate-800 rounded-3xl animate-pulse"></div>
           ))
         ) : sparks.map((s, i) => (
-          <div key={i} className="bg-[#0b1021] border border-slate-800 p-8 rounded-[32px] hover:border-indigo-500/40 transition-all group relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-600/5 blur-[30px] rounded-full"></div>
+          <div key={i} className="bg-[#0b1021] border border-slate-800 p-8 rounded-[32px] hover:border-emerald-500/40 transition-all group relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-600/5 blur-[30px] rounded-full"></div>
              <div className="flex flex-col h-full justify-between">
-                <span className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">SPARK_ID: {i+1}</span>
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-4">SPARK_ID: {i+1}</span>
                 <p className="text-slate-200 text-lg font-black italic tracking-tight uppercase leading-snug group-hover:text-white transition-colors">
                   "{s}"
                 </p>
                 <div className="mt-6 pt-4 border-t border-slate-800/50 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                   <button className="text-[8px] font-black text-indigo-400 hover:text-white uppercase tracking-widest">DEPLOY →</button>
+                   <button className="text-[8px] font-black text-emerald-400 hover:text-white uppercase tracking-widest">DEPLOY →</button>
                    <button className="text-[8px] font-black text-slate-600 hover:text-white uppercase tracking-widest">SAVE</button>
                 </div>
              </div>

@@ -13,7 +13,6 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const checkAndOpenKey = async () => {
-    // Safeguard: Only run if window.aistudio exists (AI Studio Environment)
     // @ts-ignore
     if (typeof window !== 'undefined' && window.aistudio) {
         // @ts-ignore
@@ -30,12 +29,11 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
     setIsGenerating(true);
     try {
       await checkAndOpenKey();
-      // Ensure we pass the lead ID for proper vault linking
       const url = await generateVideoPayload(prompt, lead?.id);
       setVideoUrl(url);
     } catch (e) {
       console.error(e);
-      alert("Video generation failed. Ensure your API key is valid and has the Veo API enabled.");
+      alert("Video generation failed.");
     } finally {
       setIsGenerating(false);
     }
@@ -144,7 +142,6 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
         <div className="lg:col-span-8">
           <div className="bg-[#05091a] border border-slate-800 rounded-[84px] h-full min-h-[700px] flex flex-col items-center justify-center relative overflow-hidden shadow-2xl group">
             
-            {/* Background Ambient Effect */}
             <div className="absolute inset-0 bg-emerald-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
 
             {videoUrl ? (
