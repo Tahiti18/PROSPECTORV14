@@ -127,7 +127,20 @@ export const importVault = (externalAssets: AssetRecord[]) => {
     pushLog(`VAULT RESTORE: ${addedCount} ASSETS INJECTED.`);
   } catch (e) {
     console.error("Import failed quota", e);
-    alert("Storage quota exceeded during import. Some assets may not be saved.");
+    // Hard pruning strategy on import failure
+    if (SESSION_ASSETS.length > 20) {
+        const kept = SESSION_ASSETS.slice(0, 20);
+        SESSION_ASSETS.length = 0;
+        SESSION_ASSETS.push(...kept);
+        try {
+            localStorage.setItem(STORAGE_KEY_VAULT, JSON.stringify(SESSION_ASSETS));
+            alert(`Storage Quota Exceeded. Pruned vault to 20 recent items to allow save.`);
+        } catch(e2) {
+            alert("Storage Quota Critical. Assets loaded in memory but could not be saved to disk.");
+        }
+    } else {
+        alert("Storage quota exceeded. Assets imported to RAM only (refresh will lose data).");
+    }
   }
   return addedCount;
 };

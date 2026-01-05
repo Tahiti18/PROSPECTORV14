@@ -34,7 +34,7 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
             <span className="text-emerald-500">CINEMA</span> INTEL HUB
             <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-500 font-black">i</span>
           </h1>
-          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-[0.2em]">
+          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">
             Deep-layer video understanding via Search Grounding.
           </p>
         </div>
@@ -42,13 +42,14 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-5 space-y-10">
-           <div className="bg-white border border-slate-200 rounded-[56px] p-12 shadow-2xl space-y-10">
+           {/* Dark Mode Input Panel */}
+           <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-12 shadow-2xl space-y-10">
               <div className="space-y-6">
                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">1. VIDEO SOURCE (URL)</h3>
                  <input 
                    value={url}
                    onChange={(e) => setUrl(e.target.value)}
-                   className="w-full bg-slate-50 border-none rounded-[24px] px-8 py-6 text-sm font-bold text-slate-800 placeholder-slate-400 focus:ring-1 focus:ring-emerald-500/20"
+                   className="w-full bg-[#020617] border border-slate-800 rounded-[24px] px-8 py-6 text-sm font-bold text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors shadow-inner"
                    placeholder="Paste YouTube or Vimeo Link..."
                  />
               </div>
@@ -58,14 +59,14 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
                  <textarea 
                    value={prompt}
                    onChange={(e) => setPrompt(e.target.value)}
-                   className="w-full bg-slate-50 border-none rounded-3xl p-8 text-sm font-medium text-slate-700 h-40 resize-none placeholder-slate-300 italic focus:ring-1 focus:ring-emerald-500/20"
+                   className="w-full bg-[#020617] border border-slate-800 rounded-3xl p-8 text-sm font-medium text-slate-300 h-40 resize-none placeholder-slate-600 italic focus:outline-none focus:border-emerald-500 transition-colors shadow-inner leading-relaxed"
                  />
               </div>
 
               <button 
                 onClick={handleAnalyze}
                 disabled={isLoading || !url}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-6 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all active:scale-95 shadow-xl shadow-emerald-600/20"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-6 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all active:scale-95 shadow-xl shadow-emerald-600/20 border-b-4 border-emerald-700"
               >
                 {isLoading ? 'DECODING STREAM...' : 'ANALYZE VIDEO'}
               </button>

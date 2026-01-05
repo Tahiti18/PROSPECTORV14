@@ -269,9 +269,8 @@ const App: React.FC = () => {
       {/* COMMAND PALETTE */}
       <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme={theme} />
       
-      {/* PERSISTENT FOOTER CONTROLS - ONLY IN LEGACY MODE */}
-      {layoutMode === 'LEGACY' && (
-        <footer className={`fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t px-10 py-4 flex justify-between items-center z-[100] shadow-[0_-15px_40px_rgba(0,0,0,0.4)] transition-colors ${theme === 'dark' ? 'bg-[#0b1021]/95 border-slate-800 shadow-black' : 'bg-white/95 border-slate-200 shadow-slate-200'}`}>
+      {/* PERSISTENT FOOTER CONTROLS - ALWAYS VISIBLE */}
+      <footer className={`fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t px-10 py-4 flex justify-between items-center z-[100] shadow-[0_-15px_40px_rgba(0,0,0,0.4)] transition-colors ${theme === 'dark' ? 'bg-[#0b1021]/95 border-slate-800 shadow-black' : 'bg-white/95 border-slate-200 shadow-slate-200'}`}>
           <div className="flex items-center gap-6">
              <button 
                onClick={() => fileInputRef.current?.click()}
@@ -292,13 +291,12 @@ const App: React.FC = () => {
           <div className="flex items-center gap-5">
              <button 
                onClick={handleManualSave}
-               className="bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-3 border border-indigo-400/20"
+               className="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-3 border border-emerald-400/20"
              >
                <span>💾</span> SAVE ALL
              </button>
           </div>
-        </footer>
-      )}
+      </footer>
     </LayoutComponent>
   );
 };
