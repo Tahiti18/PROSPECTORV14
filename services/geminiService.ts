@@ -458,33 +458,67 @@ export const generateROIReport = async (ltv: number, leads: number, conv: number
   });
 };
 
-export const generateVisual = async (prompt: string, lead: Lead) => {
-  pushLog(`VISUAL: RENDERING ASSET...`);
+export const generateVisual = async (prompt: string, lead?: Lead, inputImage?: string): Promise<string> => {
+  pushLog(inputImage ? "EDITING VISUAL ASSET..." : "GENERATING VISUAL ASSET...");
   const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: prompt,
-    config: { responseMimeType: 'image/jpeg' } // Hinting image gen
-  });
+  const model = "gemini-2.5-flash-image";
   
-  // Extract image from response parts (assuming standard image output)
-  // For Gemini 2.5 Flash Image, we use generateContent but look for inlineData in response
-  // OR we use the image generation specific structure if available.
-  // The provided guidelines say: output response may contain both image and text parts.
-  
-  // Actually, standard text-to-image usually returns base64 in inlineData of candidates.
-  // Let's iterate parts.
-  const cand = response.candidates?.[0];
-  if (cand?.content?.parts) {
-    for (const part of cand.content.parts) {
-        if (part.inlineData && part.inlineData.data) {
-            const base64 = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-            saveAsset('IMAGE', `VISUAL_${Date.now()}`, base64, 'VISUAL_STUDIO', lead.id);
-            return base64;
-        }
-    }
+  let enrichedPrompt = prompt;
+  // Use brand enrichment only for generation, keep editing raw for control
+  if (lead?.brandIdentity && !inputImage) {
+    const { colors, visualTone, aestheticTags } = lead.brandIdentity;
+    enrichedPrompt = `
+      Create a professional image for a business.
+      Brand Context:
+      - Colors: ${colors.join(', ')}
+      - Aesthetic Keywords: ${aestheticTags?.join(', ')}
+      - Tone: ${visualTone}
+      
+      User Prompt: ${prompt}
+      
+      Ensure the image perfectly matches the brand colors and vibe described. High fidelity, photorealistic or stylized as requested.
+    `;
   }
-  return null;
+
+  try {
+      let contents;
+      if (inputImage) {
+          // Input image is expected to be a data URL, need to strip header
+          const parts = inputImage.split(',');
+          if (parts.length > 1) {
+            const mimeType = parts[0].split(':')[1].split(';')[0];
+            const data = parts[1];
+            
+            contents = {
+                parts: [
+                    { inlineData: { mimeType, data } },
+                    { text: prompt }
+                ]
+            };
+          } else {
+             // Fallback if formatting issue
+             contents = { parts: [{ text: enrichedPrompt }] };
+          }
+      } else {
+          contents = { parts: [{ text: enrichedPrompt }] };
+      }
+
+      const response = await ai.models.generateContent({ model, contents });
+      
+      // Try to find image in response parts
+      const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+      
+      if (part?.inlineData?.data) {
+        const url = `data:image/png;base64,${part.inlineData.data}`;
+        saveAsset('IMAGE', inputImage ? `EDITED_ASSET_${Date.now()}` : `BRAND_ASSET_${Date.now()}`, url, 'VISUAL_STUDIO', lead?.id);
+        return url;
+      }
+      throw new Error("No image data returned");
+  } catch(e: any) { 
+      console.error(e); 
+      pushLog(`VISUAL ERROR: ${e.message}`);
+      return ""; 
+  }
 };
 
 export const orchestrateBusinessPackage = async (lead: Lead, assets: AssetRecord[]) => {
