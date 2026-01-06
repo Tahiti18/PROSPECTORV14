@@ -21,7 +21,7 @@ let stats: ComputeStats = {
   flashCalls: 0
 };
 
-// Default State: EMPIRE Tier (Unlocked)
+// Default State: EMPIRE Tier (Unlocked) - KIE Credits Priority
 let user: UserProfile = {
   tier: 'EMPIRE',
   xp: 15000,
@@ -63,9 +63,8 @@ export const checkFeatureAccess = (feature: 'VEO' | 'PRO_MODEL' | 'BULK_OPS' | '
   if (user.tier === 'EMPIRE') return true;
   
   if (feature === 'VEO' && user.tier === 'STARTER') return false;
-  if (feature === 'PRO_MODEL' && user.tier === 'STARTER') return false; // Starter is Flash only
+  if (feature === 'PRO_MODEL' && user.tier === 'STARTER') return false; 
   
-  // EMPIRE only features (if we are here, we are not EMPIRE)
   if (feature === 'BULK_OPS') return false;
   if (feature === 'WHITE_LABEL') return false;
   
@@ -81,7 +80,9 @@ export const deductCost = (model: string, estimatedChars: number): boolean => {
   const isVeo = model.includes('veo');
 
   if (isVeo && !checkFeatureAccess('VEO')) {
-    toast.error("VEO VIDEO ENGINE LOCKED. UPGRADE TO GROWTH TIER.");
+    // If KIE key is being used for Veo, we shouldn't technically hit this if the caller bypasses deductCost,
+    // but just in case, we warn about internal lock.
+    toast.error("VEO VIDEO ENGINE LOCKED. CHECK SUBSCRIPTION.");
     return false;
   }
   if (isPro && !checkFeatureAccess('PRO_MODEL')) {
@@ -94,9 +95,8 @@ export const deductCost = (model: string, estimatedChars: number): boolean => {
     ? (tokens / 1000000) * PRO_COST_PER_1M 
     : (tokens / 1000000) * FLASH_COST_PER_1M;
 
-  // INTERNAL BYPASS: Never block execution based on simulated credits for EMPIRE users
+  // INTERNAL BYPASS: EMPIRE users are unrestricted
   if (user.tier === 'EMPIRE') {
-      // Just track stats, don't block
       stats.sessionTokens += tokens;
       stats.sessionCostUsd += cost;
       notify();
@@ -108,19 +108,16 @@ export const deductCost = (model: string, estimatedChars: number): boolean => {
     return false;
   }
 
-  // 3. Transaction
   user.credits -= cost;
   
-  // 4. Update Stats
   stats.sessionTokens += tokens;
   stats.sessionCostUsd += cost;
   if (isPro) stats.proCalls++;
   else stats.flashCalls++;
   stats.projectedMonthlyUsd = stats.sessionCostUsd * 30;
 
-  // 5. Gamification: Add XP based on spend ($1 = 100 XP)
   const xpGained = Math.ceil(cost * 100);
-  addXP(xpGained > 0 ? xpGained : 1); // Min 1 XP per action
+  addXP(xpGained > 0 ? xpGained : 1); 
 
   notify();
   return true;
@@ -128,7 +125,6 @@ export const deductCost = (model: string, estimatedChars: number): boolean => {
 
 const addXP = (amount: number) => {
   user.xp += amount;
-  // Simple Level Formula: Level = sqrt(XP / 100)
   const newLevel = Math.floor(Math.sqrt(user.xp / 100)) + 1;
   if (newLevel > user.level) {
     user.level = newLevel;
@@ -146,7 +142,6 @@ export const addCredits = (amount: number) => {
 export const subscribeToCompute = (l: Listener): (() => void) => {
   listeners.add(l);
   l(stats, user, economyMode);
-  // Explicitly return void to satisfy EffectCallback
   return () => { listeners.delete(l); };
 };
 

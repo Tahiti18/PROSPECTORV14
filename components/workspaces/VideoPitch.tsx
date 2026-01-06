@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Lead } from '../../types';
 import { generateVideoPayload, enhanceVideoPrompt, VeoConfig, saveAsset } from '../../services/geminiService';
@@ -43,18 +44,6 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
 
   // --- ACTIONS ---
 
-  const checkAndOpenKey = async () => {
-    // @ts-ignore
-    if (typeof window !== 'undefined' && window.aistudio) {
-        // @ts-ignore
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        if (!hasKey) {
-          // @ts-ignore
-          await window.aistudio.openSelectKey();
-        }
-    }
-  };
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'START' | 'END') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -90,8 +79,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
     setVideoUrl(null);
     
     try {
-      await checkAndOpenKey();
-      
+      // Direct call to KIE-powered function
       const url = await generateVideoPayload(
         prompt, 
         lead?.id, 
@@ -106,6 +94,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
       }
     } catch (e: any) {
       console.error(e);
+      // Display the actual error from the API (e.g. 403, Quota Exceeded)
       alert(`Generation Failed: ${e.message}`);
     } finally {
       setIsGenerating(false);

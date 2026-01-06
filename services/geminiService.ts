@@ -800,13 +800,13 @@ export const generateVideoPayload = async (
 ): Promise<string> => {
   pushLog("GENERATING VIDEO ASSET (VEO 3.1)...");
   
-  // KIE API KEY for VEO ONLY
+  // KIE API KEY for VEO ONLY - Restored as requested
   const KIE_API_KEY = '2f30b2e5cdf012a40e82f10d7c30cb7f';
-  // Create specific instance for Veo
+  // Create specific instance for Veo using KIE key
   const ai = new GoogleGenAI({ apiKey: KIE_API_KEY });
   
-  // BYPASS INTERNAL COST CHECK FOR KIE KEY
-  // We skip deductCost here because the key is external/hardcoded and should not be blocked by internal tier logic.
+  // INTERNAL COST CHECK IS BYPASSED FOR KIE KEY
+  // The user manages their own credits on the KIE platform.
 
   // Default config if not provided
   const settings: VeoConfig = config || {
@@ -822,7 +822,6 @@ export const generateVideoPayload = async (
       aspectRatio: settings.aspectRatio
     };
 
-    // If End Frame exists, add it to config (Only supported on fast-generate for now per docs/constraints)
     if (imageEndData) {
       const parts = imageEndData.split(',');
       if (parts.length === 2) {
@@ -838,7 +837,6 @@ export const generateVideoPayload = async (
       config: videoConfig
     };
 
-    // Add Start Frame if present
     if (imageStartData) {
       const parts = imageStartData.split(',');
       if (parts.length === 2) {
@@ -880,7 +878,8 @@ export const generateVideoPayload = async (
   } catch (e: any) {
     console.error("Veo Gen Error", e);
     pushLog(`ERROR: VEO FAILED - ${e.message}`);
-    return "";
+    // CRITICAL FIX: Propagate error so UI can display it
+    throw e;
   }
 };
 
