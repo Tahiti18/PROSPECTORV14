@@ -9,6 +9,10 @@ const MUTEX_KEY = 'pomelli_automation_mutex_v1';
 
 type DbV1 = { version: 1; runs: Record<string, AutomationRun> };
 
+// Event Bus for Leads
+type Listener = (leads: Lead[]) => void;
+const listeners = new Set<Listener>();
+
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -138,6 +142,11 @@ export const db = {
 
   // --- LEAD MANAGEMENT ---
 
+  subscribe: (listener: Listener) => {
+    listeners.add(listener);
+    return () => { listeners.delete(listener); };
+  },
+
   getLeads: (): Lead[] => {
     const raw = localStorage.getItem(STORAGE_KEY_LEADS);
     const data = safeParse(raw);
@@ -147,6 +156,7 @@ export const db = {
   saveLeads: (leads: Lead[]) => {
     try {
         localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
+        listeners.forEach(l => l(leads));
     } catch (e: any) {
         console.error("Save Leads Failed", e);
         if (e.name === 'QuotaExceededError') {
@@ -190,7 +200,7 @@ export const db = {
         lockedAt: undefined,
         lockExpiresAt: undefined
     }));
-    db.saveLeads(cleaned);
+    db.saveLeads(cleaned); // Notifies listeners
     toast.success(`SYSTEM OVERRIDE: ${leads.length} TARGETS UNLOCKED.`);
   },
 

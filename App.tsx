@@ -131,10 +131,10 @@ const App: React.FC = () => {
     return <SmokeTest />;
   }
 
-  // Hydration & Polling
+  // Hydration & Subscription
   useEffect(() => {
     try {
-      // Pull from DB Service as single source of truth for leads
+      // Pull initial state
       const savedLeads = db.getLeads();
       const savedTheater = localStorage.getItem(STORAGE_KEY_THEATER);
       const savedLayout = localStorage.getItem(STORAGE_KEY_LAYOUT);
@@ -147,44 +147,42 @@ const App: React.FC = () => {
     }
     setIsHydrated(true);
 
-    const unsubscribe = subscribeToCompute((s) => setCompute(s));
+    const unsubCompute = subscribeToCompute((s) => setCompute(s));
     
-    // Poll DB for background updates (e.g. from AutoCrawl)
-    const pollInterval = setInterval(() => {
-        const currentDb = db.getLeads();
-        if (currentDb.length !== leads.length) {
-            setLeads(currentDb);
-        }
-    }, 2000);
+    // Subscribe to DB updates (Replaces polling)
+    const unsubDb = db.subscribe((newLeads) => {
+        setLeads(newLeads);
+    });
 
     return () => { 
-        unsubscribe(); 
-        clearInterval(pollInterval);
+        unsubCompute(); 
+        unsubDb();
     };
-  }, [leads.length]);
+  }, []);
 
-  // Persistence (Write-Through)
+  // Persistence (Settings Only - Leads handled by DB service)
   useEffect(() => {
     if (!isHydrated) return;
-    
     try {
-      // We use DB service now, but keep this for syncing state updates from UI
-      db.saveLeads(leads);
       localStorage.setItem(STORAGE_KEY_THEATER, theater);
       localStorage.setItem(STORAGE_KEY_LAYOUT, layoutMode);
     } catch (e: any) {
-      // Quota handled by service
+      console.error("Settings save failed", e);
     }
-  }, [leads, theater, layoutMode, isHydrated]);
+  }, [theater, layoutMode, isHydrated]);
 
   const lockedLead = useMemo(() => leads.find(l => l.id === lockedLeadId), [leads, lockedLeadId]);
   
   const handleUpdateStatus = (id: string, status: any) => { 
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, status, outreachStatus: status } : l)); 
+    const currentLeads = db.getLeads();
+    const updated = currentLeads.map(l => l.id === id ? { ...l, status, outreachStatus: status } : l);
+    db.saveLeads(updated); // This triggers subscription update
   };
   
   const handleUpdateLead = (id: string, updates: Partial<Lead>) => {
-    setLeads(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+    const currentLeads = db.getLeads();
+    const updated = currentLeads.map(l => l.id === id ? { ...l, ...updates } : l);
+    db.saveLeads(updated); // This triggers subscription update
   };
 
   const navigate = (mode: MainMode, mod: SubModule) => { setActiveMode(mode); setActiveModule(mod); };
@@ -194,7 +192,6 @@ const App: React.FC = () => {
     db.saveLeads(leads);
     localStorage.setItem(STORAGE_KEY_THEATER, theater);
     // Use window.alert or custom toast
-    // We have ToastContainer now, but this is a legacy hard save
     alert("SYSTEM STATE SECURED: ALL DATA SAVED TO LOCAL CORE.");
   };
 
@@ -216,7 +213,6 @@ const App: React.FC = () => {
       try {
         const imported = JSON.parse(e.target?.result as string);
         if (Array.isArray(imported)) {
-          setLeads(imported);
           db.saveLeads(imported);
           alert(`LEDGER RESTORED: ${imported.length} TARGETS LOADED.`);
         } else {
@@ -235,8 +231,8 @@ const App: React.FC = () => {
     if (activeMode === 'OPERATE') {
       switch (activeModule) {
         case 'COMMAND': return <MissionControl leads={leads} theater={theater} onNavigate={navigate} />;
-        case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(l) => { setLeads(l); navigate('OPERATE', 'TARGET_LIST'); }} />;
-        case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => setLeads(prev => [...prev, ...newL])} />;
+        case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(l) => { db.saveLeads(l); navigate('OPERATE', 'TARGET_LIST'); }} />;
+        case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => { /* handled by db inside autocrawl */ }} />;
         case 'TARGET_LIST': return <TargetList leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('OPERATE', 'WAR_ROOM'); }} />;
         case 'WAR_ROOM': return <WarRoom lead={lockedLead} onUpdateLead={handleUpdateLead} />;
         case 'PIPELINE': return <Pipeline leads={leads} onUpdateStatus={handleUpdateStatus} />;
