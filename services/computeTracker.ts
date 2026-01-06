@@ -21,12 +21,12 @@ let stats: ComputeStats = {
   flashCalls: 0
 };
 
-// Default State: Starter Tier, Level 1
+// Default State: EMPIRE Tier (Unlocked)
 let user: UserProfile = {
-  tier: 'STARTER',
-  xp: 0,
-  level: 1,
-  credits: 50.00
+  tier: 'EMPIRE',
+  xp: 15000,
+  level: 50,
+  credits: 9999.00
 };
 
 let economyMode = false;
@@ -93,6 +93,15 @@ export const deductCost = (model: string, estimatedChars: number): boolean => {
   const cost = isPro 
     ? (tokens / 1000000) * PRO_COST_PER_1M 
     : (tokens / 1000000) * FLASH_COST_PER_1M;
+
+  // INTERNAL BYPASS: Never block execution based on simulated credits for EMPIRE users
+  if (user.tier === 'EMPIRE') {
+      // Just track stats, don't block
+      stats.sessionTokens += tokens;
+      stats.sessionCostUsd += cost;
+      notify();
+      return true;
+  }
 
   if (user.credits < cost) {
     toast.error("INSUFFICIENT FUNDS. PLEASE RECHARGE WALLET.");
