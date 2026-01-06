@@ -271,20 +271,29 @@ const pollKieStatus = async (taskId: string): Promise<string | null> => {
                 }
             });
             const raw = await res.text();
-            console.log(`KIE POLL [${taskId}] RESPONSE:`, raw);
-
+            
             if (!res.ok) continue;
 
-            const data = JSON.parse(raw);
-            const status = (data.status || '').toUpperCase();
+            let data;
+            try {
+               data = JSON.parse(raw);
+            } catch {
+               continue;
+            }
+
+            // Normalize Nested Payload
+            const payload = data.data || data; 
+            const status = (payload.status || payload.state || '').toUpperCase();
+
+            console.log(`KIE POLL [${taskId}] STATUS: ${status}`, payload);
 
             // SUCCESS STATES
             if (status === 'SUCCEEDED' || status === 'COMPLETED' || status === 'SUCCESS') {
-                return data.url || data.video_url || data.result?.url || null;
+                return payload.url || payload.video_url || payload.result?.url || payload.output?.url || null;
             }
             // FAIL STATES
             if (status === 'FAILED' || status === 'ERROR') {
-                throw new Error(data.error || 'Task reported failure during polling');
+                throw new Error(payload.error || 'Task reported failure during polling');
             }
             // PENDING STATES: 'PENDING', 'PROCESSING', 'QUEUED' -> Continue Loop
         } catch (e) {
@@ -353,8 +362,11 @@ export const generateVideoPayload = async (
         throw new Error(`KIE Response Not JSON: ${raw}`);
     }
     
+    // Normalize Payload (Handle wrapped data objects)
+    const payload = data.data || data;
+
     // 1. Immediate Success (URL present)
-    const videoUrl = data.url || data.video_url || data.uri || data.video?.uri;
+    const videoUrl = payload.url || payload.video_url || payload.uri || payload.video?.uri;
     if (videoUrl) {
       saveAsset('VIDEO', `VEO_CLIP_${Date.now()}`, videoUrl, 'VIDEO_PITCH', leadId);
       pushLog("VEO: RENDER COMPLETE (SYNC).");
@@ -362,8 +374,8 @@ export const generateVideoPayload = async (
       return videoUrl;
     } 
     
-    // 2. Async Task (ID present)
-    const taskId = data.id || data.task_id;
+    // 2. Async Task (ID present - Handle various ID keys)
+    const taskId = payload.id || payload.task_id || payload.taskId || payload.job_id;
     if (taskId) {
        toast.info(`VEO Job Started: ${taskId}. Polling...`);
        pushLog(`VEO: Job ${taskId} queued.`);
