@@ -275,10 +275,8 @@ export const generateVideoPayload = async (
     };
   }
   
-  // Only Veo fast supports end frames reliably via SDK currently
-  if (endImageBase64 && config.modelStr.includes('fast')) {
-     // Check local types if needed, otherwise omit to prevent crash
-  }
+  // Note: lastFrame property removed to fix TS2353 build error.
+  // The SDK installed in the environment does not support it in this version.
 
   try {
     toast.neural("VEO ENGINE: RENDERING STARTED (This takes ~60s)...");
