@@ -8,6 +8,8 @@ import { toast } from './toastManager';
 // --- CONSTANTS ---
 // STRICT HARDCODED KEY FOR VEO OPERATIONS
 const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279';
+// KIE Proxy Endpoint - Required because the key is not a direct Google Cloud key
+const KIE_BASE_URL = 'https://api.kie.ai/v1';
 
 // --- TYPES ---
 export interface AssetRecord {
@@ -255,9 +257,12 @@ export const generateVideoPayload = async (
 ): Promise<string | null> => {
   pushLog(`VEO: INITIALIZING VIDEO GENERATION (${config.modelStr})...`);
   
-  // 1. DIRECT INSTANCE WITH HARDCODED KIE KEY
-  // This explicitly bypasses any other key logic for Veo operations.
-  const ai = new GoogleGenAI({ apiKey: KIE_KEY });
+  // 1. DIRECT INSTANCE WITH HARDCODED KIE KEY + PROXY URL
+  // We use KIE_BASE_URL because this is a 3rd party key, not a Google Cloud key.
+  const ai = new GoogleGenAI({ 
+    apiKey: KIE_KEY,
+    baseUrl: KIE_BASE_URL 
+  });
 
   // 3. Construct Payload
   const payload: any = {
@@ -299,7 +304,8 @@ export const generateVideoPayload = async (
     if (videoUri) {
       // Fetch the actual bytes using the KIE KEY to bypass expiration/CORS issues
       // Ensure we use the same key for the fetch as the generation
-      const videoRes = await fetch(`${videoUri}&key=${KIE_KEY}`);
+      const fetchUrl = videoUri.includes('?') ? `${videoUri}&key=${KIE_KEY}` : `${videoUri}?key=${KIE_KEY}`;
+      const videoRes = await fetch(fetchUrl);
       const videoBlob = await videoRes.blob();
       const videoUrl = URL.createObjectURL(videoBlob); // Create local blob URL
       
@@ -314,8 +320,8 @@ export const generateVideoPayload = async (
   } catch (e: any) {
     console.error("Veo Generation Error:", e);
     // Display cleaner error message if it's the specific API Key error
-    if (e.message?.includes("API key not valid")) {
-       toast.error(`Invalid API Key (${KIE_KEY.slice(0,4)}...). Please verify the KIE key string.`);
+    if (e.message?.includes("API key not valid") || e.message?.includes("400")) {
+       toast.error(`Invalid API Key / Endpoint. Proxy: ${KIE_BASE_URL}`);
     } else {
        toast.error(`Video Failed: ${e.message}`);
     }
