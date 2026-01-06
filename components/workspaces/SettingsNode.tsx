@@ -13,14 +13,19 @@ export const SettingsNode: React.FC = () => {
   const [agencyName, setAgencyName] = useState('');
   const [hasAccess, setHasAccess] = useState(false);
 
+  // Manual API Key Override
+  const [manualApiKey, setManualApiKey] = useState('');
+
   useEffect(() => {
     const savedSens = localStorage.getItem('pomelli_os_sensitivity');
     const savedRecon = localStorage.getItem('pomelli_os_auto_recon');
     const savedAgency = localStorage.getItem('pomelli_agency_name');
+    const savedKey = localStorage.getItem('pomelli_api_key');
     
     if (savedSens) setSensitivity(parseInt(savedSens));
     if (savedRecon) setAutoRecon(savedRecon === 'true');
     if (savedAgency) setAgencyName(savedAgency);
+    if (savedKey) setManualApiKey(savedKey);
     
     setHasAccess(checkFeatureAccess('WHITE_LABEL'));
   }, []);
@@ -33,6 +38,13 @@ export const SettingsNode: React.FC = () => {
   const handleSave = () => {
     localStorage.setItem('pomelli_os_sensitivity', sensitivity.toString());
     localStorage.setItem('pomelli_os_auto_recon', autoRecon.toString());
+    
+    if (manualApiKey) {
+        localStorage.setItem('pomelli_api_key', manualApiKey.trim());
+    } else {
+        localStorage.removeItem('pomelli_api_key');
+    }
+
     if (hasAccess) {
         localStorage.setItem('pomelli_agency_name', agencyName);
     }
@@ -56,6 +68,30 @@ export const SettingsNode: React.FC = () => {
       <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl space-y-12">
          <div className="grid grid-cols-1 gap-12">
             
+            {/* MANUAL API KEY OVERRIDE */}
+            <div className="bg-indigo-900/10 border border-indigo-500/30 p-8 rounded-3xl">
+                <div className="flex justify-between items-center mb-6">
+                    <h4 className="text-[14px] font-black text-white uppercase tracking-widest flex items-center gap-3">
+                        API KEY OVERRIDE
+                    </h4>
+                    <span className="text-2xl">🔑</span>
+                </div>
+                <div className="space-y-4">
+                    <p className="text-[10px] text-slate-400 font-medium max-w-lg leading-relaxed">
+                        Use this to test a different Google Gemini API Key directly in the browser. 
+                        Useful if the environment variable in Railway is missing or incorrect. 
+                        <strong>Leave empty to use the system default (Environment Variable).</strong>
+                    </p>
+                    <input 
+                        value={manualApiKey}
+                        onChange={(e) => setManualApiKey(e.target.value)}
+                        placeholder="Paste AIza... key here"
+                        type="password"
+                        className="w-full bg-[#020617] border border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-indigo-500 placeholder-slate-700"
+                    />
+                </div>
+            </div>
+
             {/* NEURAL ECONOMY SWITCH */}
             <div className="bg-gradient-to-r from-slate-900 to-slate-900/50 border border-slate-700/50 p-8 rounded-3xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
                 <div className="space-y-2">

@@ -135,14 +135,22 @@ export const importVault = (assets: AssetRecord[]) => {
 let aiInstance: GoogleGenAI | null = null;
 
 export const getAI = () => {
-  if (!aiInstance) {
-    if (!process.env.API_KEY) {
-      console.error("API_KEY is missing");
-      throw new Error("API Key missing");
-    }
-    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // 1. Try Browser Storage Override (Settings Node)
+  const localKey = localStorage.getItem('pomelli_api_key');
+  // 2. Try Environment Variable (Railway)
+  const envKey = process.env.API_KEY;
+  
+  const activeKey = localKey || envKey;
+
+  if (!activeKey) {
+    console.error("API_KEY is missing from both Settings and Environment");
+    toast.error("SYSTEM HALT: API Key Missing. Configure in Settings or Railway.");
+    throw new Error("API Key missing");
   }
-  return aiInstance;
+
+  // Always recreate instance if key changes or doesn't exist
+  // We do not cache aggressively to allow key switching at runtime
+  return new GoogleGenAI({ apiKey: activeKey });
 };
 
 // --- LOGGED WRAPPER (NOW WITH MONETIZATION & GATING) ---
@@ -798,15 +806,14 @@ export const generateVideoPayload = async (
   imageEndData?: string,
   config?: VeoConfig
 ): Promise<string> => {
-  // DEBUG ALERT: CONFIRM EXECUTION START
   alert("DEBUG STEP 1: Starting Veo Generation Protocol...");
   
   pushLog("GENERATING VIDEO ASSET (VEO 3.1)...");
   
-  // KIE INTEGRATION: Use HARDCODED key as requested by user.
-  // Using explicit key bypassing env to ensure KIE key is used.
+  // KIE INTEGRATION: Force use of KIE key for Veo
+  // Hardcoded to override environment variable specifically for this module.
   const KIE_KEY = '2f30b2e5cdf012a40e82f10d7c30cb7f';
-  alert(`DEBUG STEP 2: Using Key ${KIE_KEY.slice(0, 5)}...`);
+  alert(`DEBUG STEP 2: Using Hardcoded Key ${KIE_KEY.slice(0, 5)}...`);
 
   // LIBRARY CHECK
   if (typeof GoogleGenAI === 'undefined') {
@@ -867,7 +874,10 @@ export const generateVideoPayload = async (
     console.log("[VEO] Sending Request:", request);
     
     alert("DEBUG STEP 5: Initiating Network Call (fetch)...");
+    
+    // Call using the specific KIE-authorized AI client
     let operation = await ai.models.generateVideos(request);
+    
     alert("DEBUG STEP 6: Operation Initiated Successfully! Polling...");
     
     const startTime = Date.now();
@@ -879,6 +889,8 @@ export const generateVideoPayload = async (
 
     const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
     if (!videoUri) throw new Error("No video URI returned from Veo.");
+
+    alert("DEBUG STEP 7: Video URI Received. Downloading...");
 
     // Fetch video blob - Must use the KIE key here too
     const fetchUrl = `${videoUri}&key=${KIE_KEY}`;
