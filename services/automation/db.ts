@@ -1,6 +1,7 @@
 
 import { AutomationRun, isAutomationRun } from './types';
 import { Lead } from '../../types';
+import { toast } from '../toastManager';
 
 const DB_KEY = 'pomelli_automation_db_v1';
 const STORAGE_KEY_LEADS = 'pomelli_os_leads_v14_final';
@@ -31,8 +32,11 @@ function normalizeRunsMap(maybeRuns: unknown): Record<string, AutomationRun> {
 function writeDb(db: DbV1) {
   try {
     localStorage.setItem(DB_KEY, JSON.stringify(db));
-  } catch (e) {
+  } catch (e: any) {
     console.error("[AutoDB] Write failed", e);
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      toast.error("STORAGE FULL: Cannot save automation run. Please export and clear old data.");
+    }
   }
 }
 
@@ -97,7 +101,11 @@ export const db = {
 
     // 3. Attempt Write
     const newLock = { ownerId, expiresAt: now + ttlMs };
-    localStorage.setItem(MUTEX_KEY, JSON.stringify(newLock));
+    try {
+        localStorage.setItem(MUTEX_KEY, JSON.stringify(newLock));
+    } catch (e) {
+        return false; // Write failed (quota?)
+    }
     
     // 4. Sleep to allow race conditions to settle
     await sleep(25);
@@ -137,7 +145,14 @@ export const db = {
   },
 
   saveLeads: (leads: Lead[]) => {
-    localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
+    try {
+        localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
+    } catch (e: any) {
+        console.error("Save Leads Failed", e);
+        if (e.name === 'QuotaExceededError') {
+            toast.error("STORAGE FULL: Leads not saved. Export data to free up space.");
+        }
+    }
   },
 
   clearStaleLocks: () => {
@@ -188,5 +203,6 @@ export const db = {
   clearRunsDB: () => {
     localStorage.removeItem(DB_KEY);
     localStorage.removeItem(MUTEX_KEY);
+    toast.success("Automation Database Cleared.");
   }
 };
