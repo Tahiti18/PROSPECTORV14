@@ -181,6 +181,19 @@ export const db = {
     if (updated) db.saveLeads(cleaned);
   },
 
+  forceUnlockAll: () => {
+    const leads = db.getLeads();
+    const cleaned = leads.map(l => ({
+        ...l,
+        locked: false,
+        lockedByRunId: undefined,
+        lockedAt: undefined,
+        lockExpiresAt: undefined
+    }));
+    db.saveLeads(cleaned);
+    toast.success(`SYSTEM OVERRIDE: ${leads.length} TARGETS UNLOCKED.`);
+  },
+
   // --- RUN MANAGEMENT (Normalized) ---
 
   getRun: (id: string): AutomationRun | null => {

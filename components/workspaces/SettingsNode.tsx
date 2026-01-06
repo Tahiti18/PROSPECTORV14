@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { setEconomyMode, isEconomyMode, getUserTier, checkFeatureAccess } from '../../services/computeTracker';
+import { db } from '../../services/automation/db';
 
 export const SettingsNode: React.FC = () => {
   const [sensitivity, setSensitivity] = useState(75);
@@ -39,6 +40,12 @@ export const SettingsNode: React.FC = () => {
     setTimeout(() => setIsSaved(false), 2000);
   };
 
+  const handleForceUnlock = () => {
+    if (confirm("FORCE UNLOCK: This will stop all active automation protocols and unlock all leads. Use only if system is stuck.")) {
+        db.forceUnlockAll();
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-12 space-y-12 animate-in fade-in duration-500">
       <div className="text-center">
@@ -65,6 +72,24 @@ export const SettingsNode: React.FC = () => {
                     className={`w-16 h-9 rounded-full relative transition-all duration-300 ${ecoMode ? 'bg-emerald-500' : 'bg-slate-700'}`}
                 >
                     <div className={`absolute top-1 w-7 h-7 rounded-full bg-white transition-all duration-300 shadow-lg ${ecoMode ? 'left-8' : 'left-1'}`}></div>
+                </button>
+            </div>
+
+            {/* EMERGENCY CONTROLS */}
+            <div className="bg-rose-900/10 border border-rose-500/30 p-8 rounded-3xl flex items-center justify-between group hover:bg-rose-900/20 transition-all">
+                <div className="space-y-2">
+                    <h4 className="text-[14px] font-black text-white uppercase tracking-widest flex items-center gap-3">
+                        PROTOCOL OVERRIDE
+                    </h4>
+                    <p className="text-[10px] text-rose-300/80 font-medium max-w-sm leading-relaxed">
+                        Emergency release for all locked leads. Use if "LOCKED BY PROTOCOL" persists due to browser crash or interrupted swarm.
+                    </p>
+                </div>
+                <button 
+                    onClick={handleForceUnlock}
+                    className="bg-rose-600 hover:bg-rose-500 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-rose-600/20 active:scale-95 transition-all"
+                >
+                    UNLOCK ALL TARGETS
                 </button>
             </div>
 
