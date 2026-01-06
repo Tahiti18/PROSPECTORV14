@@ -16,7 +16,7 @@ if (typeof (globalThis as any).localStorage === 'undefined') {
   };
 }
 
-const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+const smokeTestMiddleware = (req: IncomingMessage, res: ServerResponse, next: () => void) => {
   // Normalize path: separate query string
   const [urlPath, queryString] = (req.url || '').split('?');
   const normalizedPath = urlPath.endsWith('/') && urlPath.length > 1 ? urlPath.slice(0, -1) : urlPath;
@@ -34,107 +34,100 @@ const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, ne
   if (normalizedPath === '/__smoketest_phase1') {
     console.log(`PHASE1_SMOKETEST HIT ${req.url}`);
     
-    // Parse query params manually since we are in raw middleware
     const params = new URLSearchParams(queryString || '');
     const mode = params.get('mode') || 'run'; // 'ack' | 'run'
 
+    // Mode: ACK
+    if (mode === 'ack') {
+      res.setHeader('Content-Type', 'application/json');
+      res.statusCode = 200;
+      res.end(JSON.stringify({ 
+        ok: true, 
+        mode: 'ack', 
+        ts: new Date().toISOString(),
+        message: 'Middleware active. Ready to run.'
+      }));
+      return;
+    }
+
+    // Mode: RUN
     let responded = false;
-    
-    const respondOnce = (payload: any) => {
-      if (responded) return;
+    let watchdog: any;
+
+    const respond = (payload: any) => {
+      if (responded || res.writableEnded) return;
       responded = true;
+      clearTimeout(watchdog);
+      
       try {
-        const logStatus = payload.status || (payload.mode === 'ack' ? 'ACK' : 'UNKNOWN');
-        console.log(`PHASE1_SMOKETEST RESPOND ${logStatus}`);
-        
-        res.statusCode = 200;
+        console.log(`PHASE1_SMOKETEST ${payload.status}`);
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.statusCode = 200;
         res.end(JSON.stringify(payload, null, 2));
       } catch (e) {
         console.error('PHASE1_SMOKETEST RESPOND ERROR', e);
       }
     };
 
-    // Mode: ACK - Immediate return to prove route works
-    if (mode === 'ack') {
-      respondOnce({ 
-        ok: true, 
-        mode: 'ack', 
-        ts: new Date().toISOString(),
-        message: 'Middleware active. Ready to run.'
-      });
-      return;
-    }
+    // Hard Watchdog (60s)
+    watchdog = setTimeout(() => {
+        respond({
+            status: 'TIMEOUT',
+            stepsExecuted: 0,
+            assetsCommitted: 0,
+            error: 'Hard watchdog triggered (60s)',
+            completedAt: new Date().toISOString()
+        });
+    }, 60000);
 
-    // Mode: RUN - Execute Orchestrator
-    const testInput = {
-      id: 'smoke-test-lead-backend',
-      businessName: "Reflections MedSpa (Smoke Test)",
-      websiteUrl: "https://example.com",
-      city: "Houston, TX",
-      niche: "MedSpa",
-      rank: 1,
-      phone: "555-0123",
-      email: "test@example.com",
-      leadScore: 85,
-      assetGrade: "A",
-      socialGap: "Test Gap",
-      visualProof: "Test Visuals",
-      bestAngle: "Test Angle",
-      personalizedHook: "Test Hook",
-      status: "cold",
-      outreachStatus: "cold"
-    };
+    // Async Execution IIFE
+    (async () => {
+        try {
+            const testInput = {
+              id: 'smoke-test-lead-backend',
+              businessName: "Reflections MedSpa (Smoke Test)",
+              websiteUrl: "https://example.com",
+              city: "Houston, TX",
+              niche: "MedSpa",
+              rank: 1,
+              phone: "555-0123",
+              email: "test@example.com",
+              leadScore: 85,
+              assetGrade: "A",
+              socialGap: "Test Gap",
+              visualProof: "Test Visuals",
+              bestAngle: "Test Angle",
+              personalizedHook: "Test Hook",
+              status: "cold",
+              outreachStatus: "cold"
+            };
 
-    try {
-      const TIMEOUT_MS = 60000;
-      const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS);
-      });
+            // @ts-ignore
+            const result = await orchestratePhase1BusinessPackage(testInput);
+            const isSuccess = result.status === 'SUCCESS';
+            
+            respond({
+                status: isSuccess ? 'PASS' : 'FAIL',
+                runId: result.runId,
+                stepsExecuted: result.timeline?.length || 0,
+                assetsCommitted: result.assets?.length || 0,
+                failedStep: result.timeline?.find((s: any) => s.status === 'FAILED')?.actionName,
+                error: result.error,
+                completedAt: new Date().toISOString()
+            });
 
-      const executionPromise = (async () => {
-          // @ts-ignore
-          return await orchestratePhase1BusinessPackage(testInput);
-      })();
+        } catch (error: any) {
+            respond({
+                status: 'FAIL',
+                stepsExecuted: 0,
+                assetsCommitted: 0,
+                error: error.message || 'Unknown orchestration error',
+                completedAt: new Date().toISOString()
+            });
+        }
+    })();
 
-      // @ts-ignore
-      const result: any = await Promise.race([executionPromise, timeoutPromise]);
-
-      const isSuccess = result.status === 'SUCCESS';
-      
-      respondOnce({
-          status: isSuccess ? 'PASS' : 'FAIL',
-          mode: 'run',
-          runId: result.runId,
-          stepsExecuted: result.timeline?.length || 0,
-          assetsCommitted: result.assets?.length || 0,
-          failedStep: result.timeline?.find((s: any) => s.status === 'FAILED')?.actionName,
-          error: result.error,
-          completedAt: new Date().toISOString()
-      });
-
-    } catch (error: any) {
-      const isTimeout = error.message === 'TIMEOUT';
-      
-      respondOnce({
-          status: isTimeout ? 'TIMEOUT' : 'FAIL',
-          mode: 'run',
-          stepsExecuted: 0,
-          assetsCommitted: 0,
-          error: error.message || 'Unknown error',
-          completedAt: new Date().toISOString()
-      });
-    } finally {
-      if (!responded) {
-         respondOnce({
-           status: 'FAIL',
-           mode: 'run',
-           error: 'Protocol violation: Handler finished without response',
-           completedAt: new Date().toISOString()
-         });
-      }
-    }
-    return; // Stop middleware chain immediately
+    return; // Stop middleware chain
   }
 
   // Continue to next middleware if not matched
