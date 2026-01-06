@@ -17,8 +17,8 @@ if (typeof (globalThis as any).localStorage === 'undefined') {
 }
 
 const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-  // Normalize path: remove query params and trailing slash
-  const urlPath = req.url?.split('?')[0] || '';
+  // Normalize path: separate query string
+  const [urlPath, queryString] = (req.url || '').split('?');
   const normalizedPath = urlPath.endsWith('/') && urlPath.length > 1 ? urlPath.slice(0, -1) : urlPath;
 
   // 1. PING ENDPOINT (Diagnostics)
@@ -30,17 +30,23 @@ const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, ne
     return;
   }
 
-  // 2. SMOKETEST ENDPOINT (Orchestration)
+  // 2. SMOKETEST ENDPOINT (Orchestration & Diagnostics)
   if (normalizedPath === '/__smoketest_phase1') {
-    console.log('PHASE1_SMOKETEST HIT');
+    console.log(`PHASE1_SMOKETEST HIT ${req.url}`);
     
+    // Parse query params manually since we are in raw middleware
+    const params = new URLSearchParams(queryString || '');
+    const mode = params.get('mode') || 'run'; // 'ack' | 'run'
+
     let responded = false;
     
     const respondOnce = (payload: any) => {
       if (responded) return;
       responded = true;
       try {
-        console.log('PHASE1_SMOKETEST RESPOND', payload.status);
+        const logStatus = payload.status || (payload.mode === 'ack' ? 'ACK' : 'UNKNOWN');
+        console.log(`PHASE1_SMOKETEST RESPOND ${logStatus}`);
+        
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.end(JSON.stringify(payload, null, 2));
@@ -49,6 +55,18 @@ const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, ne
       }
     };
 
+    // Mode: ACK - Immediate return to prove route works
+    if (mode === 'ack') {
+      respondOnce({ 
+        ok: true, 
+        mode: 'ack', 
+        ts: new Date().toISOString(),
+        message: 'Middleware active. Ready to run.'
+      });
+      return;
+    }
+
+    // Mode: RUN - Execute Orchestrator
     const testInput = {
       id: 'smoke-test-lead-backend',
       businessName: "Reflections MedSpa (Smoke Test)",
@@ -86,6 +104,7 @@ const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, ne
       
       respondOnce({
           status: isSuccess ? 'PASS' : 'FAIL',
+          mode: 'run',
           runId: result.runId,
           stepsExecuted: result.timeline?.length || 0,
           assetsCommitted: result.assets?.length || 0,
@@ -99,7 +118,7 @@ const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, ne
       
       respondOnce({
           status: isTimeout ? 'TIMEOUT' : 'FAIL',
-          runId: undefined,
+          mode: 'run',
           stepsExecuted: 0,
           assetsCommitted: 0,
           error: error.message || 'Unknown error',
@@ -109,9 +128,8 @@ const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, ne
       if (!responded) {
          respondOnce({
            status: 'FAIL',
-           stepsExecuted: 0,
-           assetsCommitted: 0,
-           error: 'fell through without response',
+           mode: 'run',
+           error: 'Protocol violation: Handler finished without response',
            completedAt: new Date().toISOString()
          });
       }
