@@ -6,7 +6,7 @@ import { deductCost } from './computeTracker';
 import { toast } from './toastManager';
 
 // --- CONSTANTS ---
-// STRICT HARDCODED KEY FOR VEO OPERATIONS
+// STRICT HARDCODED KEY FOR VEO OPERATIONS (KIE PROXY)
 const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279';
 const KIE_ENDPOINT = 'https://api.kie.ai/api/v1/veo/generate';
 
@@ -226,6 +226,7 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImageBase
       model: 'gemini-2.5-flash-image',
       contents: { parts },
       config: {
+        // Fixed: removed numberOfImages as it is not supported in this SDK version config type
         imageConfig: { aspectRatio: "1:1" }
       }
     });
@@ -318,6 +319,30 @@ export const generateVideoPayload = async (
     }
     pushLog(`VEO ERROR: ${e.message}`);
     return null;
+  }
+};
+
+// --- SMOKE TEST FOR KIE KEY ---
+export const testKieConnection = async () => {
+  try {
+    const res = await fetch(KIE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${KIE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        prompt: "Smoke Test Connection",
+        model: "veo-3.1-fast-generate-preview",
+        ratio: "16:9"
+      }),
+    });
+    const txt = await res.text();
+    console.log("KIE Smoke Test Result:", res.status, txt);
+    return res.ok;
+  } catch (e) {
+    console.error("KIE Smoke Test Failed:", e);
+    return false;
   }
 };
 
