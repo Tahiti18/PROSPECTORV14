@@ -7,9 +7,10 @@ interface TooltipProps {
   content: string;
   side?: 'top' | 'bottom' | 'left' | 'right';
   width?: string;
+  className?: string;
 }
 
-export const Tooltip: React.FC<TooltipProps> = ({ children, content, side = 'top', width = 'w-64' }) => {
+export const Tooltip: React.FC<TooltipProps> = ({ children, content, side = 'top', width = 'w-64', className = '' }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -66,7 +67,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ children, content, side = 'top
         ref={triggerRef} 
         onMouseEnter={handleMouseEnter} 
         onMouseLeave={handleMouseLeave}
-        className="inline-flex items-center justify-center cursor-help"
+        className={`inline-flex items-center justify-center cursor-help ${className}`}
         onClick={(e) => e.stopPropagation()} // Prevent triggering parent button click
       >
         {children}

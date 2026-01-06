@@ -65,7 +65,7 @@ const ModeIcon = ({ id, active }: { id: MainMode, active: boolean }) => {
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
   // OPERATE
-  COMMAND: <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />,
+  COMMAND: <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />,
 };
 
 const ModuleIcon = ({ id, className }: { id: string, className?: string }) => (
@@ -325,13 +325,13 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                            {filtered.map(mod => {
                               const isActive = activeModule === mod.id;
                               return (
-                                 <div key={mod.id} className="w-full flex justify-center">
-                                  <Tooltip content={mod.desc} side="right">
+                                 <div key={mod.id} className="w-full">
+                                  <Tooltip content={mod.desc} side="right" className="w-full flex">
                                      <button
                                         onClick={() => setActiveModule(mod.id)}
                                         className={`w-full rounded-xl transition-all relative flex items-center group ${
                                            isSidebarExpanded 
-                                             ? 'px-3 py-2.5 justify-between text-left' 
+                                             ? 'px-3 py-2.5 justify-start text-left' 
                                              : 'p-3 justify-center'
                                         } ${
                                            isActive 
