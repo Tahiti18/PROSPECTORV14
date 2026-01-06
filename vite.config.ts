@@ -16,125 +16,139 @@ if (typeof (globalThis as any).localStorage === 'undefined') {
   };
 }
 
+// Global Lock for Concurrency Control
+let isSmokeTestRunning = false;
+
 const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-  // Normalize path: remove query params and trailing slash
-  const urlPath = req.url?.split('?')[0] || '';
-  const normalizedPath = urlPath.endsWith('/') && urlPath.length > 1 ? urlPath.slice(0, -1) : urlPath;
+  // Normalize URL and Path
+  const protocol = (req.headers['x-forwarded-proto'] as string) || 'http';
+  const host = req.headers.host || 'localhost';
+  const urlObj = new URL(req.url || '', `${protocol}://${host}`);
+  const pathname = urlObj.pathname.endsWith('/') && urlObj.pathname.length > 1 ? urlObj.pathname.slice(0, -1) : urlObj.pathname;
 
-  // 1. PING ENDPOINT (Diagnostics)
-  if (normalizedPath === '/__smoketest_phase1_ping') {
-    console.log('PHASE1_SMOKETEST PING');
-    res.setHeader('Content-Type', 'application/json');
-    res.statusCode = 200;
-    res.end(JSON.stringify({ ok: true, ts: new Date().toISOString() }));
-    return;
-  }
+  if (pathname === '/__smoketest_phase1') {
+    const mode = urlObj.searchParams.get('mode');
 
-  // 2. SMOKETEST ENDPOINT (Orchestration)
-  if (normalizedPath === '/__smoketest_phase1') {
-    console.log(`PHASE1_SMOKETEST HIT ${req.url}`);
-    
-    const testInput = {
-      id: 'smoke-test-lead-backend',
-      businessName: "Reflections MedSpa (Smoke Test)",
-      websiteUrl: "https://example.com",
-      city: "Houston, TX",
-      niche: "MedSpa",
-      rank: 1,
-      phone: "555-0123",
-      email: "test@example.com",
-      leadScore: 85,
-      assetGrade: "A",
-      socialGap: "Test Gap",
-      visualProof: "Test Visuals",
-      bestAngle: "Test Angle",
-      personalizedHook: "Test Hook",
-      status: "cold",
-      outreachStatus: "cold"
-    };
+    // Strict Headers for Browser/iPad compatibility
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
-    let responded = false;
-    const send = (code: number, body: any) => {
-      if (responded) return;
-      responded = true;
-      try {
-        res.setHeader('Content-Type', 'application/json');
-        res.statusCode = code;
-        res.end(JSON.stringify(body, null, 2));
-      } catch(e) {
-        console.error('[SMOKE_TEST] Response send failed', e);
-      }
+    // MODE: ACK (Immediate Liveness Check)
+    if (mode === 'ack') {
+        res.statusCode = 200;
+        res.end(JSON.stringify({ status: 'READY', ts: new Date().toISOString() }));
+        return;
+    }
+
+    // MODE: RUN (Orchestration)
+    if (isSmokeTestRunning) {
+        console.log('PHASE1_SMOKETEST BUSY');
+        res.statusCode = 429;
+        res.end(JSON.stringify({
+            status: 'FAIL',
+            error: 'SMOKETEST_BUSY',
+            stepsExecuted: 0,
+            assetsCommitted: 0,
+            completedAt: new Date().toISOString()
+        }));
+        return;
+    }
+
+    isSmokeTestRunning = true;
+    let responseSent = false;
+
+    // Single exit point for the HTTP response
+    const finalize = (code: number, body: any) => {
+        if (responseSent) return;
+        responseSent = true;
+        // Release lock before sending response
+        isSmokeTestRunning = false;
+        try {
+            res.statusCode = code;
+            res.end(JSON.stringify(body));
+        } catch(e) {
+            console.error('[SMOKE_TEST] Failed to send response', e);
+        }
     };
 
     try {
-      // 180s hard timeout (3 minutes)
-      const TIMEOUT_MS = 180000;
-      
-      const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS);
-      });
+        const testInput = {
+            id: 'smoke-test-lead-backend',
+            businessName: "Reflections MedSpa (Smoke Test)",
+            websiteUrl: "https://example.com",
+            city: "Houston, TX",
+            niche: "MedSpa",
+            rank: 1,
+            phone: "555-0123",
+            email: "test@example.com",
+            leadScore: 85,
+            assetGrade: "A",
+            socialGap: "Test Gap",
+            visualProof: "Test Visuals",
+            bestAngle: "Test Angle",
+            personalizedHook: "Test Hook",
+            status: "cold",
+            outreachStatus: "cold"
+        };
+        
+        // 180s Hard Timeout
+        const timeoutMs = 180000;
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs);
+        });
 
-      const executionPromise = (async () => {
-          // @ts-ignore
-          return await orchestratePhase1BusinessPackage(testInput);
-      })();
+        const executionPromise = (async () => {
+            // @ts-ignore
+            return await orchestratePhase1BusinessPackage(testInput);
+        })();
 
-      // Attach late logger (observability for long running processes)
-      executionPromise.then((res: any) => {
-          if (responded) {
-             const success = res.status === 'SUCCESS';
-             console.log(`PHASE1_SMOKETEST ${success ? 'LATE_PASS' : 'LATE_FAIL'} | RunID: ${res.runId}`);
-          }
-      }).catch((err: any) => {
-          if (responded) {
-             console.log(`PHASE1_SMOKETEST LATE_FAIL | ${err.message}`);
-          }
-      });
+        // Race orchestrator vs timeout
+        // @ts-ignore
+        const result: any = await Promise.race([executionPromise, timeoutPromise]);
+        
+        const isSuccess = result.status === 'SUCCESS';
+        console.log(`PHASE1_SMOKETEST ${isSuccess ? 'PASS' : 'FAIL'}`);
 
-      // @ts-ignore
-      const result: any = await Promise.race([executionPromise, timeoutPromise]);
-
-      const isSuccess = result.status === 'SUCCESS';
-      console.log(`PHASE1_SMOKETEST ${isSuccess ? 'PASS' : 'FAIL'}`);
-      
-      send(isSuccess ? 200 : 500, {
-          status: isSuccess ? 'PASS' : 'FAIL',
-          runId: result.runId,
-          stepsExecuted: result.timeline?.length || 0,
-          assetsCommitted: result.assets?.length || 0,
-          failedStep: result.timeline?.find((s: any) => s.status === 'FAILED')?.actionName,
-          error: result.error,
-          completedAt: new Date().toISOString()
-      });
+        finalize(isSuccess ? 200 : 500, {
+            status: isSuccess ? 'PASS' : 'FAIL',
+            runId: result.runId,
+            stepsExecuted: result.timeline?.length || 0,
+            assetsCommitted: result.assets?.length || 0,
+            failedStep: result.timeline?.find((s: any) => s.status === 'FAILED')?.actionName,
+            error: result.error,
+            completedAt: new Date().toISOString()
+        });
 
     } catch (error: any) {
-      const isTimeout = error.message === 'TIMEOUT';
-      const label = isTimeout ? 'TIMEOUT' : 'FAIL';
-      console.log(`PHASE1_SMOKETEST ${label}`);
-      
-      send(isTimeout ? 504 : 500, {
-          status: label,
-          stepsExecuted: 0,
-          assetsCommitted: 0,
-          error: error.message,
-          completedAt: new Date().toISOString()
-      });
+        const isTimeout = error.message === 'TIMEOUT';
+        const label = isTimeout ? 'TIMEOUT' : 'FAIL';
+        console.log(`PHASE1_SMOKETEST ${label}`);
+        
+        finalize(isTimeout ? 504 : 500, {
+            status: label,
+            error: error.message,
+            stepsExecuted: 0,
+            assetsCommitted: 0,
+            completedAt: new Date().toISOString()
+        });
     } finally {
-      if (!responded) {
-         console.log('PHASE1_SMOKETEST FAIL (FALLBACK)');
-         send(500, {
-           status: 'FAIL',
-           stepsExecuted: 0,
-           assetsCommitted: 0,
-           error: 'Unhandled critical failure',
-           completedAt: new Date().toISOString()
-         });
-      }
+        if (!responseSent) {
+             finalize(500, { 
+                 status: 'FAIL', 
+                 error: 'CRITICAL_HANDLER_ERROR',
+                 stepsExecuted: 0,
+                 assetsCommitted: 0,
+                 completedAt: new Date().toISOString() 
+             });
+        }
+        // Ensure lock is released even if finalize failed
+        isSmokeTestRunning = false;
     }
     return;
   }
 
-  // Continue to next middleware if not matched
   next();
 };
 
