@@ -247,7 +247,49 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImageBase
   }
 };
 
-// --- VIDEO GENERATION VIA KIE API (DEBUG MODE) ---
+// --- VIDEO GENERATION & POLLING ---
+
+const pollKieStatus = async (taskId: string): Promise<string | null> => {
+    const url = `https://api.kie.ai/api/v1/veo/status/${taskId}`;
+    console.log("STARTING KIE POLL:", url);
+    let attempts = 0;
+    const maxAttempts = 60; // 5 minutes (5s interval)
+
+    while (attempts < maxAttempts) {
+        await new Promise(r => setTimeout(r, 5000));
+        attempts++;
+
+        try {
+            const res = await fetch(url, {
+                headers: { 
+                    "Authorization": `Bearer ${KIE_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            });
+            const raw = await res.text();
+            console.log(`KIE POLL [${taskId}] RESPONSE:`, raw);
+
+            if (!res.ok) continue;
+
+            const data = JSON.parse(raw);
+            const status = (data.status || '').toUpperCase();
+
+            // SUCCESS STATES
+            if (status === 'SUCCEEDED' || status === 'COMPLETED' || status === 'SUCCESS') {
+                return data.url || data.video_url || data.result?.url || null;
+            }
+            // FAIL STATES
+            if (status === 'FAILED' || status === 'ERROR') {
+                throw new Error(data.error || 'Task reported failure during polling');
+            }
+            // PENDING STATES: 'PENDING', 'PROCESSING', 'QUEUED' -> Continue Loop
+        } catch (e) {
+            console.warn("Poll iteration exception:", e);
+        }
+    }
+    return null;
+};
+
 export const generateVideoPayload = async (
   prompt: string,
   leadId?: string,
@@ -289,38 +331,55 @@ export const generateVideoPayload = async (
     console.log("KIE RAW RESPONSE:", raw);
 
     if (!kieResponse.ok) {
-      throw new Error(`KIE ${kieResponse.status}: ${raw}`);
+      // Return raw KIE error body for debugging instead of generic message
+      throw new Error(`KIE Error ${kieResponse.status}: ${raw}`);
     }
 
-    const data = JSON.parse(raw);
+    let data;
+    try {
+        data = JSON.parse(raw);
+    } catch {
+        throw new Error(`KIE Response Not JSON: ${raw}`);
+    }
     
-    // Attempt to locate video URL in response
+    // 1. Immediate Success (URL present)
     const videoUrl = data.url || data.video_url || data.uri || data.video?.uri;
-
     if (videoUrl) {
       saveAsset('VIDEO', `VEO_CLIP_${Date.now()}`, videoUrl, 'VIDEO_PITCH', leadId);
-      pushLog("VEO: RENDER COMPLETE.");
+      pushLog("VEO: RENDER COMPLETE (SYNC).");
       toast.success("Video Rendered Successfully.");
       return videoUrl;
-    } else if (data.id) {
-       // Async job started
-       toast.info(`VEO Job Started: ${data.id}. Please check dashboard for result.`);
-       pushLog(`VEO: Job ${data.id} queued.`);
-       return null; 
-    } else {
-       console.warn("KIE Response unexpected structure:", data);
-       throw new Error("No video URL or Job ID in response");
-    }
+    } 
+    
+    // 2. Async Task (ID present)
+    const taskId = data.id || data.task_id;
+    if (taskId) {
+       toast.info(`VEO Job Started: ${taskId}. Polling...`);
+       pushLog(`VEO: Job ${taskId} queued.`);
+       
+       // Trigger polling
+       const finalUrl = await pollKieStatus(taskId);
+       
+       if (finalUrl) {
+           saveAsset('VIDEO', `VEO_CLIP_${Date.now()}`, finalUrl, 'VIDEO_PITCH', leadId);
+           pushLog("VEO: RENDER COMPLETE (ASYNC).");
+           toast.success("Video Rendered Successfully.");
+           return finalUrl;
+       } else {
+           throw new Error("Polling timed out or failed to retrieve URL.");
+       }
+    } 
+    
+    // 3. Fallback: No ID, No URL (Unexpected)
+    console.warn("KIE Response unexpected structure:", data);
+    // Throw the raw JSON so it appears in the UI error toast
+    throw new Error(`KIE Unexpected Data: ${JSON.stringify(data)}`);
 
   } catch (e: any) {
     console.error("Veo Generation Error:", e);
-    // User-friendly error mapping
-    if (e.message?.includes("401") || e.message?.includes("Invalid API Key")) {
-       toast.error("Authentication Failed: Check KIE Key permissions.");
-    } else {
-       // Allow user to see partial error
-       toast.error(`Video Failed: ${e.message.slice(0, 100)}...`);
-    }
+    // Ensure the error message shown in UI contains the raw info
+    const msg = e.message?.slice(0, 200) || "Unknown Error";
+    toast.error(`Video Failed: ${msg}`);
     pushLog(`VEO ERROR: ${e.message}`);
     return null;
   }
