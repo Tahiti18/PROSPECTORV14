@@ -7,7 +7,7 @@ import { toast } from './toastManager';
 
 // --- CONSTANTS ---
 // STRICT HARDCODED KEY FOR VEO OPERATIONS
-const KIE_KEY = '2f30b2e5cdf012a40e82f10d7c30cb7f';
+const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279';
 
 // --- TYPES ---
 export interface AssetRecord {
