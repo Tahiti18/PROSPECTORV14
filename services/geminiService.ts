@@ -10,6 +10,7 @@ import { toast } from './toastManager';
 const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279';
 const KIE_ENDPOINT = 'https://api.kie.ai/api/v1/veo/generate';
 
+// VALIDATED MODEL LIST (KIE)
 const VALID_VEO_MODELS = [
   'veo-2.0-generate-preview-001',
   'veo-3.1-fast-generate-preview',
@@ -30,7 +31,7 @@ export interface AssetRecord {
 export interface VeoConfig {
   aspectRatio: '16:9' | '9:16';
   resolution: '720p' | '1080p';
-  modelStr: string; // Changed to string to allow validated list
+  modelStr: string;
 }
 
 export interface BenchmarkReport {
@@ -300,7 +301,7 @@ export const generateVideoPayload = async (
   leadId?: string,
   startImageBase64?: string,
   endImageBase64?: string, 
-  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p', modelStr: 'veo-3.1-fast-generate-preview' }
+  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p', modelStr: 'veo-2.0-generate-preview-001' }
 ): Promise<string | null> => {
   pushLog(`VEO: INITIALIZING VIDEO GENERATION (KIE)...`);
   toast.neural("VEO ENGINE: SENDING PAYLOAD TO KIE CLUSTER...");
@@ -404,7 +405,7 @@ export const testKieConnection = async () => {
       },
       body: JSON.stringify({
         prompt: "Smoke Test Connection",
-        model: "veo-2.0-generate-preview-001", // Use oldest/stable for smoke test
+        model: "veo-2.0-generate-preview-001",
         aspect_ratio: "16:9"
       }),
     });

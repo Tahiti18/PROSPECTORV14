@@ -23,7 +23,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
   const [config, setConfig] = useState<VeoConfig>({
     aspectRatio: '16:9',
     resolution: '720p',
-    modelStr: 'veo-3.1-fast-generate-preview'
+    modelStr: 'veo-2.0-generate-preview-001' // Default to stable 2.0 to prevent 422
   });
 
   // Assets State
@@ -313,9 +313,9 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
                 onChange={(e) => setConfig(prev => ({ ...prev, modelStr: e.target.value as any }))}
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-3 text-[9px] font-black text-white focus:outline-none focus:border-emerald-500 uppercase"
               >
+                 <option value="veo-2.0-generate-preview-001">VEO LEGACY (2.0)</option>
                  <option value="veo-3.1-fast-generate-preview">VEO FAST (3.1)</option>
                  <option value="veo-3.1-generate-preview">VEO PRO (3.1)</option>
-                 <option value="veo-2.0-generate-preview-001">VEO LEGACY (2.0)</option>
               </select>
            </div>
 
