@@ -4,7 +4,7 @@ import { Lead, MainMode, SubModule } from '../../types';
 import { Tooltip } from '../Tooltip';
 import { outreachService } from '../../services/outreachService';
 import { db } from '../../services/automation/db';
-import { subscribeToCompute } from '../../services/computeTracker';
+import { subscribeToCompute, addCredits, getBalance } from '../../services/computeTracker';
 
 interface MissionControlProps {
   leads: Lead[];
@@ -44,6 +44,7 @@ export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, 
   const [activeRuns, setActiveRuns] = useState(0);
   const [outreachCount, setOutreachCount] = useState(0);
   const [sessionCost, setSessionCost] = useState(0);
+  const [balance, setBalance] = useState(0);
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   
   // Real-time Poll
@@ -82,7 +83,13 @@ export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, 
     refresh();
     const interval = setInterval(refresh, 2000);
     
-    const unsubCompute = subscribeToCompute((s) => setSessionCost(s.sessionCostUsd));
+    // Initial Hydration
+    setBalance(getBalance());
+
+    const unsubCompute = subscribeToCompute((s, user) => {
+        setSessionCost(s.sessionCostUsd);
+        setBalance(user.credits || 0);
+    });
 
     return () => {
         clearInterval(interval);
@@ -128,7 +135,22 @@ export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, 
   ];
 
   return (
-    <div className="space-y-8 py-4 max-w-6xl mx-auto animate-in fade-in duration-700">
+    <div className="space-y-8 py-4 max-w-6xl mx-auto animate-in fade-in duration-700 relative">
+      
+      {/* WALLET BADGE */}
+      <div className="absolute top-0 right-0 z-20">
+          <button 
+            onClick={() => addCredits(50)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-900/10 hover:bg-emerald-900/30 transition-all group"
+            title="Click to Simulate Top-Up"
+          >
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest group-hover:text-emerald-300">
+                  CREDITS: ${(typeof balance === 'number' ? balance : 0).toFixed(2)}
+              </span>
+          </button>
+      </div>
+
       <div className="text-center relative py-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg mb-4">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>

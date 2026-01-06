@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { MainMode, SubModule, ComputeStats } from '../types';
+import { MainMode, SubModule } from '../types';
 import { Tooltip } from './Tooltip';
-import { subscribeToCompute, addCredits } from '../services/computeTracker';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -193,9 +192,6 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [marketExpanded, setMarketExpanded] = useState(false);
   
-  // Wallet State
-  const [balance, setBalance] = useState(0);
-  
   const groups = MODULE_GROUPS[activeMode];
   const activeConfig = MODE_CONFIG[activeMode];
   const mainRef = useRef<HTMLDivElement>(null);
@@ -217,12 +213,6 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
         mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [activeModule]);
-
-  // Subscribe to wallet
-  useEffect(() => {
-    const unsub = subscribeToCompute((_, user) => setBalance(user.credits || 0));
-    return () => { unsub(); };
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -272,17 +262,6 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
          </div>
 
          <div className={`flex items-center gap-4 w-auto justify-end z-50 pl-4 py-2 bg-[#030712]`}>
-            {/* CREDIT BALANCE DISPLAY */}
-            <div 
-              onClick={() => addCredits(50)}
-              className="cursor-pointer group flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-900/20 hover:bg-indigo-900/40 transition-all"
-              title="Click to Simulate Top-Up"
-            >
-                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest group-hover:text-indigo-300">
-                    CREDITS: ${(typeof balance === 'number' ? balance : 0).toFixed(2)}
-                </span>
-            </div>
-
             <button 
                onClick={onSearchClick}
                className={`flex items-center gap-3 px-4 h-12 rounded-2xl border text-xs font-bold transition-all group bg-[#0b1021] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700`}
