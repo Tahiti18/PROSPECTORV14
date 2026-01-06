@@ -799,7 +799,11 @@ export const generateVideoPayload = async (
   config?: VeoConfig
 ): Promise<string> => {
   pushLog("GENERATING VIDEO ASSET (VEO 3.1)...");
-  const ai = getAI();
+  
+  // KIE API KEY for VEO ONLY
+  const KIE_API_KEY = '2f30b2e5cdf012a40e82f10d7c30cb7f';
+  // Create specific instance for Veo
+  const ai = new GoogleGenAI({ apiKey: KIE_API_KEY });
   
   // Cost check for Veo (VERY high cost) + Gating Check (VEO is gated)
   if(!deductCost('veo-3.1-generate-preview', 10000)) {
@@ -859,9 +863,8 @@ export const generateVideoPayload = async (
     const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
     if (!videoUri) throw new Error("No video URI returned from Veo.");
 
-    // Fetch video blob
-    const apiKey = process.env.API_KEY || "";
-    const fetchUrl = `${videoUri}&key=${apiKey}`;
+    // Fetch video blob - Must use the KIE key here too
+    const fetchUrl = `${videoUri}&key=${KIE_API_KEY}`;
     const res = await fetch(fetchUrl);
     const blob = await res.blob();
     

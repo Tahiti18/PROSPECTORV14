@@ -190,14 +190,14 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, (process as any).cwd(), '');
   
   // Ensure Node process env is populated for server-side logic
-  // Priority: User specified Key -> Env Key -> Default
-  const activeKey = '2f30b2e5cdf012a40e82f10d7c30cb7f';
-  process.env.API_KEY = activeKey;
+  if (env.API_KEY) {
+    process.env.API_KEY = env.API_KEY;
+  }
 
   return {
     plugins: [react(), phase1SmoketestPlugin(env)],
     define: {
-      'process.env.API_KEY': JSON.stringify(activeKey),
+      'process.env.API_KEY': JSON.stringify(process.env.API_KEY || env.API_KEY),
     },
     server: {
       host: '0.0.0.0',
