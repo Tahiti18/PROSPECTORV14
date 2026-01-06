@@ -12,7 +12,9 @@ const KIE_ENDPOINT = 'https://api.kie.ai/api/v1/veo/generate';
 
 const VALID_VEO_MODELS = [
   'veo3',
-  'veo3_fast'
+  'veo3_fast',
+  'veo-3.1',
+  'veo-3.1-fast'
 ];
 
 // --- TYPES ---
@@ -86,6 +88,16 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
   pushLog(`ASSET SAVED: ${title} (${type})`);
   toast.success(`Asset Secured: ${title.slice(0, 20)}...`);
   return asset;
+};
+
+export const deleteAsset = (id: string) => {
+  const idx = SESSION_ASSETS.findIndex(a => a.id === id);
+  if (idx !== -1) {
+    SESSION_ASSETS.splice(idx, 1);
+    notifyAssetListeners();
+    pushLog(`ASSET DELETED: ${id}`);
+    toast.info("Asset removed from vault.");
+  }
 };
 
 export const clearVault = () => {
@@ -334,15 +346,20 @@ export const generateVideoPayload = async (
   leadId?: string,
   startImageBase64?: string,
   endImageBase64?: string, 
-  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p', modelStr: 'veo3_fast' }
+  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p', modelStr: 'veo3_fast' },
+  referenceImages?: string[], // Array of base64 strings
+  inputVideoBase64?: string // Base64 video for extension
 ): Promise<string | null> => {
   pushLog(`VEO: INITIALIZING VIDEO GENERATION (KIE)...`);
   toast.neural("VEO ENGINE: SENDING PAYLOAD TO KIE CLUSTER...");
 
-  // Clean base64 if present
-  const cleanImage = startImageBase64 
-    ? (startImageBase64.includes(',') ? startImageBase64.split(',')[1] : startImageBase64)
-    : undefined;
+  // Clean base64 helpers
+  const cleanBase64 = (b64?: string) => b64 ? (b64.includes(',') ? b64.split(',')[1] : b64) : undefined;
+
+  const cleanImage = cleanBase64(startImageBase64);
+  const cleanEndImage = cleanBase64(endImageBase64);
+  const cleanInputVideo = cleanBase64(inputVideoBase64);
+  const cleanRefs = referenceImages?.map(img => cleanBase64(img)).filter(Boolean);
 
   // GUARD: Validate Model
   if (!VALID_VEO_MODELS.includes(config.modelStr)) {
@@ -353,17 +370,21 @@ export const generateVideoPayload = async (
   }
 
   // Construct KIE-compatible Payload using snake_case
+  // Supports Veo 3.1 features: start, end, references, extension (video input)
   const params: any = {
     prompt: prompt,
     model: config.modelStr,
     aspect_ratio: config.aspectRatio,
     resolution: config.resolution,
-    ...(cleanImage ? { image: cleanImage } : {})
+    ...(cleanImage ? { image: cleanImage } : {}),
+    ...(cleanEndImage ? { image_end: cleanEndImage } : {}),
+    ...(cleanRefs && cleanRefs.length > 0 ? { references: cleanRefs } : {}),
+    ...(cleanInputVideo ? { video: cleanInputVideo } : {})
   };
 
   try {
     // --- DEBUG LOGGING ---
-    console.log("KIE SENT PAYLOAD:", JSON.stringify(params));
+    console.log("KIE SENT PAYLOAD (Keys Only):", Object.keys(params));
 
     const kieResponse = await fetch(KIE_ENDPOINT, {
       method: "POST",
