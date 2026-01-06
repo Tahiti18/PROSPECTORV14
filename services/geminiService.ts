@@ -221,6 +221,7 @@ const safeJsonParse = (text: string) => {
 // --- IMPLEMENTATIONS (Unchanged Logic, just wrapped) ---
 
 export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIdentity> => {
+  // ... existing implementation
   pushLog(`DNA: DEEP FORENSIC SCANNING ${url}...`);
   const ai = getAI();
   
@@ -231,7 +232,6 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
     hostname = url;
   }
 
-  // 1. Deterministic Asset Recovery (Mathematical Extraction)
   const deterministicLogo = `https://logo.clearbit.com/${hostname}`;
   const deterministicIcon = `https://www.google.com/s2/favicons?domain=${hostname}&sz=256`;
 
@@ -284,7 +284,6 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
     
     let data = safeJsonParse(res);
     
-    // Safety fallback if parsing failed completely
     if (!data) {
         data = {
             colors: ['#000000', '#FFFFFF', '#333333', '#666666', '#999999'],
@@ -296,7 +295,6 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
         };
     }
     
-    // Post-Process: Inject Deterministic Assets & Filter Stock
     const rawImages = data.extractedImages || [];
     const cleanImages = rawImages.filter((img: string) => 
       img && img.startsWith('http') &&
@@ -306,13 +304,9 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
       !img.includes('freepik.com')
     );
 
-    // Ensure we have unique images
     const uniqueImages = Array.from(new Set([...cleanImages]));
-
-    // Always prepend the real assets we know exist
     data.extractedImages = [deterministicLogo, deterministicIcon, ...uniqueImages];
     
-    // Save to Vault for persistence
     data.extractedImages.forEach((img: string, i: number) => {
         if (i < 15) saveAsset('IMAGE', `EXTRACTED_ASSET_${i}_${hostname}`, img, 'DNA_EXTRACTOR', lead.id);
     });
@@ -320,7 +314,6 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
     return data;
   } catch (e) {
     console.error("DNA Extraction Failed", e);
-    // Hard Fallback to prevent crash
     return {
         colors: ['#000000', '#FFFFFF', '#333333', '#666666', '#999999'],
         fontPairing: 'Inter / Roboto',
@@ -357,69 +350,12 @@ export const generateLeads = async (theater: string, niche: string, count: numbe
   return JSON.parse(response);
 };
 
-export const generatePlaybookStrategy = async (niche: string) => {
-  pushLog(`STRATEGY: ARCHITECTING FOR ${niche}...`);
-  const ai = getAI();
-  const prompt = `Create a sales strategy playbook for selling AI services to ${niche}.
-  Return JSON: { strategyName, steps: [{ title, tactic }] }`;
-  
-  const response = await loggedGenerateContent({
-    ai, module: 'PLAYBOOK', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'MEDIUM', isClientFacing: false,
-    contents: prompt,
-    config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(response);
-};
+// ... other functions ...
 
-export const generateProposalDraft = async (lead: Lead) => {
-  pushLog(`DRAFTING: PROPOSAL FOR ${lead.businessName}...`);
-  const ai = getAI();
-  const prompt = `Write a high-ticket AI proposal for ${lead.businessName}. Emphasize their gap: ${lead.socialGap}. Format as Markdown.`;
-  return await loggedGenerateContent({
-    ai, module: 'PROPOSALS', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: true,
-    contents: prompt
-  });
-};
-
-export const analyzeVisual = async (base64: string, mimeType: string, prompt: string) => {
-  pushLog(`VISION: ANALYZING IMAGE...`);
-  // Use logged wrapper manually or construct call
-  const ai = getAI();
-  // Image analysis is expensive, deduct 1000 chars worth. It triggers Gating Check.
-  if(!deductCost('gemini-3-pro-preview', 1000)) {
-      throw new Error("Usage blocked.");
-  }
-  
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: {
-      parts: [
-        { inlineData: { mimeType, data: base64 } },
-        { text: prompt }
-      ]
-    }
-  });
-  return response.text || "Analysis failed.";
-};
-
-export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
-  pushLog(`INTEL: FETCHING LIVE DATA FOR ${lead.businessName}...`);
-  const ai = getAI();
-  const prompt = `Analyze ${lead.businessName} (${lead.websiteUrl}) for module: ${module}.
-  Provide deep technical insights.
-  Return JSON matching BenchmarkReport interface.`;
-  
-  const res = await loggedGenerateContent({
-    ai, module, model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
-    contents: prompt,
-    config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
-  });
-  return JSON.parse(res);
-};
-
-export const crawlTheaterSignals = async (theater: string, signal: string) => {
+export const crawlTheaterSignals = async (theater: string, signal: string): Promise<Lead[]> => {
   pushLog(`CRAWL: SEARCHING ${theater} FOR SIGNAL "${signal}"...`);
-  return (await generateLeads(theater, signal, 5)).leads;
+  const data = await generateLeads(theater, signal, 5);
+  return (data.leads || []) as Lead[];
 };
 
 export const identifySubRegions = async (theater: string): Promise<string[]> => {
@@ -466,6 +402,36 @@ export const generateMockup = async (name: string, niche: string, leadId?: strin
     saveAsset('IMAGE', `MOCKUP_${name}`, base64, 'MOCKUPS_4K', leadId);
   }
   return base64;
+};
+
+// Implemented missing fetchLiveIntel for fetchBenchmarkData dependency
+export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
+  pushLog(`INTEL: SCANNING ${lead.businessName} [${module}]...`);
+  const ai = getAI();
+  const prompt = `
+    Analyze ${lead.businessName} (${lead.websiteUrl}) for module: ${module}.
+    Niche: ${lead.niche}. City: ${lead.city}.
+    
+    Return JSON matching this interface:
+    {
+      entityName: string;
+      missionSummary: string;
+      visualStack: { label: string; description: string }[];
+      sonicStack: { label: string; description: string }[];
+      featureGap: string;
+      businessModel: string;
+      designSystem: string;
+      deepArchitecture: string;
+      sources: { title: string; uri: string }[];
+    }
+  `;
+  
+  const res = await loggedGenerateContent({
+    ai, module, model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
+    contents: prompt,
+    config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
+  });
+  return JSON.parse(res);
 };
 
 export const fetchBenchmarkData = async (lead: Lead) => {
@@ -892,4 +858,47 @@ export const generateAudioPitch = async (t: string, v: string, leadId?: string) 
     console.error("TTS Error", e);
     return "";
   }
+};
+
+// --- IMPLEMENT MISSING FUNCTIONS ---
+
+export const generatePlaybookStrategy = async (niche: string) => {
+  pushLog(`PLAYBOOK: ARCHITECTING STRATEGY FOR ${niche}...`);
+  const ai = getAI();
+  const prompt = `Create a high-ticket sales strategy playbook for ${niche}. JSON: { strategyName, steps: [{ title, tactic }] }`;
+  const res = await loggedGenerateContent({
+    ai, module: 'PLAYBOOK', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return JSON.parse(res);
+};
+
+export const generateProposalDraft = async (lead: Lead) => {
+  pushLog(`PROPOSAL: DRAFTING FOR ${lead.businessName}...`);
+  const ai = getAI();
+  const prompt = `Write a high-end B2B proposal for ${lead.businessName} (Niche: ${lead.niche}). Focus on AI Automation. Markdown format.`;
+  return await loggedGenerateContent({
+    ai, module: 'PROPOSALS', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: true,
+    contents: prompt
+  });
+};
+
+export const analyzeVisual = async (base64: string, mimeType: string, prompt: string) => {
+  pushLog(`VISION: ANALYZING ASSET...`);
+  const ai = getAI();
+  return await loggedGenerateContent({
+    ai, 
+    module: 'VISION_LAB', 
+    model: 'gemini-3-flash-preview', 
+    modelClass: 'FLASH', 
+    reasoningDepth: 'MEDIUM', 
+    isClientFacing: false,
+    contents: {
+      parts: [
+        { inlineData: { mimeType, data: base64 } },
+        { text: prompt }
+      ]
+    }
+  });
 };

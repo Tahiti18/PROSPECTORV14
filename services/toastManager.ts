@@ -6,7 +6,7 @@ type ToastListener = (id: string, type: ToastType, message: string) => void;
 class ToastManager {
   private listeners: Set<ToastListener> = new Set();
 
-  subscribe(listener: ToastListener) {
+  subscribe(listener: ToastListener): (() => void) {
     this.listeners.add(listener);
     return () => { this.listeners.delete(listener); };
   }

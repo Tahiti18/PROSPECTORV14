@@ -134,9 +134,10 @@ export const addCredits = (amount: number) => {
 };
 
 // --- SUBSCRIPTION ---
-export const subscribeToCompute = (l: Listener) => {
+export const subscribeToCompute = (l: Listener): (() => void) => {
   listeners.add(l);
   l(stats, user, economyMode);
+  // Explicitly return void to satisfy EffectCallback
   return () => { listeners.delete(l); };
 };
 

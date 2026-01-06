@@ -129,7 +129,7 @@ export const BillingNode: React.FC = () => {
          <div className="flex items-center gap-8">
             <div className="text-right">
                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">BALANCE</p>
-               <p className="text-4xl font-black text-emerald-400 tracking-tighter">${balance.toFixed(2)}</p>
+               <p className="text-4xl font-black text-emerald-400 tracking-tighter">${(typeof balance === 'number' ? balance : 0).toFixed(2)}</p>
             </div>
             <button 
               onClick={handleCreditTopUp}
