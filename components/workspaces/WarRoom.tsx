@@ -1,21 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lead, OutreachStatus, MainMode, SubModule } from '../../types'; // Ensure MainMode/SubModule are imported if needed
+import { Lead, OutreachStatus, MainMode, SubModule } from '../../types';
 import { dossierStorage, StrategicDossier } from '../../services/dossierStorage';
+import { toast } from '../../services/toastManager';
 
 interface WarRoomProps {
   lead?: Lead;
   onUpdateLead?: (id: string, updates: Partial<Lead>) => void;
-  // Optional navigation prop if you want to link directly to Orchestrator
+  // Optional navigation prop enabled for smart redirects
   onNavigate?: (mode: MainMode, mod: SubModule) => void; 
 }
 
 const STATUS_OPTIONS: OutreachStatus[] = ['cold', 'queued', 'sent', 'opened', 'replied', 'booked', 'won', 'lost', 'paused'];
 
+// Smart mapping for activations
+const OPPORTUNITIES = [
+  { label: "Automated Visual Content Engine (Reels/TikTok)", target: { mode: 'STUDIO' as MainMode, mod: 'VIDEO_PITCH' as SubModule } },
+  { label: "AI-Powered Booking Agent Integration", target: { mode: 'SELL' as MainMode, mod: 'AI_CONCIERGE' as SubModule } },
+  { label: "Digital Twin Virtual Tour", target: { mode: 'CREATE' as MainMode, mod: 'MOCKUPS_4K' as SubModule } },
+  { label: "High-Ticket Retargeting Sequence", target: { mode: 'SELL' as MainMode, mod: 'SEQUENCER' as SubModule } }
+];
+
 export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead, onNavigate }) => {
   const [localNotes, setLocalNotes] = useState('');
   const [localTag, setLocalTag] = useState('');
   const [dossier, setDossier] = useState<StrategicDossier | null>(null);
+  const [activatingOpp, setActivatingOpp] = useState<string | null>(null);
 
   // Sync local state when lead changes
   useEffect(() => {
@@ -60,12 +70,31 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead, onNavigate
     }
   };
 
-  const handleOpportunityClick = (opp: string) => {
-    if (!lead || !onUpdateLead) return;
-    const currentNotes = lead.notes || '';
-    const newNote = `[OPPORTUNITY SELECTED]: ${opp}\n`;
-    onUpdateLead(lead.id, { notes: currentNotes + '\n' + newNote });
-    setLocalNotes(prev => prev + '\n' + newNote);
+  const handleOpportunityClick = (oppItem: { label: string; target: { mode: MainMode; mod: SubModule } }) => {
+    if (!lead || activatingOpp) return;
+    
+    setActivatingOpp(oppItem.label);
+
+    // 1. Log to CRM
+    if (onUpdateLead) {
+        const currentNotes = lead.notes || '';
+        const newNote = `[OPPORTUNITY ACTIVATED]: ${oppItem.label} (${new Date().toLocaleTimeString()})`;
+        onUpdateLead(lead.id, { notes: currentNotes + '\n' + newNote });
+        setLocalNotes(prev => prev + '\n' + newNote);
+    }
+
+    // 2. Feedback
+    toast.neural(`PROTOCOL INITIATED: ${oppItem.label}`);
+
+    // 3. Navigate
+    if (onNavigate) {
+        setTimeout(() => {
+            onNavigate(oppItem.target.mode, oppItem.target.mod);
+            setActivatingOpp(null);
+        }, 800);
+    } else {
+        setActivatingOpp(null);
+    }
   };
 
   if (!lead) {
@@ -114,7 +143,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead, onNavigate
         {/* LEFT COLUMN: Intelligence & Analysis */}
         <div className="lg:col-span-2 space-y-8">
           
-          {/* STRATEGIC DOSSIER CARD - NEW */}
+          {/* STRATEGIC DOSSIER CARD */}
           {dossier ? (
             <div className="bg-[#0b1021] border border-emerald-500/30 rounded-2xl overflow-hidden shadow-2xl relative group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-600/10 blur-[60px] rounded-full"></div>
@@ -126,7 +155,6 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead, onNavigate
                             <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-[0.2em]">VERSION {dossier.version} • {new Date(dossier.timestamp).toLocaleDateString()}</p>
                         </div>
                     </div>
-                    {/* If navigation prop existed, we could link to orchestrator here */}
                 </div>
                 <div className="p-8">
                     <p className="text-slate-300 font-serif italic text-lg leading-relaxed line-clamp-4">
@@ -180,22 +208,26 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead, onNavigate
                AI Transformation Opportunities
              </h3>
              <div className="space-y-4">
-                {[
-                  "Automated Visual Content Engine (Reels/TikTok)",
-                  "AI-Powered Booking Agent Integration",
-                  "Digital Twin Virtual Tour",
-                  "High-Ticket Retargeting Sequence"
-                ].map((item, i) => (
+                {OPPORTUNITIES.map((opp, i) => (
                   <button 
                     key={i} 
-                    onClick={() => handleOpportunityClick(item)}
-                    className="w-full flex items-center gap-4 p-4 bg-slate-950 rounded-xl border border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-900/10 transition-all group text-left"
+                    onClick={() => handleOpportunityClick(opp)}
+                    disabled={!!activatingOpp}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all group text-left ${
+                        activatingOpp === opp.label 
+                            ? 'bg-emerald-900/20 border-emerald-500/50' 
+                            : 'bg-slate-950 border-slate-800 hover:border-emerald-500/50 hover:bg-emerald-900/10'
+                    }`}
                   >
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-bold group-hover:bg-emerald-600 group-hover:text-white transition-all shrink-0">
                       {i + 1}
                     </div>
-                    <span className="text-slate-200 font-medium group-hover:text-white">{item}</span>
-                    <span className="ml-auto text-[10px] font-black text-slate-600 uppercase tracking-widest group-hover:text-emerald-500">ACTIVATE</span>
+                    <span className="text-slate-200 font-medium group-hover:text-white">{opp.label}</span>
+                    <span className={`ml-auto text-[10px] font-black uppercase tracking-widest ${
+                        activatingOpp === opp.label ? 'text-emerald-400 animate-pulse' : 'text-slate-600 group-hover:text-emerald-500'
+                    }`}>
+                        {activatingOpp === opp.label ? 'INITIATING...' : 'ACTIVATE'}
+                    </span>
                   </button>
                 ))}
              </div>

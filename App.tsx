@@ -234,7 +234,7 @@ const App: React.FC = () => {
         case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(l) => { db.saveLeads(l); navigate('OPERATE', 'TARGET_LIST'); }} />;
         case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => { /* handled by db inside autocrawl */ }} />;
         case 'TARGET_LIST': return <TargetList leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('OPERATE', 'WAR_ROOM'); }} />;
-        case 'WAR_ROOM': return <WarRoom lead={lockedLead} onUpdateLead={handleUpdateLead} />;
+        case 'WAR_ROOM': return <WarRoom lead={lockedLead} onUpdateLead={handleUpdateLead} onNavigate={navigate} />;
         case 'PIPELINE': return <Pipeline leads={leads} onUpdateStatus={handleUpdateStatus} />;
         case 'HEATMAP': return <Heatmap leads={leads} theater={theater} />;
         case 'DEEP_LOGIC': return <DeepLogic lead={lockedLead} />;
