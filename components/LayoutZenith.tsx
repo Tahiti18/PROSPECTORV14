@@ -221,7 +221,7 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
   // Subscribe to wallet
   useEffect(() => {
     const unsub = subscribeToCompute((_, user) => setBalance(user.credits || 0));
-    return () => unsub();
+    return () => { unsub(); };
   }, []);
 
   useEffect(() => {

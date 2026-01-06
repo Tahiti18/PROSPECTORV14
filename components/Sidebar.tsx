@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate }) => {
         setXp(user.xp);
         setTier(user.tier);
     });
-    return () => unsub();
+    return () => { unsub(); };
   }, []);
 
   // Calculate XP Progress

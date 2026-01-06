@@ -54,7 +54,7 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
             // GLOBAL DB PERSISTENCE (FIX)
             const currentDb = db.getLeads();
             // Simple dedupe by name
-            const existingNames = new Set(currentDb.map(l => l.businessName.toLowerCase()));
+            const existingNames = new Set(currentDb.map((l: Lead) => l.businessName.toLowerCase()));
             const uniqueNew = newLeads.filter(l => !existingNames.has(l.businessName.toLowerCase()));
             
             if (uniqueNew.length > 0) {

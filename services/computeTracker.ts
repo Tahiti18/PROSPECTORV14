@@ -137,7 +137,7 @@ export const addCredits = (amount: number) => {
 export const subscribeToCompute = (l: Listener) => {
   listeners.add(l);
   l(stats, user, economyMode);
-  return () => listeners.delete(l);
+  return () => { listeners.delete(l); };
 };
 
 const notify = () => {

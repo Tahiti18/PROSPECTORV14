@@ -12,12 +12,13 @@ export const ToastContainer: React.FC = () => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   useEffect(() => {
-    return toast.subscribe((id, type, message) => {
+    const unsub = toast.subscribe((id, type, message) => {
       setToasts(prev => [...prev, { id, type, message }]);
       setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== id));
       }, 4000);
     });
+    return () => { unsub(); };
   }, []);
 
   if (toasts.length === 0) return null;
