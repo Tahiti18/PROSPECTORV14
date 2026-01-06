@@ -337,9 +337,19 @@ export const generateVideoPayload = async (
   const cleanInputVideo = cleanBase64(inputVideoBase64);
   const cleanRefs = referenceImages?.map(img => cleanBase64(img)).filter(Boolean);
 
+  // SAFETY MAPPING: Ensure we always map loose UI strings to exact API models
+  const modelMap: Record<string, string> = {
+      'veo3_fast': 'veo-3.1-fast-generate-preview',
+      'veo3_pro': 'veo-3.1-generate-preview',
+      // Default fallback
+      'default': 'veo-3.1-fast-generate-preview'
+  };
+  
+  const targetModel = modelMap[config.modelStr] || config.modelStr || modelMap.default;
+
   const params: any = {
     prompt: prompt,
-    model: config.modelStr, // Defaults to fast preview for economy
+    model: targetModel,
     aspect_ratio: config.aspectRatio,
     resolution: config.resolution,
     ...(cleanImage ? { image: cleanImage } : {}),

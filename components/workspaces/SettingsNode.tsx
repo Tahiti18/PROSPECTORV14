@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { setEconomyMode, isEconomyMode, getUserTier, checkFeatureAccess } from '../../services/computeTracker';
 import { db } from '../../services/automation/db';
@@ -68,6 +67,40 @@ export const SettingsNode: React.FC = () => {
       <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl space-y-12">
          <div className="grid grid-cols-1 gap-12">
             
+            {/* COST AUDIT PANEL */}
+            <div className="bg-[#05091a] border border-slate-800 p-8 rounded-3xl space-y-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 blur-[40px] rounded-full"></div>
+                <h4 className="text-[12px] font-black text-emerald-400 uppercase tracking-widest border-b border-slate-800 pb-4">
+                    BILLING & MODEL AUDIT (ACTIVE)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                    <div className="space-y-2">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">TEXT ENGINE</span>
+                        <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span className="text-[10px] font-black text-white">GEMINI 3 FLASH</span>
+                        </div>
+                        <p className="text-[8px] text-slate-600 font-mono">$0.10 / 1M TOKENS</p>
+                    </div>
+                    <div className="space-y-2">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">IMAGE ENGINE</span>
+                        <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span className="text-[10px] font-black text-white">IMAGEN 3 FLASH</span>
+                        </div>
+                        <p className="text-[8px] text-slate-600 font-mono">$0.004 / IMAGE</p>
+                    </div>
+                    <div className="space-y-2">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">VIDEO ENGINE</span>
+                        <div className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span className="text-[10px] font-black text-white">VEO 3.1 FAST</span>
+                        </div>
+                        <p className="text-[8px] text-slate-600 font-mono">ECONOMY TIER ACTIVE</p>
+                    </div>
+                </div>
+            </div>
+
             {/* MANUAL API KEY OVERRIDE */}
             <div className="bg-indigo-900/10 border border-indigo-500/30 p-8 rounded-3xl">
                 <div className="flex justify-between items-center mb-6">

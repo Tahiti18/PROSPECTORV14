@@ -19,11 +19,11 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Configuration State
+  // Configuration State - FIXED DEFAULT TO FAST MODEL
   const [config, setConfig] = useState<VeoConfig>({
     aspectRatio: '16:9',
     resolution: '720p',
-    modelStr: 'veo3_fast'
+    modelStr: 'veo-3.1-fast-generate-preview'
   });
 
   // Assets State
@@ -217,7 +217,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
         <div>
           <h1 className="text-4xl font-black uppercase tracking-tight leading-none flex items-center gap-3">
             VIDEO <span className="text-emerald-500">STUDIO</span>
-            <span className="px-3 py-1 rounded-full bg-indigo-600 text-[10px] text-white font-black tracking-widest border border-indigo-400 shadow-lg shadow-indigo-500/20">VEO 3.1 PRO</span>
+            <span className="px-3 py-1 rounded-full bg-indigo-600 text-[10px] text-white font-black tracking-widest border border-indigo-400 shadow-lg shadow-indigo-500/20">VEO 3.1 ECONOMY</span>
           </h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-3 italic">
             {lead ? `TARGET: ${lead.businessName} • AI DIRECTOR` : 'SANDBOX MODE • CREATIVE SUITE'}
