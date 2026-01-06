@@ -48,6 +48,22 @@ export interface BenchmarkReport {
 export const SESSION_ASSETS: AssetRecord[] = [];
 export const PRODUCTION_LOGS: string[] = [];
 
+// --- ASSET SUBSCRIPTION SYSTEM ---
+type AssetListener = (assets: AssetRecord[]) => void;
+const assetListeners = new Set<AssetListener>();
+
+export const subscribeToAssets = (listener: AssetListener) => {
+  assetListeners.add(listener);
+  // Send current state immediately
+  listener([...SESSION_ASSETS]);
+  return () => { assetListeners.delete(listener); };
+};
+
+const notifyAssetListeners = () => {
+  const snapshot = [...SESSION_ASSETS];
+  assetListeners.forEach(l => l(snapshot));
+};
+
 // --- CORE UTILS ---
 export const pushLog = (msg: string) => {
   PRODUCTION_LOGS.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
@@ -66,6 +82,7 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
     timestamp: Date.now()
   };
   SESSION_ASSETS.unshift(asset);
+  notifyAssetListeners(); // Real-time update
   pushLog(`ASSET SAVED: ${title} (${type})`);
   toast.success(`Asset Secured: ${title.slice(0, 20)}...`);
   return asset;
@@ -73,11 +90,13 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
 
 export const clearVault = () => {
   SESSION_ASSETS.length = 0;
+  notifyAssetListeners();
   pushLog("VAULT PURGED");
 };
 
 export const importVault = (assets: AssetRecord[]) => {
   SESSION_ASSETS.push(...assets);
+  notifyAssetListeners();
   pushLog(`IMPORTED ${assets.length} ASSETS`);
   return assets.length;
 };
