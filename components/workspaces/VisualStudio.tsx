@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
 import { generateVisual, saveAsset } from '../../services/geminiService';
@@ -15,6 +14,16 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
   const [isGenerating, setIsGenerating] = useState(false);
   const [mode, setMode] = useState<'GENERATE' | 'EDIT'>('GENERATE');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // New presets for editing
+  const EDIT_PRESETS = [
+    { label: '✂️ REMOVE BG', prompt: 'Remove the background from this image. Solid white background.' },
+    { label: '➕ ADD OBJECT', prompt: 'Add a [object] to the scene naturally.' },
+    { label: '🎨 CYBERPUNK', prompt: 'Transform into cyberpunk style, neon lights, futuristic city.' },
+    { label: '✏️ SKETCH', prompt: 'Convert to a pencil sketch drawing.' },
+    { label: '💡 STUDIO LIGHT', prompt: 'Enhance with professional studio lighting, soft shadows.' },
+    { label: '🚀 FUTURISTIC', prompt: 'Make it look futuristic and high-tech.' }
+  ];
 
   useEffect(() => {
     if (lockedLead) {
@@ -86,7 +95,7 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
             <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-500 font-black">i</span>
           </h1>
           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">
-            Generative Image Synthesis & Editing Engine (Gemini 2.5 Nano)
+            Powered by Nano Banana (Gemini 2.5 Flash Image)
           </p>
         </div>
         
@@ -149,6 +158,25 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
                   placeholder={mode === 'GENERATE' ? "Describe the high-fidelity visual asset..." : "e.g. 'Add a red balloon', 'Remove the background', 'Make it cyberpunk style'..."}
                  />
               </div>
+
+              {/* NANO EDIT PRESETS */}
+              {mode === 'EDIT' && (
+                 <div className="space-y-4">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">NANO EDIT ACTIONS</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                       {EDIT_PRESETS.map((p) => (
+                          <button
+                             key={p.label}
+                             onClick={() => setPrompt(p.prompt)}
+                             className="px-3 py-2 bg-slate-900 border border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800 rounded-lg text-[9px] font-bold text-slate-400 hover:text-white transition-all text-left truncate"
+                             title={p.prompt}
+                          >
+                             {p.label}
+                          </button>
+                       ))}
+                    </div>
+                 </div>
+              )}
 
               <div className="space-y-4">
                  <button 

@@ -86,7 +86,7 @@ export const SettingsNode: React.FC = () => {
                         <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">IMAGE ENGINE</span>
                         <div className="flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            <span className="text-[10px] font-black text-white">IMAGEN 3 FLASH</span>
+                            <span className="text-[10px] font-black text-white">NANO BANANA (2.5 FLASH)</span>
                         </div>
                         <p className="text-[8px] text-slate-600 font-mono">$0.004 / IMAGE</p>
                     </div>

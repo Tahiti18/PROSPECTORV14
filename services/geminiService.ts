@@ -251,8 +251,20 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImageBase
   try {
     const parts: any[] = [{ text: prompt }];
     if (inputImageBase64) {
+       // Extract mime type if present in data URL
+       let mimeType = 'image/png';
+       let data = inputImageBase64;
+       
+       if (inputImageBase64.includes(';base64,')) {
+           const [header, content] = inputImageBase64.split(';base64,');
+           if (header.includes(':')) {
+               mimeType = header.split(':')[1];
+           }
+           data = content;
+       }
+
        parts.unshift({
-         inlineData: { mimeType: 'image/png', data: inputImageBase64.split(',')[1] || inputImageBase64 }
+         inlineData: { mimeType, data }
        });
     }
 
