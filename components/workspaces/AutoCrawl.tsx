@@ -55,7 +55,7 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
             const currentDb = db.getLeads();
             // Simple dedupe by name
             const existingNames = new Set(currentDb.map((l: Lead) => l.businessName.toLowerCase()));
-            const uniqueNew = newLeads.filter(l => !existingNames.has(l.businessName.toLowerCase()));
+            const uniqueNew = newLeads.filter((l: Lead) => !existingNames.has(l.businessName.toLowerCase()));
             
             if (uniqueNew.length > 0) {
                 db.saveLeads([...currentDb, ...uniqueNew]);
