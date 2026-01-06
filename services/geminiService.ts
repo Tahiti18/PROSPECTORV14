@@ -10,6 +10,12 @@ import { toast } from './toastManager';
 const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279';
 const KIE_ENDPOINT = 'https://api.kie.ai/api/v1/veo/generate';
 
+const VALID_VEO_MODELS = [
+  'veo-2.0-generate-preview-001',
+  'veo-3.1-fast-generate-preview',
+  'veo-3.1-generate-preview'
+];
+
 // --- TYPES ---
 export interface AssetRecord {
   id: string;
@@ -24,7 +30,7 @@ export interface AssetRecord {
 export interface VeoConfig {
   aspectRatio: '16:9' | '9:16';
   resolution: '720p' | '1080p';
-  modelStr: 'veo-3.1-fast-generate-preview' | 'veo-3.1-generate-preview';
+  modelStr: string; // Changed to string to allow validated list
 }
 
 export interface BenchmarkReport {
@@ -226,7 +232,6 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImageBase
       model: 'gemini-2.5-flash-image',
       contents: { parts },
       config: {
-        // Fixed: removed numberOfImages as it is not supported in this SDK version config type
         imageConfig: { aspectRatio: "1:1" }
       }
     });
@@ -305,6 +310,14 @@ export const generateVideoPayload = async (
     ? (startImageBase64.includes(',') ? startImageBase64.split(',')[1] : startImageBase64)
     : undefined;
 
+  // GUARD: Validate Model
+  if (!VALID_VEO_MODELS.includes(config.modelStr)) {
+      const msg = `Invalid model: ${config.modelStr}. Allowed: ${VALID_VEO_MODELS.join(', ')}`;
+      console.error(msg);
+      toast.error(msg);
+      throw new Error(msg);
+  }
+
   // Construct KIE-compatible Payload using snake_case
   const params: any = {
     prompt: prompt,
@@ -331,7 +344,6 @@ export const generateVideoPayload = async (
     console.log("KIE RAW RESPONSE:", raw);
 
     if (!kieResponse.ok) {
-      // Return raw KIE error body for debugging instead of generic message
       throw new Error(`KIE Error ${kieResponse.status}: ${raw}`);
     }
 
@@ -357,7 +369,6 @@ export const generateVideoPayload = async (
        toast.info(`VEO Job Started: ${taskId}. Polling...`);
        pushLog(`VEO: Job ${taskId} queued.`);
        
-       // Trigger polling
        const finalUrl = await pollKieStatus(taskId);
        
        if (finalUrl) {
@@ -370,14 +381,11 @@ export const generateVideoPayload = async (
        }
     } 
     
-    // 3. Fallback: No ID, No URL (Unexpected)
     console.warn("KIE Response unexpected structure:", data);
-    // Throw the raw JSON so it appears in the UI error toast
     throw new Error(`KIE Unexpected Data: ${JSON.stringify(data)}`);
 
   } catch (e: any) {
     console.error("Veo Generation Error:", e);
-    // Ensure the error message shown in UI contains the raw info
     const msg = e.message?.slice(0, 200) || "Unknown Error";
     toast.error(`Video Failed: ${msg}`);
     pushLog(`VEO ERROR: ${e.message}`);
@@ -396,8 +404,8 @@ export const testKieConnection = async () => {
       },
       body: JSON.stringify({
         prompt: "Smoke Test Connection",
-        model: "veo-3.1-fast-generate-preview",
-        aspect_ratio: "16:9" // Corrected key
+        model: "veo-2.0-generate-preview-001", // Use oldest/stable for smoke test
+        aspect_ratio: "16:9"
       }),
     });
     const txt = await res.text();
@@ -448,7 +456,6 @@ export const analyzeVisual = async (b: string, m: string, p: string) => "";
 export const fetchLiveIntel = async (l: Lead, m: string) => ({ visualStack: [], sonicStack: [], sources: [] } as any);
 export const crawlTheaterSignals = async (t: string, s: string) => [];
 
-// FIX: Return typed string array to prevent TS 'never' inference
 export const identifySubRegions = async (t: string): Promise<string[]> => {
     return ["North District", "South District", "Central Business Hub"];
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Lead } from '../../types';
 import { generateVideoPayload, enhanceVideoPrompt, VeoConfig, saveAsset } from '../../services/geminiService';
@@ -314,8 +313,9 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
                 onChange={(e) => setConfig(prev => ({ ...prev, modelStr: e.target.value as any }))}
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-3 text-[9px] font-black text-white focus:outline-none focus:border-emerald-500 uppercase"
               >
-                 <option value="veo-3.1-fast-generate-preview">VEO FAST (SPEED)</option>
-                 <option value="veo-3.1-generate-preview">VEO PRO (QUALITY)</option>
+                 <option value="veo-3.1-fast-generate-preview">VEO FAST (3.1)</option>
+                 <option value="veo-3.1-generate-preview">VEO PRO (3.1)</option>
+                 <option value="veo-2.0-generate-preview-001">VEO LEGACY (2.0)</option>
               </select>
            </div>
 
