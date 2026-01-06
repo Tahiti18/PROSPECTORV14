@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MainMode, SubModule, Lead, ComputeStats } from './types';
 import { Layout } from './components/Layout';
@@ -57,60 +56,11 @@ import { AutoCrawl } from './components/workspaces/AutoCrawl';
 import { BrandDNA } from './components/workspaces/BrandDNA';
 import { SmokeTest } from './components/SmokeTest';
 import { ToastContainer } from './components/ToastContainer';
-import { db } from './services/automation/db'; // Ensure leads sync from DB
+import { db } from './services/automation/db';
 
 const STORAGE_KEY_LEADS = 'prospector_os_leads_v14_final';
 const STORAGE_KEY_THEATER = 'prospector_os_theater_v1';
 const STORAGE_KEY_LAYOUT = 'prospector_os_layout_pref_v1';
-
-// --- BIOS BOOT COMPONENT ---
-const BootSequence = ({ onComplete }: { onComplete: () => void }) => {
-  const [step, setStep] = useState(0);
-  
-  useEffect(() => {
-    const steps = [
-      () => setStep(1),
-      () => setStep(2),
-      () => setStep(3),
-      () => setStep(4),
-      () => onComplete()
-    ];
-    
-    // Total boot time ~2.5s
-    const delays = [500, 800, 600, 600]; 
-    
-    let timer: any;
-    let index = 0;
-    
-    const run = () => {
-      if (index >= delays.length) {
-        onComplete();
-        return;
-      }
-      timer = setTimeout(() => {
-        steps[index]();
-        index++;
-        run();
-      }, delays[index]);
-    };
-    run();
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <div className="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center font-mono text-emerald-500 p-10 cursor-none select-none">
-      <div className="w-full max-w-lg space-y-2 text-xs">
-        <p className="text-white">POMELLI BIOS v14.0.1 (c) 2025</p>
-        <p>CPU0: GOOGLE_GEMINI_V3_CORE ........ INITIALIZED</p>
-        {step > 0 && <p>MEM: 32GB DETECTED .................... OK</p>}
-        {step > 1 && <p>NET: NEURAL UPLINK .................... CONNECTED (12ms)</p>}
-        {step > 2 && <p>SEC: CRYPTO VAULT ..................... UNLOCKED</p>}
-        {step > 3 && <p className="animate-pulse text-white">LOADING OS KERNEL...</p>}
-      </div>
-    </div>
-  );
-};
 
 const App: React.FC = () => {
   const [activeMode, setActiveMode] = useState<MainMode>('OPERATE');
@@ -122,9 +72,7 @@ const App: React.FC = () => {
   const [lockedLeadId, setLockedLeadId] = useState<string | null>(null);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [isBooted, setIsBooted] = useState(false);
   const [compute, setCompute] = useState<ComputeStats | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- SMOKE TEST INTERCEPT ---
   if (typeof window !== 'undefined' && window.location.pathname === '/__smoketest_phase1') {
@@ -134,7 +82,6 @@ const App: React.FC = () => {
   // Hydration & Subscription
   useEffect(() => {
     try {
-      // Pull initial state
       const savedLeads = db.getLeads();
       const savedTheater = localStorage.getItem(STORAGE_KEY_THEATER);
       const savedLayout = localStorage.getItem(STORAGE_KEY_LAYOUT);
@@ -176,56 +123,17 @@ const App: React.FC = () => {
   const handleUpdateStatus = (id: string, status: any) => { 
     const currentLeads = db.getLeads();
     const updated = currentLeads.map(l => l.id === id ? { ...l, status, outreachStatus: status } : l);
-    db.saveLeads(updated); // This triggers subscription update
+    db.saveLeads(updated); 
   };
   
   const handleUpdateLead = (id: string, updates: Partial<Lead>) => {
     const currentLeads = db.getLeads();
     const updated = currentLeads.map(l => l.id === id ? { ...l, ...updates } : l);
-    db.saveLeads(updated); // This triggers subscription update
+    db.saveLeads(updated);
   };
 
   const navigate = (mode: MainMode, mod: SubModule) => { setActiveMode(mode); setActiveModule(mod); };
 
-  // --- GLOBAL ACTIONS ---
-  const handleManualSave = () => {
-    db.saveLeads(leads);
-    localStorage.setItem(STORAGE_KEY_THEATER, theater);
-    // Use window.alert or custom toast
-    alert("SYSTEM STATE SECURED: ALL DATA SAVED TO LOCAL CORE.");
-  };
-
-  const handleExportLeads = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(leads, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `PROSPECTOR_LEDGER_${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-  };
-
-  const handleImportLeads = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const imported = JSON.parse(e.target?.result as string);
-        if (Array.isArray(imported)) {
-          db.saveLeads(imported);
-          alert(`LEDGER RESTORED: ${imported.length} TARGETS LOADED.`);
-        } else {
-          alert("INVALID LEDGER FORMAT: ARRAY REQUIRED.");
-        }
-      } catch (error) {
-        alert("IMPORT FAILED: FILE CORRUPT.");
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = ''; // Reset
-  };
-  
   const renderContent = () => {
     // --- OPERATE ---
     if (activeMode === 'OPERATE') {
@@ -311,10 +219,6 @@ const App: React.FC = () => {
     return null;
   };
 
-  if (!isBooted) {
-    return <BootSequence onComplete={() => setIsBooted(true)} />;
-  }
-
   // LAYOUT ROUTER
   const LayoutComponent = 
     layoutMode === 'ZENITH' ? LayoutZenith :
@@ -338,34 +242,18 @@ const App: React.FC = () => {
         <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme={theme} />
         
         {/* PERSISTENT FOOTER */}
-        <footer className={`fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t px-10 py-4 flex justify-between items-center z-[100] shadow-[0_-15px_40px_rgba(0,0,0,0.4)] transition-colors ${theme === 'dark' ? 'bg-[#0b1021]/95 border-slate-800 shadow-black' : 'bg-white/95 border-slate-200 shadow-slate-200'}`}>
-            <div className="flex items-center gap-6">
-               <button 
-                 onClick={() => fileInputRef.current?.click()}
-                 className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${theme === 'dark' ? 'bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'}`}
-               >
-                 IMPORT
-               </button>
-               <button 
-                 onClick={handleExportLeads}
-                 className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${theme === 'dark' ? 'bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'}`}
-               >
-                 EXPORT
-               </button>
-               <input type="file" ref={fileInputRef} onChange={handleImportLeads} className="hidden" accept=".json" />
-               <div className="w-px h-8 bg-slate-800/50 mx-2"></div>
-               <span className="text-[10px] font-black uppercase tracking-[0.3em] italic opacity-60">{leads.length} TARGETS INDEXED</span>
+        <footer className="fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t border-slate-800/50 px-10 py-2 flex justify-between items-center z-[100] bg-[#020617]/80 text-[9px] font-black uppercase tracking-widest text-slate-600 pointer-events-none">
+            <div className="flex gap-4">
+                <span>SYSTEM: ONLINE</span>
+                <span>V14.2.0 (STABLE)</span>
             </div>
-            <div className="flex items-center gap-5">
-               <button 
-                 onClick={handleManualSave}
-                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95 transition-all flex items-center gap-3 border border-emerald-400/20"
-               >
-                 <span>💾</span> SAVE ALL
-               </button>
+            <div className="flex gap-4">
+                <span>LATENCY: 12ms</span>
+                <span>MEM: 45MB</span>
             </div>
         </footer>
       </LayoutComponent>
+      
       <ToastContainer />
     </>
   );
