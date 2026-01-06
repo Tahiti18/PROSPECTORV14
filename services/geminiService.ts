@@ -1,7 +1,10 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { Lead, BrandIdentity } from '../types';
 import { logAiOperation, uuidLike } from './usageLogger';
 import { getModuleWeight } from './creditWeights';
+import { deductCost } from './computeTracker'; // IMPORTED MONETIZATION
+import { toast } from './toastManager'; // IMPORTED TOAST
 
 // --- TYPES ---
 export interface AssetRecord {
@@ -114,6 +117,7 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
   };
   SESSION_ASSETS.unshift(asset);
   pushLog(`ASSET SAVED: ${title} (${type})`);
+  toast.success(`Asset Secured: ${title.slice(0, 20)}...`); // Toast
   return asset;
 };
 
@@ -141,7 +145,7 @@ export const getAI = () => {
   return aiInstance;
 };
 
-// --- LOGGED WRAPPER ---
+// --- LOGGED WRAPPER (NOW WITH MONETIZATION & GATING) ---
 export const loggedGenerateContent = async (params: {
   ai: GoogleGenAI;
   module: string;
@@ -156,6 +160,17 @@ export const loggedGenerateContent = async (params: {
   let status: 'SUCCESS' | 'FAILURE' = 'SUCCESS';
   let errorMessage: string | undefined;
 
+  // 1. Estimate Cost (Heuristic: Input length * 4)
+  const inputStr = JSON.stringify(params.contents);
+  const estimatedChars = inputStr.length; // Approximate
+  
+  // 2. Enforce Payment & Gating
+  const canAfford = deductCost(params.model, estimatedChars);
+  if (!canAfford) {
+      // deductCost handles specific error toasts (Locked vs Insufficient Funds)
+      throw new Error("OPERATION_BLOCKED: Check Subscription Tier or Balance.");
+  }
+
   try {
     const response = await params.ai.models.generateContent({
       model: params.model,
@@ -167,6 +182,7 @@ export const loggedGenerateContent = async (params: {
   } catch (e: any) {
     status = 'FAILURE';
     errorMessage = e.message;
+    toast.error(`Neural Link Failed: ${e.message}`);
     throw e;
   } finally {
     const latency = Date.now() - start;
@@ -202,7 +218,7 @@ const safeJsonParse = (text: string) => {
   }
 };
 
-// --- IMPLEMENTATIONS ---
+// --- IMPLEMENTATIONS (Unchanged Logic, just wrapped) ---
 
 export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIdentity> => {
   pushLog(`DNA: DEEP FORENSIC SCANNING ${url}...`);
@@ -318,11 +334,10 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
 
 export const enhanceVideoPrompt = async (rawPrompt: string): Promise<string> => {
   const ai = getAI();
-  const res = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Act as a Hollywood Director. Rewrite this video prompt to be extremely detailed, cinematic, and descriptive for an AI video generator. Include lighting, camera movement, and texture details. Keep it under 60 words. Prompt: "${rawPrompt}"`
+  return await loggedGenerateContent({
+      ai, module: 'VIDEO_PITCH', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: false,
+      contents: `Act as a Hollywood Director. Rewrite this video prompt to be extremely detailed, cinematic, and descriptive for an AI video generator. Include lighting, camera movement, and texture details. Keep it under 60 words. Prompt: "${rawPrompt}"`
   });
-  return res.text || rawPrompt;
 };
 
 export const generateLeads = async (theater: string, niche: string, count: number) => {
@@ -368,7 +383,13 @@ export const generateProposalDraft = async (lead: Lead) => {
 
 export const analyzeVisual = async (base64: string, mimeType: string, prompt: string) => {
   pushLog(`VISION: ANALYZING IMAGE...`);
+  // Use logged wrapper manually or construct call
   const ai = getAI();
+  // Image analysis is expensive, deduct 1000 chars worth. It triggers Gating Check.
+  if(!deductCost('gemini-3-pro-preview', 1000)) {
+      throw new Error("Usage blocked.");
+  }
+  
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: {
@@ -513,6 +534,7 @@ export const testModelPerformance = async (model: string, prompt: string) => {
   pushLog(`TEST: BENCHMARKING ${model}...`);
   const ai = getAI();
   const start = Date.now();
+  if(!deductCost(model, prompt.length)) return "BLOCKED: Upgrade Required"; 
   const res = await ai.models.generateContent({ model, contents: prompt });
   const latency = Date.now() - start;
   return `LATENCY: ${latency}ms\nOUTPUT: ${res.text}`;
@@ -656,6 +678,11 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImage?: s
   const ai = getAI();
   const model = "gemini-2.5-flash-image";
   
+  // Cost check for image generation (high cost)
+  if(!deductCost(model, 5000)) {
+      throw new Error("Operation cancelled: Insufficient Credits.");
+  }
+
   // High-fidelity prompt engineering to mimic "4072" / 4K request
   let enrichedPrompt = prompt + " 4k, high resolution, highly detailed, photorealistic, professional photography, cinematic lighting, 8k render, unreal engine 5";
   
@@ -756,6 +783,11 @@ export const generateVideoPayload = async (
   pushLog("GENERATING VIDEO ASSET (VEO 3.1)...");
   const ai = getAI();
   
+  // Cost check for Veo (VERY high cost) + Gating Check (VEO is gated)
+  if(!deductCost('veo-3.1-generate-preview', 10000)) {
+      throw new Error("Operation cancelled: Upgrade Required or Low Balance.");
+  }
+
   // Default config if not provided
   const settings: VeoConfig = config || {
     aspectRatio: '16:9',
@@ -837,6 +869,7 @@ export const generateAudioPitch = async (t: string, v: string, leadId?: string) 
   pushLog(`AUDIO: SYNTHESIZING SPEECH (${v})...`);
   const ai = getAI();
   try {
+    deductCost('gemini-2.5-flash-preview-tts', t.length); // TTS cost
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
       contents: { parts: [{ text: t }] },

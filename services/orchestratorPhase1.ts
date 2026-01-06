@@ -13,7 +13,9 @@ import {
   orchestrateBusinessPackage, 
   architectPitchDeck, 
   generateTaskMatrix,
-  generateNurtureDialogue
+  generateNurtureDialogue,
+  generateVideoPayload,
+  generateAudioPitch
 } from './geminiService';
 import { uuidLike } from './usageLogger';
 
@@ -43,6 +45,10 @@ export interface OrchestrationResult {
   assets: { id: string; type: string; module: string }[];
   completedAt: number;
   error?: string;
+}
+
+export interface OrchestrationOptions {
+  mediaPolicy?: 'off' | 'on';
 }
 
 // --- Service Adapter Registry ---
@@ -86,6 +92,14 @@ const Modules = {
     return await generateMockup(payload.lead.businessName, payload.lead.niche, payload.lead.id);
   },
 
+  videoStudio: async (payload: { prompt: string; lead: Lead }) => {
+    return await generateVideoPayload(payload.prompt, payload.lead.id);
+  },
+
+  audioStudio: async (payload: { script: string; voice: string; lead: Lead }) => {
+    return await generateAudioPitch(payload.script, payload.voice, payload.lead.id);
+  },
+
   // Outreach
   outreachSequence: async (payload: { strategy: any; lead: Lead }) => {
     return await generateOutreachSequence(payload.lead);
@@ -126,7 +140,7 @@ const Modules = {
 
 // --- Orchestrator Implementation ---
 
-export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<OrchestrationResult> => {
+export const orchestratePhase1BusinessPackage = async (lead: Lead, options: OrchestrationOptions = { mediaPolicy: 'off' }): Promise<OrchestrationResult> => {
     // 1. Initialization
     const runId = uuidLike();
     let stepCounter = 0;
@@ -151,7 +165,7 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
     };
 
     // --- Helper: Asset Commit ---
-    const commitAsset = (type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO', content: string, sourceModule: string, leadId: string): string => {
+    const commitAsset = (type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO', content: string, sourceModule: string, leadId: string, customTitle?: string): string => {
         // 1. Text Deduplication
         if (type === 'TEXT') {
             const contentHash = getContentHash(content);
@@ -164,7 +178,10 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
         }
 
         // 2. Save New
-        const title = `${sourceModule}_${Date.now()}`;
+        // Tagging Schema: client:<businessName> runId:<runId> phase:1 module:<moduleName>
+        const tags = `client:${lead.businessName} runId:${runId} phase:1 module:${sourceModule}`;
+        const title = customTitle || `[${sourceModule}] ${lead.businessName} (Run ${runId.slice(-4)})`;
+        
         const asset = saveAsset(type, title, content, sourceModule, leadId);
         
         executionContext.assetManifest.push({ id: asset.id, type, module: sourceModule });
@@ -194,7 +211,7 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
         };
 
         let attempt = 0;
-        const maxRetries = 2;
+        const maxRetries = 1; // Lower retry for perf
         let result = null;
 
         // Add lead to payload for internal service calls without logging it
@@ -223,8 +240,7 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
                     currentStep.errorDetails = { message: error.message };
                     currentStep.endTime = Date.now();
                 } else {
-                    // Exponential Backoff: 1s, 2s
-                    await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             }
         }
@@ -251,6 +267,9 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
             { url: lead.websiteUrl, niche: lead.niche }, true
         );
         executionContext.outputs['gapAnalysis'] = gapAnalysis;
+        if (gapAnalysis) {
+            commitAsset('TEXT', JSON.stringify(gapAnalysis, null, 2), 'GAP_ANALYSIS', lead.id);
+        }
 
         // --- PHASE 2: STRATEGY (CRITICAL) ---
         const coreStrategy = await executeStep(
@@ -262,11 +281,17 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
             "MapFunnel", "funnelMap", 
             { strategy: coreStrategy }, true
         );
+        if (funnel) {
+            commitAsset('TEXT', JSON.stringify(funnel, null, 2), 'FUNNEL_MAP', lead.id);
+        }
 
         const roadmap = await executeStep(
             "PlanImplementation", "aiRoadmap", 
             { strategy: coreStrategy }, true
         );
+        if (roadmap) {
+            commitAsset('TEXT', JSON.stringify(roadmap, null, 2), 'ROADMAP', lead.id);
+        }
 
         // --- PHASE 3: ASSETS (AUXILIARY) ---
         // 3a. Text
@@ -278,7 +303,7 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
         if (sparks && Array.isArray(sparks)) {
             const stepLog = executionContext.replayLog.find(s => s.actionName === "GenerateSparks");
             sparks.forEach(spark => {
-                const assetId = commitAsset('TEXT', spark, "FlashSpark", lead.id);
+                const assetId = commitAsset('TEXT', spark, "FLASH_SPARK", lead.id);
                 if(stepLog) stepLog.generatedAssetIds.push(assetId);
             });
         }
@@ -290,7 +315,7 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
         );
         if (brandImage) {
              const stepLog = executionContext.replayLog.find(s => s.actionName === "GenerateBrandVisual");
-             const assetId = commitAsset('IMAGE', brandImage, "Creative Studio", lead.id);
+             const assetId = commitAsset('IMAGE', brandImage, "CREATIVE_STUDIO", lead.id);
              if(stepLog) stepLog.generatedAssetIds.push(assetId);
         }
 
@@ -300,8 +325,33 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
         );
         if (productMockup) {
              const stepLog = executionContext.replayLog.find(s => s.actionName === "GenerateMockup");
-             const assetId = commitAsset('IMAGE', productMockup, "Mockup Forge", lead.id);
+             const assetId = commitAsset('IMAGE', productMockup, "MOCKUP_FORGE", lead.id);
              if(stepLog) stepLog.generatedAssetIds.push(assetId);
+        }
+
+        // 3c. Media (Gated)
+        if (options.mediaPolicy === 'on') {
+            const videoAsset = await executeStep(
+                "GenerateVideoAsset", "videoStudio",
+                { prompt: `Cinematic commercial for ${lead.businessName}, ${coreStrategy.narrative}, high resolution.` },
+                false
+            );
+            if (videoAsset) {
+                const stepLog = executionContext.replayLog.find(s => s.actionName === "GenerateVideoAsset");
+                const assetId = commitAsset('VIDEO', videoAsset, "VIDEO_STUDIO", lead.id);
+                if(stepLog) stepLog.generatedAssetIds.push(assetId);
+            }
+
+            const audioAsset = await executeStep(
+                "GenerateAudioPitch", "audioStudio",
+                { script: coreStrategy.hook, voice: 'Kore' },
+                false
+            );
+            if (audioAsset) {
+                const stepLog = executionContext.replayLog.find(s => s.actionName === "GenerateAudioPitch");
+                const assetId = commitAsset('AUDIO', audioAsset, "AUDIO_STUDIO", lead.id);
+                if(stepLog) stepLog.generatedAssetIds.push(assetId);
+            }
         }
 
         // --- PHASE 4: OUTREACH & EXECUTION ---
@@ -309,6 +359,9 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
             "SequenceOutreach", "outreachSequence", 
             { strategy: coreStrategy }, true
         );
+        if (outreach) {
+            commitAsset('TEXT', JSON.stringify(outreach, null, 2), 'OUTREACH_SEQUENCE', lead.id);
+        }
 
         const pitch = await executeStep(
             "GeneratePitchScript", "pitchGen", 
@@ -325,11 +378,17 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
             "ProjectROI", "roiProjection", 
             { strategy: coreStrategy }, true
         );
+        if (roiData) {
+            commitAsset('TEXT', roiData, 'ROI_PROJECTION', lead.id);
+        }
 
         const deckStructure = await executeStep(
             "ArchitectDeck", "strategyDeck", 
             { strategy: coreStrategy, roi: roiData }, true
         );
+        if (deckStructure) {
+            commitAsset('TEXT', JSON.stringify(deckStructure, null, 2), 'STRATEGY_DECK', lead.id);
+        }
 
         // --- PHASE 6: COMPILATION (CRITICAL) ---
         // Pass optional auxiliaries as potential nulls
@@ -345,8 +404,13 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
                 conciergeDemo: conciergeTest || null
             }, true
         );
+        if (finalPackage) {
+            commitAsset('TEXT', JSON.stringify(finalPackage, null, 2), 'PACKAGE', lead.id, `PHASE 1 PACKAGE - ${lead.businessName}`);
+        }
 
         // --- FINALIZE ---
+        const replayAssetId = commitAsset('TEXT', JSON.stringify(executionContext.replayLog, null, 2), 'REPLAY', lead.id, `REPLAY LOG - ${runId}`);
+
         return {
             runId: runId,
             status: 'SUCCESS',
@@ -357,6 +421,9 @@ export const orchestratePhase1BusinessPackage = async (lead: Lead): Promise<Orch
         };
 
     } catch (e: any) {
+        // Commit replay even on failure
+        commitAsset('TEXT', JSON.stringify(executionContext.replayLog, null, 2), 'REPLAY', lead.id, `REPLAY LOG (FAILED) - ${runId}`);
+        
         return {
             runId: runId,
             status: 'FAILED',

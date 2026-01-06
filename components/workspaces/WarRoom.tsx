@@ -1,21 +1,30 @@
+
 import React, { useState, useEffect } from 'react';
-import { Lead, OutreachStatus } from '../../types';
+import { Lead, OutreachStatus, MainMode, SubModule } from '../../types'; // Ensure MainMode/SubModule are imported if needed
+import { dossierStorage, StrategicDossier } from '../../services/dossierStorage';
 
 interface WarRoomProps {
   lead?: Lead;
   onUpdateLead?: (id: string, updates: Partial<Lead>) => void;
+  // Optional navigation prop if you want to link directly to Orchestrator
+  onNavigate?: (mode: MainMode, mod: SubModule) => void; 
 }
 
 const STATUS_OPTIONS: OutreachStatus[] = ['cold', 'queued', 'sent', 'opened', 'replied', 'booked', 'won', 'lost', 'paused'];
 
-export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
+export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead, onNavigate }) => {
   const [localNotes, setLocalNotes] = useState('');
   const [localTag, setLocalTag] = useState('');
+  const [dossier, setDossier] = useState<StrategicDossier | null>(null);
 
   // Sync local state when lead changes
   useEffect(() => {
     if (lead) {
       setLocalNotes(lead.notes || '');
+      const existing = dossierStorage.getByLead(lead.id);
+      setDossier(existing);
+    } else {
+      setDossier(null);
     }
   }, [lead?.id]);
 
@@ -73,7 +82,7 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
   const currentStatus = lead.outreachStatus ?? lead.status ?? 'cold';
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-500">
+    <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-500 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="flex items-center gap-3">
@@ -98,19 +107,57 @@ export const WarRoom: React.FC<WarRoomProps> = ({ lead, onUpdateLead }) => {
           >
             <span>🌐</span> Visit Site
           </a>
-          <button className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-colors shadow-lg shadow-emerald-500/20">
-            Deploy Attack Sequence
-          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* LEFT COLUMN: Intelligence & Analysis */}
         <div className="lg:col-span-2 space-y-8">
+          
+          {/* STRATEGIC DOSSIER CARD - NEW */}
+          {dossier ? (
+            <div className="bg-[#0b1021] border border-emerald-500/30 rounded-2xl overflow-hidden shadow-2xl relative group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-600/10 blur-[60px] rounded-full"></div>
+                <div className="p-6 border-b border-emerald-500/20 bg-emerald-900/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl">📁</span>
+                        <div>
+                            <h3 className="text-sm font-black text-emerald-400 uppercase tracking-widest">Active Strategic Dossier</h3>
+                            <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-[0.2em]">VERSION {dossier.version} • {new Date(dossier.timestamp).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                    {/* If navigation prop existed, we could link to orchestrator here */}
+                </div>
+                <div className="p-8">
+                    <p className="text-slate-300 font-serif italic text-lg leading-relaxed line-clamp-4">
+                        "{dossier.data.narrative}"
+                    </p>
+                    <div className="mt-6 pt-6 border-t border-slate-800 flex gap-4">
+                       <div className="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
+                          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">EMAILS</span>
+                          <span className="text-sm font-bold text-white">{dossier.data.outreach?.emailSequence?.length || 0} Ready</span>
+                       </div>
+                       <div className="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
+                          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">SLIDES</span>
+                          <span className="text-sm font-bold text-white">{dossier.data.presentation?.slides?.length || 0} Ready</span>
+                       </div>
+                    </div>
+                </div>
+            </div>
+          ) : (
+            <div className="bg-slate-900/30 border border-slate-800 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center space-y-4">
+                <span className="text-4xl opacity-30">📁</span>
+                <div>
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">No Strategy Dossier</h3>
+                    <p className="text-[10px] text-slate-600 mt-1">Visit Campaign Builder to architect a strategy.</p>
+                </div>
+            </div>
+          )}
+
           <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
             <div className="p-6 bg-slate-900/50 border-b border-slate-800 flex items-center gap-2">
               <span className="text-xl">📉</span>
-              <h3 className="font-bold text-white uppercase tracking-widest text-xs">Vulnerability Analysis (Social Gap)</h3>
+              <h3 className="font-bold text-white uppercase tracking-widest text-xs">Vulnerability Analysis</h3>
             </div>
             <div className="p-8">
               <p className="text-slate-300 leading-relaxed text-lg italic">"{lead.socialGap}"</p>

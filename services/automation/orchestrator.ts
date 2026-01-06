@@ -1,3 +1,4 @@
+
 import { AutomationRun, RunStep, AutomationArtifact, RunStatus } from './types';
 import { db } from './db';
 import { Steps } from './steps';
@@ -23,7 +24,11 @@ export class AutomationOrchestrator {
 
   // --- PUBLIC API ---
 
-  async startRun(): Promise<AutomationRun> {
+  /**
+   * Starts an automation run.
+   * @param targetLeadId Optional. If provided, targets a specific lead. If null, picks highest scoring eligible lead.
+   */
+  async startRun(targetLeadId?: string): Promise<AutomationRun> {
     const runId = uuidLike();
     
     // Check global mutex (handled by DB/external lock)
@@ -36,15 +41,23 @@ export class AutomationOrchestrator {
       db.clearStaleLocks();
 
       const leads = db.getLeads();
-      const eligible = leads
-        .filter(l => !l.locked && l.status !== 'won')
-        .sort((a, b) => b.leadScore - a.leadScore);
+      let selectedLead;
 
-      if (eligible.length === 0) {
-        throw new Error("No eligible leads found (all locked or converted).");
+      if (targetLeadId) {
+        selectedLead = leads.find(l => l.id === targetLeadId);
+        if (!selectedLead) throw new Error("Target lead not found.");
+        if (selectedLead.locked) throw new Error("Target is already locked by another protocol.");
+      } else {
+        const eligible = leads
+          .filter(l => !l.locked && l.status !== 'won')
+          .sort((a, b) => b.leadScore - a.leadScore);
+
+        if (eligible.length === 0) {
+          throw new Error("No eligible leads found (all locked or converted).");
+        }
+        selectedLead = eligible[0];
       }
 
-      const selectedLead = eligible[0];
       const now = Date.now();
       const expiresAt = now + (30 * 60 * 1000); // 30 min lock
       
@@ -123,7 +136,6 @@ export class AutomationOrchestrator {
     }
 
     // Guardrail 2: Strict resume filter
-    // Fixed: Removed redundant check causing TS narrowing error
     const interrupted = all.filter(r => 
       r.status === 'running' && 
       !r.completedAt && 

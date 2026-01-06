@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Lead, OutreachStatus } from '../../types';
 import { AutomationOrchestrator } from '../../services/automation/orchestrator';
 import { RunStatus } from '../automation/RunStatus';
+import { HyperLaunchModal } from '../automation/HyperLaunchModal';
 
 const STATUS_FILTER_OPTIONS: (OutreachStatus | 'ALL')[] = ['ALL', 'cold', 'queued', 'sent', 'opened', 'replied', 'booked', 'won', 'lost', 'paused'];
 
@@ -11,6 +12,10 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<OutreachStatus | 'ALL'>('ALL');
   
+  // NEW: Selection State
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showHyperLaunch, setShowHyperLaunch] = useState(false);
+
   const sortedLeads = useMemo(() => {
     let filtered = leads;
     if (statusFilter !== 'ALL') filtered = leads.filter(l => (l.outreachStatus ?? l.status ?? 'cold') === statusFilter);
@@ -41,6 +46,21 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
     }
   };
 
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === sortedLeads.length) {
+        setSelectedIds(new Set());
+    } else {
+        setSelectedIds(new Set(sortedLeads.map(l => l.id)));
+    }
+  };
+
   return (
     <div className="space-y-6 py-6 max-w-[1600px] mx-auto relative px-6 pb-24 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
@@ -61,13 +81,24 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                {STATUS_FILTER_OPTIONS.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
              </select>
           </div>
-          <button 
-            onClick={handleOneClickRun}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-600/30 transition-all active:scale-95 border border-emerald-500/20 flex items-center gap-2"
-          >
-            <span className="text-sm">⚡</span>
-            AUTO-ENGAGE LEAD
-          </button>
+          
+          {selectedIds.size > 0 ? (
+             <button 
+               onClick={() => setShowHyperLaunch(true)}
+               className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-600/30 transition-all active:scale-95 border border-emerald-500/20 flex items-center gap-2 animate-in slide-in-from-right-4"
+             >
+               <span className="text-sm">🚀</span>
+               LAUNCH SWARM ({selectedIds.size})
+             </button>
+          ) : (
+             <button 
+               onClick={handleOneClickRun}
+               className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border border-slate-700 flex items-center gap-2"
+             >
+               <span className="text-sm">⚡</span>
+               AUTO-ENGAGE (NEXT)
+             </button>
+          )}
         </div>
       </div>
 
@@ -76,6 +107,14 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-800 bg-[#05091a]">
+                <th className="px-6 py-4 w-12 text-center">
+                    <input 
+                        type="checkbox" 
+                        checked={selectedIds.size === sortedLeads.length && sortedLeads.length > 0} 
+                        onChange={toggleSelectAll}
+                        className="accent-emerald-500 cursor-pointer w-4 h-4"
+                    />
+                </th>
                 <th onClick={() => handleSort('rank')} className="cursor-pointer px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-colors select-none whitespace-nowrap group">
                   <div className="flex items-center gap-2">
                     RANK <span className={`text-emerald-500 transition-opacity ${sortConfig.key === 'rank' ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
@@ -104,7 +143,15 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
               {sortedLeads.map((lead) => {
                 const displayStatus = lead.outreachStatus ?? lead.status ?? 'cold';
                 return (
-                  <tr key={lead.id} className={`group hover:bg-white/5 transition-all ${lead.locked ? 'opacity-50 bg-slate-900/50' : 'bg-[#0b1021]'}`}>
+                  <tr key={lead.id} className={`group hover:bg-white/5 transition-all ${lead.locked ? 'opacity-50 bg-slate-900/50' : 'bg-[#0b1021]'} ${selectedIds.has(lead.id) ? 'bg-emerald-900/10' : ''}`}>
+                    <td className="px-6 py-4 text-center">
+                        <input 
+                            type="checkbox" 
+                            checked={selectedIds.has(lead.id)}
+                            onChange={() => toggleSelect(lead.id)}
+                            className="accent-emerald-500 cursor-pointer w-4 h-4"
+                        />
+                    </td>
                     <td className="px-6 py-4"><span className="text-lg font-black text-slate-600 italic group-hover:text-emerald-500 transition-colors">#{lead.rank}</span></td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -141,13 +188,25 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
                 );
               })}
               {sortedLeads.length === 0 && (
-                <tr><td colSpan={6} className="py-20 text-center bg-[#0b1021]"><span className="text-4xl block mb-4 grayscale opacity-20">📂</span><p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">DATABASE EMPTY</p></td></tr>
+                <tr><td colSpan={7} className="py-20 text-center bg-[#0b1021]"><span className="text-4xl block mb-4 grayscale opacity-20">📂</span><p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">DATABASE EMPTY</p></td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+      
       {activeRunId && <RunStatus runId={activeRunId} onClose={() => { setActiveRunId(null); window.location.reload(); }} />}
+      
+      <HyperLaunchModal 
+        isOpen={showHyperLaunch} 
+        onClose={() => setShowHyperLaunch(false)} 
+        selectedLeads={leads.filter(l => selectedIds.has(l.id))}
+        onComplete={() => {
+            setShowHyperLaunch(false);
+            setSelectedIds(new Set());
+            // Implicit reload or refresh via polling will catch updates
+        }}
+      />
     </div>
   );
 };

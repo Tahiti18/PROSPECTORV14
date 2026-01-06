@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
 import { crawlTheaterSignals, identifySubRegions } from '../../services/geminiService';
+import { db } from '../../services/automation/db'; // IMPORT DB
+import { toast } from '../../services/toastManager'; // IMPORT TOAST
 
 interface AutoCrawlProps {
   theater: string;
@@ -45,8 +47,24 @@ export const AutoCrawl: React.FC<AutoCrawlProps> = ({ theater, onNewLeads }) => 
           const newLeads = await crawlTheaterSignals(sector, signal);
           if (newLeads.length > 0) {
             addLog(`SUCCESS: ${newLeads.length} SIGNALS EXTRACTED FROM ${sector}`);
-            onNewLeads(newLeads);
+            
+            // LOCAL UPDATE
             setSessionLeads(prev => [...prev, ...newLeads]);
+            
+            // GLOBAL DB PERSISTENCE (FIX)
+            const currentDb = db.getLeads();
+            // Simple dedupe by name
+            const existingNames = new Set(currentDb.map(l => l.businessName.toLowerCase()));
+            const uniqueNew = newLeads.filter(l => !existingNames.has(l.businessName.toLowerCase()));
+            
+            if (uniqueNew.length > 0) {
+                db.saveLeads([...currentDb, ...uniqueNew]);
+                onNewLeads(uniqueNew); // Notify parent
+                toast.success(`DB SYNC: +${uniqueNew.length} NEW TARGETS LOCKED.`);
+            } else {
+                toast.info(`DB SYNC: ${newLeads.length} TARGETS SKIPPED (DUPLICATES).`);
+            }
+
             totalFound += newLeads.length;
           } else {
             addLog(`WARNING: WEAK SIGNAL DENSITY IN ${sector}`);

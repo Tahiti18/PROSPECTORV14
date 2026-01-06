@@ -1,21 +1,40 @@
 
 import React, { useState, useEffect } from 'react';
+import { setEconomyMode, isEconomyMode, getUserTier, checkFeatureAccess } from '../../services/computeTracker';
 
 export const SettingsNode: React.FC = () => {
   const [sensitivity, setSensitivity] = useState(75);
   const [autoRecon, setAutoRecon] = useState(true);
+  const [ecoMode, setEcoMode] = useState(isEconomyMode());
   const [isSaved, setIsSaved] = useState(false);
+  
+  // White Label State
+  const [agencyName, setAgencyName] = useState('');
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     const savedSens = localStorage.getItem('pomelli_os_sensitivity');
     const savedRecon = localStorage.getItem('pomelli_os_auto_recon');
+    const savedAgency = localStorage.getItem('pomelli_agency_name');
+    
     if (savedSens) setSensitivity(parseInt(savedSens));
     if (savedRecon) setAutoRecon(savedRecon === 'true');
+    if (savedAgency) setAgencyName(savedAgency);
+    
+    setHasAccess(checkFeatureAccess('WHITE_LABEL'));
   }, []);
+
+  const handleEcoToggle = (val: boolean) => {
+    setEcoMode(val);
+    setEconomyMode(val);
+  };
 
   const handleSave = () => {
     localStorage.setItem('pomelli_os_sensitivity', sensitivity.toString());
     localStorage.setItem('pomelli_os_auto_recon', autoRecon.toString());
+    if (hasAccess) {
+        localStorage.setItem('pomelli_agency_name', agencyName);
+    }
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
   };
@@ -29,6 +48,47 @@ export const SettingsNode: React.FC = () => {
 
       <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl space-y-12">
          <div className="grid grid-cols-1 gap-12">
+            
+            {/* NEURAL ECONOMY SWITCH */}
+            <div className="bg-gradient-to-r from-slate-900 to-slate-900/50 border border-slate-700/50 p-8 rounded-3xl flex items-center justify-between group hover:border-emerald-500/30 transition-all">
+                <div className="space-y-2">
+                    <h4 className="text-[14px] font-black text-white uppercase tracking-widest flex items-center gap-3">
+                        NEURAL ECONOMY MODE
+                        {ecoMode && <span className="text-[9px] bg-emerald-500 text-black px-2 py-0.5 rounded font-bold">ACTIVE</span>}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-medium max-w-sm leading-relaxed">
+                        Forces use of <strong>Gemini 3 Flash</strong> for all bulk operations. Reduces inference costs by ~98% while maintaining high velocity.
+                    </p>
+                </div>
+                <button 
+                    onClick={() => handleEcoToggle(!ecoMode)}
+                    className={`w-16 h-9 rounded-full relative transition-all duration-300 ${ecoMode ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                >
+                    <div className={`absolute top-1 w-7 h-7 rounded-full bg-white transition-all duration-300 shadow-lg ${ecoMode ? 'left-8' : 'left-1'}`}></div>
+                </button>
+            </div>
+
+            {/* WHITE LABEL BRANDING */}
+            <div className={`p-8 rounded-3xl border transition-all ${hasAccess ? 'bg-indigo-900/10 border-indigo-500/30' : 'bg-slate-950 border-slate-800 opacity-60 grayscale'}`}>
+                <div className="flex justify-between items-center mb-6">
+                    <h4 className="text-[14px] font-black text-white uppercase tracking-widest flex items-center gap-3">
+                        AGENCY WHITE LABEL
+                        {!hasAccess && <span className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-bold border border-slate-700">LOCKED (EMPIRE ONLY)</span>}
+                    </h4>
+                    {hasAccess && <span className="text-2xl">🏢</span>}
+                </div>
+                <div className="space-y-4">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Agency Name (Replaces Pomelli branding on exports)</label>
+                    <input 
+                        disabled={!hasAccess}
+                        value={agencyName}
+                        onChange={(e) => setAgencyName(e.target.value)}
+                        placeholder="ENTER YOUR AGENCY NAME"
+                        className="w-full bg-[#020617] border border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-indigo-500 disabled:cursor-not-allowed"
+                    />
+                </div>
+            </div>
+
             <div className="space-y-6">
                <div className="flex justify-between items-center">
                   <label className="text-[11px] font-black text-slate-100 uppercase tracking-widest">Neural Scan Sensitivity</label>
@@ -42,36 +102,6 @@ export const SettingsNode: React.FC = () => {
                  className="w-full accent-emerald-600" 
                />
                <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Controls the depth of competitive data grounding.</p>
-            </div>
-
-            <div className="pt-8 border-t border-slate-800/50 flex items-center justify-between">
-               <div>
-                  <h4 className="text-[11px] font-black text-slate-100 uppercase tracking-widest">Autonomous Recon Mode</h4>
-                  <p className="text-[9px] text-slate-600 font-bold uppercase tracking-widest mt-1">Enable background theater scanning.</p>
-               </div>
-               <button 
-                 onClick={() => setAutoRecon(!autoRecon)}
-                 className={`w-14 h-8 rounded-full relative transition-all ${autoRecon ? 'bg-emerald-600' : 'bg-slate-800'}`}
-               >
-                 <div className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${autoRecon ? 'left-7 shadow-lg shadow-white/20' : 'left-1'}`}></div>
-               </button>
-            </div>
-
-            <div className="pt-8 border-t border-slate-800/50 space-y-6">
-               <h4 className="text-[11px] font-black text-slate-100 uppercase tracking-widest">API Endpoint Matrix</h4>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    { l: 'GEMINI_V3_CORE', s: 'STABLE' },
-                    { l: 'VEO_ENGINE_V1', s: 'STANDBY' },
-                    { l: 'SEARCH_VECT_09', s: 'STABLE' },
-                    { l: 'PCM_AUDIO_LINK', s: 'OFFLINE' }
-                  ].map((api, i) => (
-                    <div key={i} className="bg-slate-950 border border-slate-800/60 p-5 rounded-2xl flex items-center justify-between">
-                       <span className="text-[9px] font-black text-slate-500 font-mono tracking-tighter">{api.l}</span>
-                       <span className={`text-[8px] font-black uppercase tracking-widest ${api.s === 'STABLE' ? 'text-emerald-400' : api.s === 'STANDBY' ? 'text-emerald-400' : 'text-rose-500'}`}>{api.s}</span>
-                    </div>
-                  ))}
-               </div>
             </div>
 
             <div className="pt-10">

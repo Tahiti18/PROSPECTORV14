@@ -19,146 +19,169 @@ if (typeof (globalThis as any).localStorage === 'undefined') {
 // Global Lock for Concurrency Control
 let isSmokeTestRunning = false;
 
-const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-  // Normalize URL and Path
-  const protocol = (req.headers['x-forwarded-proto'] as string) || 'http';
-  const host = req.headers.host || 'localhost';
-  const urlObj = new URL(req.url || '', `${protocol}://${host}`);
-  const pathname = urlObj.pathname.endsWith('/') && urlObj.pathname.length > 1 ? urlObj.pathname.slice(0, -1) : urlObj.pathname;
-
-  if (pathname === '/__smoketest_phase1') {
-    const mode = urlObj.searchParams.get('mode');
-
-    // Strict Headers for Browser/iPad compatibility
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-
-    // MODE: ACK (Immediate Liveness Check)
-    if (mode === 'ack') {
-        res.statusCode = 200;
-        res.end(JSON.stringify({ status: 'READY', ts: new Date().toISOString() }));
-        return;
+const createSmokeTestMiddleware = (env: Record<string, string>) => {
+  return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+    // Normalize URL
+    const protocol = (req.headers['x-forwarded-proto'] as string) || 'http';
+    const host = req.headers.host || 'localhost';
+    const urlObj = new URL(req.url || '', `${protocol}://${host}`);
+    
+    // Strict Path Matching
+    const pathname = urlObj.pathname.endsWith('/') && urlObj.pathname.length > 1 ? urlObj.pathname.slice(0, -1) : urlObj.pathname;
+    if (pathname !== '/__smoketest_phase1') {
+      return next();
     }
 
-    // MODE: RUN (Orchestration)
+    // 1. SECURITY & CONFIGURATION CHECK
+    const ENABLED = process.env.SMOKE_TEST_PHASE1 === '1' || env.SMOKE_TEST_PHASE1 === '1';
+    const REQUIRED_TOKEN = process.env.SMOKE_TEST_TOKEN || env.SMOKE_TEST_TOKEN;
+    const providedToken = urlObj.searchParams.get('token');
+
+    if (!ENABLED || !REQUIRED_TOKEN || providedToken !== REQUIRED_TOKEN) {
+      // Return 404 to mask existence if unauthorized or disabled
+      res.statusCode = 404;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: 'Not Found' }));
+      return;
+    }
+
+    // Common Headers
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store, no-cache');
+
+    const mode = urlObj.searchParams.get('mode');
+
+    // 2. ACK MODE (Liveness)
+    if (mode === 'ack') {
+      res.statusCode = 200;
+      res.end(JSON.stringify({ status: 'READY', ts: new Date().toISOString() }));
+      return;
+    }
+
+    // 3. RUN MODE (Orchestration)
     if (isSmokeTestRunning) {
-        console.log('PHASE1_SMOKETEST BUSY');
-        res.statusCode = 429;
-        res.end(JSON.stringify({
-            status: 'FAIL',
-            error: 'SMOKETEST_BUSY',
-            stepsExecuted: 0,
-            assetsCommitted: 0,
-            completedAt: new Date().toISOString()
-        }));
-        return;
+      console.log('PHASE1_SMOKETEST BUSY');
+      res.statusCode = 429;
+      res.end(JSON.stringify({
+        status: 'FAIL',
+        error: 'SMOKETEST_BUSY',
+        stepsExecuted: 0,
+        assetsCommitted: 0,
+        completedAt: new Date().toISOString()
+      }));
+      return;
     }
 
     isSmokeTestRunning = true;
     let responseSent = false;
 
-    // Single exit point for the HTTP response
-    const finalize = (code: number, body: any) => {
-        if (responseSent) return;
-        responseSent = true;
-        // Release lock before sending response
-        isSmokeTestRunning = false;
-        try {
-            res.statusCode = code;
-            res.end(JSON.stringify(body));
-        } catch(e) {
-            console.error('[SMOKE_TEST] Failed to send response', e);
-        }
+    // Response Helper
+    const sendResponse = (code: number, body: any) => {
+      if (responseSent) return;
+      responseSent = true;
+      try {
+        res.statusCode = code;
+        res.end(JSON.stringify(body));
+      } catch (e) {
+        console.error('[SMOKE_TEST] Failed to write response', e);
+      }
     };
 
     try {
-        const testInput = {
-            id: 'smoke-test-lead-backend',
-            businessName: "Reflections MedSpa (Smoke Test)",
-            websiteUrl: "https://example.com",
-            city: "Houston, TX",
-            niche: "MedSpa",
-            rank: 1,
-            phone: "555-0123",
-            email: "test@example.com",
-            leadScore: 85,
-            assetGrade: "A",
-            socialGap: "Test Gap",
-            visualProof: "Test Visuals",
-            bestAngle: "Test Angle",
-            personalizedHook: "Test Hook",
-            status: "cold",
-            outreachStatus: "cold"
-        };
-        
-        // 180s Hard Timeout
-        const timeoutMs = 180000;
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs);
-        });
+      const testInput = {
+        id: 'smoke-test-lead-backend',
+        businessName: "Reflections MedSpa (Smoke Test)",
+        websiteUrl: "https://example.com",
+        city: "Houston, TX",
+        niche: "MedSpa",
+        rank: 1,
+        phone: "555-0123",
+        email: "test@example.com",
+        leadScore: 85,
+        assetGrade: "A",
+        socialGap: "Test Gap",
+        visualProof: "Test Visuals",
+        bestAngle: "Test Angle",
+        personalizedHook: "Test Hook",
+        status: "cold",
+        outreachStatus: "cold"
+      };
 
-        const executionPromise = (async () => {
-            // @ts-ignore
-            return await orchestratePhase1BusinessPackage(testInput);
-        })();
+      // Check for media flag (for heavy testing)
+      const enableMedia = urlObj.searchParams.get('media') === '1';
 
-        // Race orchestrator vs timeout
+      // 180s Hard Timeout
+      const TIMEOUT_MS = 180000;
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS);
+      });
+
+      // Orchestration Promise
+      const runnerPromise = (async () => {
         // @ts-ignore
-        const result: any = await Promise.race([executionPromise, timeoutPromise]);
-        
-        const isSuccess = result.status === 'SUCCESS';
-        console.log(`PHASE1_SMOKETEST ${isSuccess ? 'PASS' : 'FAIL'}`);
+        return await orchestratePhase1BusinessPackage(testInput, { mediaPolicy: enableMedia ? 'on' : 'off' });
+      })();
 
-        finalize(isSuccess ? 200 : 500, {
-            status: isSuccess ? 'PASS' : 'FAIL',
-            runId: result.runId,
-            stepsExecuted: result.timeline?.length || 0,
-            assetsCommitted: result.assets?.length || 0,
-            failedStep: result.timeline?.find((s: any) => s.status === 'FAILED')?.actionName,
-            error: result.error,
-            completedAt: new Date().toISOString()
-        });
+      // LATE LOGGING HANDLER
+      // We attach this separately to the runner so it logs even if the main response timed out.
+      runnerPromise.then((res: any) => {
+        if (responseSent) {
+           const status = res.status === 'SUCCESS' ? 'LATE_PASS' : 'LATE_FAIL';
+           console.log(`PHASE1_SMOKETEST ${status} RunID:${res.runId}`);
+        }
+      }).catch((err: any) => {
+        if (responseSent) {
+           console.log(`PHASE1_SMOKETEST LATE_FAIL Error:${err.message}`);
+        }
+      });
+
+      // RACE
+      // @ts-ignore
+      const result: any = await Promise.race([runnerPromise, timeoutPromise]);
+
+      // SUCCESS PATH
+      const isSuccess = result.status === 'SUCCESS';
+      console.log(`PHASE1_SMOKETEST ${isSuccess ? 'PASS' : 'FAIL'}`);
+      
+      // Cleanup Lock
+      isSmokeTestRunning = false;
+
+      sendResponse(isSuccess ? 200 : 500, {
+        status: isSuccess ? 'PASS' : 'FAIL',
+        runId: result.runId,
+        stepsExecuted: result.timeline?.length || 0,
+        assetsCommitted: result.assets?.length || 0,
+        failedStep: result.timeline?.find((s: any) => s.status === 'FAILED')?.actionName,
+        error: result.error,
+        completedAt: new Date().toISOString()
+      });
 
     } catch (error: any) {
-        const isTimeout = error.message === 'TIMEOUT';
-        const label = isTimeout ? 'TIMEOUT' : 'FAIL';
-        console.log(`PHASE1_SMOKETEST ${label}`);
-        
-        finalize(isTimeout ? 504 : 500, {
-            status: label,
-            error: error.message,
-            stepsExecuted: 0,
-            assetsCommitted: 0,
-            completedAt: new Date().toISOString()
-        });
-    } finally {
-        if (!responseSent) {
-             finalize(500, { 
-                 status: 'FAIL', 
-                 error: 'CRITICAL_HANDLER_ERROR',
-                 stepsExecuted: 0,
-                 assetsCommitted: 0,
-                 completedAt: new Date().toISOString() 
-             });
-        }
-        // Ensure lock is released even if finalize failed
-        isSmokeTestRunning = false;
-    }
-    return;
-  }
+      // FAILURE / TIMEOUT PATH
+      isSmokeTestRunning = false;
+      const isTimeout = error.message === 'TIMEOUT';
+      const statusLabel = isTimeout ? 'TIMEOUT' : 'FAIL';
+      
+      console.log(`PHASE1_SMOKETEST ${statusLabel}`);
 
-  next();
+      sendResponse(isTimeout ? 504 : 500, {
+        status: statusLabel,
+        error: error.message,
+        stepsExecuted: 0,
+        assetsCommitted: 0,
+        completedAt: new Date().toISOString()
+      });
+    }
+  };
 };
 
-const phase1SmoketestPlugin = (): Plugin => ({
+const phase1SmoketestPlugin = (env: Record<string, string>): Plugin => ({
   name: 'phase1-smoketest',
   configurePreviewServer(server: PreviewServer) {
-    server.middlewares.use(smokeTestMiddleware);
+    server.middlewares.use(createSmokeTestMiddleware(env));
   },
   configureServer(server: ViteDevServer) {
-    server.middlewares.use(smokeTestMiddleware);
+    server.middlewares.use(createSmokeTestMiddleware(env));
   }
 });
 
@@ -170,7 +193,7 @@ export default defineConfig(({ mode }) => {
   process.env.API_KEY = env.API_KEY || process.env.API_KEY || '2f30b2e5cdf012a40e82f10d7c30cb7f';
 
   return {
-    plugins: [react(), phase1SmoketestPlugin()],
+    plugins: [react(), phase1SmoketestPlugin(env)],
     define: {
       'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
     },

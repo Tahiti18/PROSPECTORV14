@@ -1,7 +1,10 @@
 
-import React from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Lead, MainMode, SubModule } from '../../types';
 import { Tooltip } from '../Tooltip';
+import { outreachService } from '../../services/outreachService';
+import { db } from '../../services/automation/db';
+import { subscribeToCompute } from '../../services/computeTracker';
 
 interface MissionControlProps {
   leads: Lead[];
@@ -38,68 +41,172 @@ const ControlIcon = ({ type }: { type: string }) => {
 };
 
 export const MissionControl: React.FC<MissionControlProps> = ({ leads, theater, onNavigate }) => {
+  const [activeRuns, setActiveRuns] = useState(0);
+  const [outreachCount, setOutreachCount] = useState(0);
+  const [sessionCost, setSessionCost] = useState(0);
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  
+  // Real-time Poll
+  useEffect(() => {
+    const refresh = () => {
+      // 1. Get Active Automations
+      const runs = db.listRuns();
+      const active = runs.filter(r => r.status === 'running' || r.status === 'queued').length;
+      setActiveRuns(active);
+
+      // 2. Get 24h Outreach
+      const logs = outreachService.getHistory();
+      const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+      const recent = logs.filter(l => l.timestamp > oneDayAgo);
+      setOutreachCount(recent.length);
+
+      // 3. Merge Logs for Feed
+      const runLogs = runs.slice(0, 5).map(r => ({
+        type: 'AUTO',
+        msg: `AUTOMATION ${r.status}: ${r.leadName}`,
+        time: r.createdAt,
+        status: r.status
+      }));
+      
+      const commsLogs = logs.slice(0, 5).map(l => ({
+        type: 'COMM',
+        msg: `${l.channel.toUpperCase()} SENT: ${l.to || 'Unknown'}`,
+        time: l.timestamp,
+        status: 'success'
+      }));
+
+      const merged = [...runLogs, ...commsLogs].sort((a,b) => b.time - a.time).slice(0, 6);
+      setRecentLogs(merged);
+    };
+
+    refresh();
+    const interval = setInterval(refresh, 2000);
+    
+    const unsubCompute = subscribeToCompute((s) => setSessionCost(s.sessionCostUsd));
+
+    return () => {
+        clearInterval(interval);
+        unsubCompute();
+    };
+  }, []);
+
   const stats = [
-    { label: 'API NODES', status: 'STABLE', icon: <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />, color: 'emerald', desc: "The connection to the AI Brain (Gemini) is working perfectly." },
-    { label: 'IDENTIFIED', status: `${leads.length} LEADS`, icon: <ControlIcon type="IDENTIFIED" />, color: 'emerald', desc: "The total number of potential clients you have found and saved so far." },
-    { label: 'SYSTEM HEALTH', status: 'OPTIMAL', icon: <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />, color: 'emerald', desc: "No system errors detected. The engine is running at full speed." },
-    { label: 'OS STATUS', status: 'ONLINE', icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, color: 'emerald', desc: "The Prospector operating system is fully functional." },
+    { 
+      label: 'ACTIVE AGENTS', 
+      status: activeRuns > 0 ? `${activeRuns} RUNNING` : 'IDLE', 
+      icon: <path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.641.32a2 2 0 01-1.76 0l-.641-.32a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547V18a2 2 0 002 2h12a2 2 0 002-2v-2.572zM12 11V3.5l3 3m-3-3l-3 3" />, 
+      color: activeRuns > 0 ? 'emerald' : 'slate', 
+      desc: "Background automation protocols currently executing." 
+    },
+    { 
+      label: 'TARGETS LOCKED', 
+      status: `${leads.length} RECORDS`, 
+      icon: <ControlIcon type="IDENTIFIED" />, 
+      color: leads.length > 0 ? 'emerald' : 'slate', 
+      desc: "Total number of leads identified in the current theater." 
+    },
+    { 
+      label: 'OUTREACH (24H)', 
+      status: `${outreachCount} SENT`, 
+      icon: <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />, 
+      color: outreachCount > 0 ? 'emerald' : 'slate', 
+      desc: "Communications dispatched in the last 24 hours." 
+    },
+    { 
+      label: 'SESSION COST', 
+      status: `$${sessionCost.toFixed(2)}`, 
+      icon: <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />, 
+      color: 'emerald', 
+      desc: "Estimated API cost for current session." 
+    },
   ];
 
   const actions = [
     { id: 'RADAR_RECON', mode: 'OPERATE' as MainMode, title: 'LEAD DISCOVERY', desc: 'INITIATE MARKET SCAN', icon: <ControlIcon type="RADAR" />, theme: 'emerald', help: "Start here! Use the radar to scan a specific city and find businesses that match your criteria." },
     { id: 'TARGET_LIST', mode: 'OPERATE' as MainMode, title: 'LEAD DATABASE', desc: 'ACCESS RECORDS', icon: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 7H20v10H6.5" />, theme: 'emerald', help: "View your saved list of potential clients. Sort them by score and pick who to contact." },
-    { id: 'VIDEO_PITCH', mode: 'CREATE' as MainMode, title: 'ASSET STUDIO', desc: 'GENERATE CONTENT', icon: <ControlIcon type="ASSET" />, theme: 'emerald', help: "Go to the creative studio to generate custom videos or images to send to your leads." }
+    { id: 'VIDEO_PITCH', mode: 'STUDIO' as MainMode, title: 'ASSET STUDIO', desc: 'GENERATE CONTENT', icon: <ControlIcon type="ASSET" />, theme: 'emerald', help: "Go to the creative studio to generate custom videos or images to send to your leads." }
   ];
 
   return (
-    <div className="space-y-8 py-4 max-w-5xl mx-auto animate-in fade-in duration-700">
+    <div className="space-y-8 py-4 max-w-6xl mx-auto animate-in fade-in duration-700">
       <div className="text-center relative py-4">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg mb-4">
-          <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
           <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em]">Neural Core Synchronized</span>
         </div>
         
-        <h1 className="text-2xl font-black uppercase tracking-tight text-white leading-none">
-          DASHBOARD <span className="text-emerald-600 opacity-70">OVERVIEW</span>
+        <h1 className="text-3xl font-black uppercase tracking-tight text-white leading-none">
+          MISSION <span className="text-emerald-600 opacity-70">CONTROL</span>
         </h1>
         <p className="mt-2 text-[9px] font-black text-slate-500 uppercase tracking-[0.6em]">ACTIVE MARKET: <span className="text-emerald-400 italic">{theater}</span></p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* STATS GRID */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((node, i) => (
           <Tooltip key={i} content={node.desc} side="bottom">
-            <div className="bg-[#0b1021]/60 border border-slate-800/80 p-4 rounded-xl flex flex-col items-center group hover:border-emerald-500/40 transition-all cursor-default w-full shadow-sm">
-              <svg className={`w-4 h-4 mb-2 text-${node.color}-500 transition-all`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <div className="bg-[#0b1021]/60 border border-slate-800/80 p-5 rounded-[24px] flex flex-col items-center group hover:border-emerald-500/40 transition-all cursor-default w-full shadow-lg relative overflow-hidden">
+              <div className={`absolute top-0 right-0 w-16 h-16 bg-${node.color}-500/5 rounded-full blur-xl -mr-8 -mt-8`}></div>
+              <svg className={`w-5 h-5 mb-3 text-${node.color}-500 transition-all`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 {node.icon}
               </svg>
-              <span className="text-[8px] font-black text-slate-600 tracking-[0.2em] uppercase mb-0.5">{node.label}</span>
-              <span className={`text-[9px] font-black text-${node.color}-400 tracking-[0.1em] uppercase`}>{node.status}</span>
+              <span className="text-[9px] font-black text-slate-600 tracking-[0.2em] uppercase mb-1">{node.label}</span>
+              <span className={`text-sm font-black text-${node.color}-400 tracking-[0.05em] uppercase`}>{node.status}</span>
             </div>
           </Tooltip>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-        {actions.map((action, i) => (
-          <Tooltip key={i} content={action.help} side="bottom">
-            <div 
-              onClick={() => onNavigate(action.mode, action.id as SubModule)}
-              className={`bg-[#0b1021] border border-slate-800/80 p-6 rounded-[24px] relative overflow-hidden group hover:border-${action.theme}-500/40 transition-all cursor-pointer shadow-lg hover:bg-slate-900/40 group flex flex-col items-center text-center w-full`}
-            >
-              <div className={`absolute inset-0 bg-${action.theme}-600/5 opacity-0 group-hover:opacity-100 transition-opacity`}></div>
-              <div className={`w-10 h-10 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-center text-${action.theme}-500 mb-4 group-hover:scale-110 transition-transform shadow-inner group-hover:border-${action.theme}-500/50`}>
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  {action.icon}
-                </svg>
-              </div>
-              <h2 className={`text-sm font-bold uppercase tracking-tight text-white mb-1 group-hover:text-${action.theme}-400 transition-colors`}>{action.title}</h2>
-              <p className="text-[8px] font-black text-slate-600 tracking-[0.4em] uppercase">{action.desc}</p>
-              
-              <div className="absolute top-4 left-4 w-3 h-3 border-t border-l border-slate-800/50 group-hover:border-emerald-500/30 transition-colors"></div>
-              <div className="absolute bottom-4 right-4 w-3 h-3 border-b border-r border-slate-800/50 group-hover:border-emerald-500/30 transition-colors"></div>
+      {/* LIVE FEED & ACTIONS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+         
+         {/* LEFT: LIVE INTELLIGENCE FEED */}
+         <div className="lg:col-span-2 bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 shadow-2xl relative overflow-hidden flex flex-col">
+            <div className="flex items-center gap-3 mb-6">
+               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+               <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em]">LIVE INTELLIGENCE STREAM</h3>
             </div>
-          </Tooltip>
-        ))}
+            
+            <div className="flex-1 space-y-3 min-h-[200px]">
+               {recentLogs.length === 0 ? (
+                  <div className="h-full flex items-center justify-center opacity-30 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                     NO RECENT ACTIVITY DETECTED
+                  </div>
+               ) : (
+                  recentLogs.map((log, i) => (
+                     <div key={i} className="flex items-center gap-4 p-3 bg-slate-900/40 rounded-xl border border-slate-800/50 hover:bg-slate-900/80 transition-colors">
+                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded ${log.type === 'AUTO' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                           {log.type}
+                        </span>
+                        <span className="text-[10px] font-medium text-slate-300 truncate flex-1 font-mono">{log.msg}</span>
+                        <span className="text-[9px] font-bold text-slate-600">{new Date(log.time).toLocaleTimeString()}</span>
+                     </div>
+                  ))
+               )}
+            </div>
+         </div>
+
+         {/* RIGHT: QUICK ACTIONS */}
+         <div className="flex flex-col gap-4">
+            {actions.map((action, i) => (
+              <div 
+                key={i}
+                onClick={() => onNavigate(action.mode, action.id as SubModule)}
+                className={`flex-1 bg-[#0b1021] border border-slate-800 p-6 rounded-[24px] relative overflow-hidden group hover:border-${action.theme}-500/40 transition-all cursor-pointer shadow-lg hover:bg-slate-900/40 flex items-center gap-5`}
+              >
+                <div className={`w-12 h-12 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-center text-${action.theme}-500 group-hover:scale-110 transition-transform shadow-inner`}>
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    {action.icon}
+                  </svg>
+                </div>
+                <div>
+                   <h2 className={`text-xs font-black uppercase tracking-wide text-white mb-1 group-hover:text-${action.theme}-400 transition-colors`}>{action.title}</h2>
+                   <p className="text-[8px] font-bold text-slate-600 tracking-[0.2em] uppercase">{action.desc}</p>
+                </div>
+              </div>
+            ))}
+         </div>
+
       </div>
     </div>
   );

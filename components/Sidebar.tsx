@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { WorkspaceType } from '../types';
 import { Tooltip } from './Tooltip';
+import { getUserTier, getUserLevel, getUserXP, subscribeToCompute } from '../services/computeTracker';
 
 interface SidebarProps {
   active: WorkspaceType;
@@ -9,6 +10,30 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate }) => {
+  const [level, setLevel] = useState(1);
+  const [xp, setXp] = useState(0);
+  const [tier, setTier] = useState('STARTER');
+
+  useEffect(() => {
+    // Initial Hydration
+    setLevel(getUserLevel());
+    setXp(getUserXP());
+    setTier(getUserTier());
+
+    // Subscription
+    const unsub = subscribeToCompute((s, user) => {
+        setLevel(user.level);
+        setXp(user.xp);
+        setTier(user.tier);
+    });
+    return () => unsub();
+  }, []);
+
+  // Calculate XP Progress
+  const currentLevelBase = Math.pow(level - 1, 2) * 100;
+  const nextLevelBase = Math.pow(level, 2) * 100;
+  const progress = Math.min(100, Math.max(0, ((xp - currentLevelBase) / (nextLevelBase - currentLevelBase)) * 100));
+
   const navItems: { id: WorkspaceType; label: string; icon: string; category: string; description: string }[] = [
     { id: 'dashboard', label: 'Mission Control', icon: '🏠', category: 'Core', description: "Your main command center. See an overview of all active leads, stats, and system health." },
     { id: 'intelligence', label: 'Lead Discovery', icon: '📡', category: 'Intelligence', description: "The radar scanner. Use this to search for new businesses in specific cities that fit your criteria." },
@@ -63,12 +88,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate }) => {
       </nav>
 
       <div className="p-4 border-t border-slate-800 bg-slate-900/50">
-        <div className="bg-slate-800/50 p-3 rounded-xl flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 border border-white/10 shrink-0"></div>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-slate-100 truncate">Agent Zero</p>
-            <p className="text-[10px] text-slate-500 truncate">Lead Outreach Lead</p>
-          </div>
+        <div className="bg-slate-800/50 p-4 rounded-xl space-y-3">
+           <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-indigo-500 border-2 border-slate-700 shrink-0 flex items-center justify-center font-black text-xs text-white">
+                 {level}
+              </div>
+              <div className="min-w-0 flex-1">
+                 <p className="text-xs font-bold text-slate-100 truncate">AGENCY RANK</p>
+                 <p className="text-[10px] text-emerald-400 font-black truncate uppercase tracking-widest">{tier} TIER</p>
+              </div>
+           </div>
+           
+           <div className="space-y-1">
+              <div className="flex justify-between text-[9px] font-bold text-slate-500">
+                 <span>XP PROGRESS</span>
+                 <span>{Math.round(progress)}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-slate-700 rounded-full overflow-hidden">
+                 <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }}></div>
+              </div>
+           </div>
         </div>
       </div>
     </aside>

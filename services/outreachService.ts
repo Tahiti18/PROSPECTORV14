@@ -72,6 +72,15 @@ export const outreachService = {
     return log;
   },
 
+  getHistory: (): OutreachLog[] => {
+    try {
+      const raw = localStorage.getItem(LOG_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  },
+
   generateMailto: ({ to, subject, body, cc }: GenerateMailtoArgs): { url: string; isTruncated: boolean; bodyForMailto: string } => {
     const MAILTO_BODY_LIMIT = 1800;
     const isTruncated = body.length > MAILTO_BODY_LIMIT;
