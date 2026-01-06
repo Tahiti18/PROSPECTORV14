@@ -58,45 +58,60 @@ export default defineConfig(({ mode }) => {
             outreachStatus: "cold"
           };
 
-          try {
-            const start = Date.now();
-            // @ts-ignore
-            const result = await orchestratePhase1BusinessPackage(testInput);
-            const duration = Date.now() - start;
+          const TIMEOUT_MS = 60000;
+          let isResponseSent = false;
 
-            const isSuccess = result.status === 'SUCCESS';
-            const logMsg = `[SMOKE_TEST] ${isSuccess ? 'PASS' : 'FAIL'} | RunID: ${result.runId} | Assets: ${result.assets.length} | Steps: ${result.timeline.length} | ${duration}ms`;
+          const sendResponse = (code: number, body: any) => {
+            if (isResponseSent) return;
+            isResponseSent = true;
+            res.setHeader('Content-Type', 'application/json');
+            res.statusCode = code;
+            res.end(JSON.stringify(body, null, 2));
+          };
+
+          try {
+            const runnerPromise = (async () => {
+               // @ts-ignore
+               return await orchestratePhase1BusinessPackage(testInput);
+            })();
+
+            const timerPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error("TIMEOUT")), TIMEOUT_MS);
+            });
+
+            // @ts-ignore
+            const result: any = await Promise.race([runnerPromise, timerPromise]);
             
+            const isSuccess = result.status === 'SUCCESS';
+            const logMsg = `[SMOKE_TEST] ${isSuccess ? 'PASS' : 'FAIL'} | RunID: ${result.runId} | Assets: ${result.assets.length} | Steps: ${result.timeline.length}`;
             console.log(logMsg);
+
             if (!isSuccess) {
-              console.error('[SMOKE_TEST] Failure Details:', result.error);
+               console.error('[SMOKE_TEST] Failure:', result.error);
             }
 
-            res.setHeader('Content-Type', 'application/json');
-            res.statusCode = isSuccess ? 200 : 500;
-            res.end(JSON.stringify({
-              status: isSuccess ? 'PASS' : 'FAIL',
-              timestamp: new Date().toISOString(),
-              runId: result.runId,
-              durationMs: duration,
-              totalSteps: result.timeline.length,
-              totalAssets: result.assets.length,
-              failedStep: result.timeline.find((s: any) => s.status === 'FAILED')?.actionName || null,
-              replayLogPersisted: 'InMemory (Node Process)',
-              details: {
+            sendResponse(isSuccess ? 200 : 500, {
+                status: isSuccess ? 'PASS' : 'FAIL',
+                runId: result.runId,
+                stepsExecuted: result.timeline.length,
+                assetsCommitted: result.assets.length,
+                failedStep: result.timeline.find((s: any) => s.status === 'FAILED')?.actionName,
                 error: result.error,
-                assets: result.assets.map((a: any) => ({ type: a.type, module: a.module }))
-              }
-            }, null, 2));
+                completedAt: new Date().toISOString()
+            });
+
           } catch (error: any) {
-            console.error('[SMOKE_TEST] CRITICAL ERROR:', error);
-            res.setHeader('Content-Type', 'application/json');
-            res.statusCode = 500;
-            res.end(JSON.stringify({
-              status: 'CRITICAL_FAIL',
+            const isTimeout = error.message === 'TIMEOUT';
+            const statusLabel = isTimeout ? 'TIMEOUT' : 'FAIL';
+            console.error(`[SMOKE_TEST] ${statusLabel}:`, error.message);
+            
+            sendResponse(isTimeout ? 504 : 500, {
+              status: statusLabel,
+              stepsExecuted: 0,
+              assetsCommitted: 0,
               error: error.message,
-              stack: error.stack
-            }));
+              completedAt: new Date().toISOString()
+            });
           }
         });
       }
