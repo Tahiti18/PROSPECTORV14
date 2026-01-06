@@ -32,8 +32,23 @@ const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, ne
 
   // 2. SMOKETEST ENDPOINT (Orchestration)
   if (normalizedPath === '/__smoketest_phase1') {
-    console.log(`PHASE1_SMOKETEST HIT ${req.url}`);
+    console.log('PHASE1_SMOKETEST HIT');
     
+    let responded = false;
+    
+    const respondOnce = (payload: any) => {
+      if (responded) return;
+      responded = true;
+      try {
+        console.log('PHASE1_SMOKETEST RESPOND', payload.status);
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(JSON.stringify(payload, null, 2));
+      } catch (e) {
+        console.error('PHASE1_SMOKETEST RESPOND ERROR', e);
+      }
+    };
+
     const testInput = {
       id: 'smoke-test-lead-backend',
       businessName: "Reflections MedSpa (Smoke Test)",
@@ -53,23 +68,10 @@ const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, ne
       outreachStatus: "cold"
     };
 
-    let responded = false;
-    const send = (code: number, body: any) => {
-      if (responded) return;
-      responded = true;
-      try {
-        res.setHeader('Content-Type', 'application/json');
-        res.statusCode = code;
-        res.end(JSON.stringify(body, null, 2));
-      } catch(e) {
-        console.error('[SMOKE_TEST] Response send failed', e);
-      }
-    };
-
     try {
-      // 60s hard timeout
+      const TIMEOUT_MS = 60000;
       const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('TIMEOUT')), 60000);
+          setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS);
       });
 
       const executionPromise = (async () => {
@@ -81,9 +83,8 @@ const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, ne
       const result: any = await Promise.race([executionPromise, timeoutPromise]);
 
       const isSuccess = result.status === 'SUCCESS';
-      console.log(`PHASE1_SMOKETEST ${isSuccess ? 'PASS' : 'FAIL'}`);
       
-      send(isSuccess ? 200 : 500, {
+      respondOnce({
           status: isSuccess ? 'PASS' : 'FAIL',
           runId: result.runId,
           stepsExecuted: result.timeline?.length || 0,
@@ -95,29 +96,27 @@ const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, ne
 
     } catch (error: any) {
       const isTimeout = error.message === 'TIMEOUT';
-      const label = isTimeout ? 'TIMEOUT' : 'FAIL';
-      console.log(`PHASE1_SMOKETEST ${label}`);
       
-      send(isTimeout ? 504 : 500, {
-          status: label,
+      respondOnce({
+          status: isTimeout ? 'TIMEOUT' : 'FAIL',
+          runId: undefined,
           stepsExecuted: 0,
           assetsCommitted: 0,
-          error: error.message,
+          error: error.message || 'Unknown error',
           completedAt: new Date().toISOString()
       });
     } finally {
       if (!responded) {
-         console.log('PHASE1_SMOKETEST FAIL (FALLBACK)');
-         send(500, {
+         respondOnce({
            status: 'FAIL',
            stepsExecuted: 0,
            assetsCommitted: 0,
-           error: 'Unhandled critical failure',
+           error: 'fell through without response',
            completedAt: new Date().toISOString()
          });
       }
     }
-    return;
+    return; // Stop middleware chain immediately
   }
 
   // Continue to next middleware if not matched
