@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => {
       allowedHosts: true,
       configurePreviewServer(server: PreviewServer) {
         server.middlewares.use('/__smoketest_phase1', async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-          console.log('[SMOKE_TEST] Received request for Phase 1 Smoke Test');
+          console.log('[SMOKE_TEST] START Phase 1 Backend Test');
           
           const testInput = {
             id: 'smoke-test-lead-backend',
@@ -58,59 +58,58 @@ export default defineConfig(({ mode }) => {
             outreachStatus: "cold"
           };
 
-          const TIMEOUT_MS = 60000;
-          let isResponseSent = false;
-
-          const sendResponse = (code: number, body: any) => {
-            if (isResponseSent) return;
-            isResponseSent = true;
-            res.setHeader('Content-Type', 'application/json');
-            res.statusCode = code;
-            res.end(JSON.stringify(body, null, 2));
+          let responseSent = false;
+          const finalize = (statusCode: number, body: any) => {
+             if (responseSent) return;
+             responseSent = true;
+             try {
+                res.setHeader('Content-Type', 'application/json');
+                res.statusCode = statusCode;
+                res.end(JSON.stringify(body, null, 2));
+             } catch(e) {
+                console.error('[SMOKE_TEST] Failed to send response', e);
+             }
           };
 
           try {
-            const runnerPromise = (async () => {
-               // @ts-ignore
-               return await orchestratePhase1BusinessPackage(testInput);
-            })();
-
-            const timerPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error("TIMEOUT")), TIMEOUT_MS);
+            // 60s hard timeout
+            const timeoutMs = 60000;
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs);
             });
 
+            const executionPromise = (async () => {
+                // @ts-ignore
+                return await orchestratePhase1BusinessPackage(testInput);
+            })();
+
             // @ts-ignore
-            const result: any = await Promise.race([runnerPromise, timerPromise]);
-            
+            const result: any = await Promise.race([executionPromise, timeoutPromise]);
+
+            // If we are here, execution finished successfully or threw
             const isSuccess = result.status === 'SUCCESS';
-            const logMsg = `[SMOKE_TEST] ${isSuccess ? 'PASS' : 'FAIL'} | RunID: ${result.runId} | Assets: ${result.assets.length} | Steps: ${result.timeline.length}`;
-            console.log(logMsg);
-
-            if (!isSuccess) {
-               console.error('[SMOKE_TEST] Failure:', result.error);
-            }
-
-            sendResponse(isSuccess ? 200 : 500, {
+            console.log(`[SMOKE_TEST] ${isSuccess ? 'PASS' : 'FAIL'} | RunID: ${result.runId}`);
+            
+            finalize(isSuccess ? 200 : 500, {
                 status: isSuccess ? 'PASS' : 'FAIL',
                 runId: result.runId,
-                stepsExecuted: result.timeline.length,
-                assetsCommitted: result.assets.length,
-                failedStep: result.timeline.find((s: any) => s.status === 'FAILED')?.actionName,
+                stepsExecuted: result.timeline?.length || 0,
+                assetsCommitted: result.assets?.length || 0,
+                failedStep: result.timeline?.find((s: any) => s.status === 'FAILED')?.actionName,
                 error: result.error,
                 completedAt: new Date().toISOString()
             });
 
           } catch (error: any) {
             const isTimeout = error.message === 'TIMEOUT';
-            const statusLabel = isTimeout ? 'TIMEOUT' : 'FAIL';
-            console.error(`[SMOKE_TEST] ${statusLabel}:`, error.message);
+            console.log(`[SMOKE_TEST] ${isTimeout ? 'TIMEOUT' : 'FAIL'} | ${error.message}`);
             
-            sendResponse(isTimeout ? 504 : 500, {
-              status: statusLabel,
-              stepsExecuted: 0,
-              assetsCommitted: 0,
-              error: error.message,
-              completedAt: new Date().toISOString()
+            finalize(isTimeout ? 504 : 500, {
+                status: isTimeout ? 'TIMEOUT' : 'FAIL',
+                stepsExecuted: 0,
+                assetsCommitted: 0,
+                error: error.message,
+                completedAt: new Date().toISOString()
             });
           }
         });
