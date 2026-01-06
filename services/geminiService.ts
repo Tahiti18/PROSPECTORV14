@@ -5,6 +5,10 @@ import { getModuleWeight } from './creditWeights';
 import { deductCost } from './computeTracker';
 import { toast } from './toastManager';
 
+// --- CONSTANTS ---
+// STRICT HARDCODED KEY FOR VEO OPERATIONS
+const KIE_KEY = '2f30b2e5cdf012a40e82f10d7c30cb7f';
+
 // --- TYPES ---
 export interface AssetRecord {
   id: string;
@@ -221,7 +225,6 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImageBase
       model: 'gemini-2.5-flash-image',
       contents: { parts },
       config: {
-        // FIX: Removed numberOfImages as it is not supported in current types
         imageConfig: { aspectRatio: "1:1" }
       }
     });
@@ -252,10 +255,8 @@ export const generateVideoPayload = async (
 ): Promise<string | null> => {
   pushLog(`VEO: INITIALIZING VIDEO GENERATION (${config.modelStr})...`);
   
-  // 1. HARDCODED KIE KEY
-  const KIE_KEY = '2f30b2e5cdf012a40e82f10d7c30cb7f';
-  
-  // 2. Direct Instance for this call only
+  // 1. DIRECT INSTANCE WITH HARDCODED KIE KEY
+  // This explicitly bypasses any other key logic for Veo operations.
   const ai = new GoogleGenAI({ apiKey: KIE_KEY });
 
   // 3. Construct Payload
@@ -270,15 +271,14 @@ export const generateVideoPayload = async (
   };
 
   if (startImageBase64) {
+    // Safe base64 extraction
+    const base64Data = startImageBase64.includes(',') ? startImageBase64.split(',')[1] : startImageBase64;
     payload.image = {
-      imageBytes: startImageBase64.split(',')[1],
+      imageBytes: base64Data,
       mimeType: 'image/png'
     };
   }
   
-  // Note: lastFrame property removed to fix TS2353 build error.
-  // The SDK installed in the environment does not support it in this version.
-
   try {
     toast.neural("VEO ENGINE: RENDERING STARTED (This takes ~60s)...");
     
@@ -296,92 +296,9 @@ export const generateVideoPayload = async (
     const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
     if (videoUri) {
       // Fetch the actual bytes using the KIE KEY to bypass expiration/CORS issues
+      // Ensure we use the same key for the fetch as the generation
       const videoRes = await fetch(`${videoUri}&key=${KIE_KEY}`);
       const videoBlob = await videoRes.blob();
       const videoUrl = URL.createObjectURL(videoBlob); // Create local blob URL
       
-      saveAsset('VIDEO', `VEO_CLIP_${Date.now()}`, videoUrl, 'VIDEO_PITCH', leadId);
-      pushLog("VEO: RENDER COMPLETE.");
-      toast.success("Video Rendered Successfully.");
-      return videoUrl;
-    }
-    
-    throw new Error("No video URI in response");
-
-  } catch (e: any) {
-    console.error("Veo Generation Error:", e);
-    pushLog(`VEO ERROR: ${e.message}`);
-    toast.error(`Video Failed: ${e.message}`);
-    return null;
-  }
-};
-
-export const generateAudioPitch = async (script: string, voiceName: string, leadId?: string): Promise<string | null> => {
-  pushLog(`AUDIO: SYNTHESIZING SPEECH (${voiceName})...`);
-  const ai = getAI();
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: { parts: [{ text: script }] },
-      config: {
-        responseModalities: ["AUDIO"],
-        speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName } },
-        },
-      },
-    });
-
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (base64Audio) {
-       const url = `data:audio/wav;base64,${base64Audio}`;
-       saveAsset('AUDIO', `AUDIO_${Date.now()}`, url, 'SONIC_STUDIO', leadId); 
-       return url; 
-    }
-    return null;
-  } catch (e: any) {
-    console.error(e);
-    toast.error("Audio Failed.");
-    return null;
-  }
-};
-
-// --- STUBS WITH FIXED TYPES ---
-export const enhanceVideoPrompt = async (raw: string) => raw;
-export const generateLeads = async (t: string, n: string, c: number) => ({ leads: [], groundingSources: [] });
-export const generatePlaybookStrategy = async (n: string) => ({});
-export const generateProposalDraft = async (l: Lead) => "";
-export const analyzeVisual = async (b: string, m: string, p: string) => "";
-export const fetchLiveIntel = async (l: Lead, m: string) => ({ visualStack: [], sonicStack: [], sources: [] } as any);
-export const crawlTheaterSignals = async (t: string, s: string) => [];
-
-// FIX: Return typed string array to prevent TS 'never' inference
-export const identifySubRegions = async (t: string): Promise<string[]> => {
-    return ["North District", "South District", "Central Business Hub"];
-};
-
-export const analyzeLedger = async (l: Lead[]) => ({ risk: "", opportunity: "" });
-export const generateOutreachSequence = async (l: Lead) => [];
-export const generateMockup = async (n: string, ni: string, id?: string) => "";
-export const fetchBenchmarkData = async (l: Lead) => ({ visualStack: [], sonicStack: [], sources: [] } as any);
-export const performFactCheck = async (l: Lead, c: string) => ({ status: "Unknown" });
-export const synthesizeProduct = async (l: Lead) => ({});
-export const generatePitch = async (l: Lead) => "";
-export const architectFunnel = async (l: Lead) => [];
-export const generateAgencyIdentity = async (n: string, r: string) => ({});
-export const testModelPerformance = async (m: string, p: string) => "";
-export const generateMotionLabConcept = async (l: Lead) => ({});
-export const generateFlashSparks = async (l: Lead) => [];
-export const architectPitchDeck = async (l: Lead) => [];
-export const simulateSandbox = async (l: Lead, v: number, vol: number) => "";
-export const generateTaskMatrix = async (l: Lead) => [];
-export const fetchViralPulseData = async (n: string) => [];
-export const synthesizeArticle = async (s: string, m: string) => "";
-export const analyzeVideoUrl = async (u: string, p: string, id?: string) => "";
-export const generateROIReport = async (l: number, v: number, c: number) => "";
-export const orchestrateBusinessPackage = async (l: Lead, a: any[]) => ({});
-export const generateAffiliateProgram = async (n: string) => ({});
-export const fetchTokenStats = async () => ({});
-export const critiqueVideoPresence = async (l: Lead) => "";
-export const generateNurtureDialogue = async (l: Lead, s: string) => [];
-export const translateTactical = async (t: string, l: string) => "";
+      saveAsset('VIDEO', `VEO_CLIP_${
