@@ -247,7 +247,7 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImageBase
   }
 };
 
-// --- VIDEO GENERATION VIA KIE API (DIRECT FETCH) ---
+// --- VIDEO GENERATION VIA KIE API (DEBUG MODE) ---
 export const generateVideoPayload = async (
   prompt: string,
   leadId?: string,
@@ -263,35 +263,38 @@ export const generateVideoPayload = async (
     ? (startImageBase64.includes(',') ? startImageBase64.split(',')[1] : startImageBase64)
     : undefined;
 
-  // Construct KIE-compatible Payload
-  const payload: any = {
+  // Construct KIE-compatible Payload using snake_case
+  const params: any = {
     prompt: prompt,
     model: config.modelStr,
-    ratio: config.aspectRatio, // Maps to 'ratio' per KIE conventions
+    aspect_ratio: config.aspectRatio,
     resolution: config.resolution,
-    // Add image if exists
     ...(cleanImage ? { image: cleanImage } : {})
   };
 
   try {
-    const res = await fetch(KIE_ENDPOINT, {
+    // --- DEBUG LOGGING ---
+    console.log("KIE SENT PAYLOAD:", JSON.stringify(params));
+
+    const kieResponse = await fetch(KIE_ENDPOINT, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${KIE_KEY}`,
-        "Content-Type": "application/json",
+        Authorization: `Bearer ${KIE_KEY}`,
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(params)
     });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`KIE API Error (${res.status}): ${errText}`);
+    const raw = await kieResponse.text();
+    console.log("KIE RAW RESPONSE:", raw);
+
+    if (!kieResponse.ok) {
+      throw new Error(`KIE ${kieResponse.status}: ${raw}`);
     }
 
-    const data = await res.json();
+    const data = JSON.parse(raw);
     
     // Attempt to locate video URL in response
-    // KIE structure might vary, checking common fields
     const videoUrl = data.url || data.video_url || data.uri || data.video?.uri;
 
     if (videoUrl) {
@@ -315,7 +318,8 @@ export const generateVideoPayload = async (
     if (e.message?.includes("401") || e.message?.includes("Invalid API Key")) {
        toast.error("Authentication Failed: Check KIE Key permissions.");
     } else {
-       toast.error(`Video Failed: ${e.message.slice(0, 50)}...`);
+       // Allow user to see partial error
+       toast.error(`Video Failed: ${e.message.slice(0, 100)}...`);
     }
     pushLog(`VEO ERROR: ${e.message}`);
     return null;
@@ -334,7 +338,7 @@ export const testKieConnection = async () => {
       body: JSON.stringify({
         prompt: "Smoke Test Connection",
         model: "veo-3.1-fast-generate-preview",
-        ratio: "16:9"
+        aspect_ratio: "16:9" // Corrected key
       }),
     });
     const txt = await res.text();
