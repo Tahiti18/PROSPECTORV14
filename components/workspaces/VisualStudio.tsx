@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
-import { generateVisual, saveAsset } from '../../services/geminiService';
+import { generateVisual, saveAsset, generateVideoPayload } from '../../services/geminiService';
 
 interface VisualStudioProps {
   leads: Lead[];
@@ -10,8 +10,10 @@ interface VisualStudioProps {
 export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead }) => {
   const [prompt, setPrompt] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [mode, setMode] = useState<'GENERATE' | 'EDIT'>('GENERATE');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,7 +47,10 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => setUploadedImage(ev.target?.result as string);
+      reader.onload = (ev) => {
+          setUploadedImage(ev.target?.result as string);
+          setGeneratedImage(ev.target?.result as string); // Set as main preview
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -58,6 +63,7 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
     }
 
     setIsGenerating(true);
+    setGeneratedVideo(null); // Reset video if regenerating image
     try {
       const base64Image = await generateVisual(prompt, lockedLead, mode === 'EDIT' ? uploadedImage || undefined : undefined);
       if (base64Image) setGeneratedImage(base64Image);
@@ -66,6 +72,33 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
       alert("Generation failed.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleAnimate = async () => {
+    if (!generatedImage) return;
+    setIsAnimating(true);
+    try {
+        // Prepare base64
+        let base64 = generatedImage;
+        if (generatedImage.includes(',')) {
+            // it's a data url
+        } else {
+            // it's a remote url, might need fetching if CORS allows, but generateVideoPayload handles strings
+        }
+
+        // Construct animation prompt
+        const animPrompt = `Cinematic slow motion animation of this image. Bring the subject to life. ${prompt || 'High quality, 4k, trending on artstation'}`;
+        
+        const videoUrl = await generateVideoPayload(animPrompt, lockedLead?.id, base64);
+        if (videoUrl) {
+            setGeneratedVideo(videoUrl);
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Animation failed.");
+    } finally {
+        setIsAnimating(false);
     }
   };
 
@@ -95,7 +128,7 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
             <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-500 font-black">i</span>
           </h1>
           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">
-            Powered by Nano Banana (Gemini 2.5 Flash Image)
+            Powered by Nano Banana (Gemini 2.5 Flash Image) & Veo 3.1
           </p>
         </div>
         
@@ -204,8 +237,18 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
            <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] min-h-[700px] flex flex-col relative shadow-2xl overflow-hidden group items-center justify-center">
               <div className="absolute inset-0 bg-emerald-600/[0.02] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
               
-              {generatedImage ? (
+              {generatedVideo ? (
                  <div className="relative w-full h-full flex flex-col p-8">
+                    <video src={generatedVideo} controls autoPlay loop className="w-full h-full object-contain rounded-[32px] shadow-2xl" />
+                    <button 
+                      onClick={() => setGeneratedVideo(null)} 
+                      className="absolute top-12 right-12 px-4 py-2 bg-black/60 text-white rounded-lg text-xs font-bold hover:bg-black/80"
+                    >
+                      RETURN TO IMAGE
+                    </button>
+                 </div>
+              ) : generatedImage ? (
+                 <div className="relative w-full h-full flex flex-col p-8 group/image">
                     {mode === 'EDIT' && uploadedImage && (
                        <div className="absolute top-8 left-8 w-32 h-32 rounded-2xl border-2 border-slate-700 overflow-hidden shadow-2xl z-20 hover:scale-150 transition-transform origin-top-left">
                           <img src={uploadedImage} className="w-full h-full object-cover" alt="Original" />
@@ -213,6 +256,26 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
                        </div>
                     )}
                     <img src={generatedImage} alt="Generated Asset" className="w-full h-full object-contain animate-in zoom-in-95 duration-700 rounded-[32px] shadow-2xl" />
+                    
+                    {/* ANIMATE OVERLAY */}
+                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 opacity-0 group-hover/image:opacity-100 transition-all duration-300 transform translate-y-4 group-hover/image:translate-y-0">
+                        <button 
+                          onClick={handleAnimate}
+                          disabled={isAnimating}
+                          className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[20px] text-[11px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-b-4 border-indigo-800"
+                        >
+                           {isAnimating ? (
+                              <>
+                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                VEO RENDERING...
+                              </>
+                           ) : (
+                              <>
+                                <span className="text-lg">⚡</span> ANIMATE (VEO)
+                              </>
+                           )}
+                        </button>
+                    </div>
                  </div>
               ) : isGenerating ? (
                  <div className="flex flex-col items-center justify-center space-y-6">
