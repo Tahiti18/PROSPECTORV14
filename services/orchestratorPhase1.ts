@@ -3,7 +3,6 @@ import { Lead } from '../types';
 import { 
   saveAsset, 
   SESSION_ASSETS, 
-  generateLeads, 
   generateFlashSparks, 
   generateVisual, 
   generateMockup, 
@@ -47,7 +46,6 @@ export interface OrchestrationResult {
 }
 
 // --- Service Adapter Registry ---
-// Maps canonical specification modules to actual implementation functions
 const Modules = {
   // Research & Strategy
   competitiveGapAnalysis: async (payload: { url: string; niche: string }) => {

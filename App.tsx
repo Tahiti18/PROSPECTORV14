@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MainMode, SubModule, Lead, ComputeStats } from './types';
 import { Layout } from './components/Layout';
@@ -54,6 +55,7 @@ import { subscribeToCompute } from './services/computeTracker';
 import { IntelNode } from './components/workspaces/IntelNode';
 import { AutoCrawl } from './components/workspaces/AutoCrawl';
 import { BrandDNA } from './components/workspaces/BrandDNA';
+import { SmokeTest } from './components/SmokeTest';
 
 const STORAGE_KEY_LEADS = 'prospector_os_leads_v1';
 const STORAGE_KEY_THEATER = 'prospector_os_theater_v1';
@@ -73,6 +75,11 @@ const App: React.FC = () => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [compute, setCompute] = useState<ComputeStats | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- SMOKE TEST INTERCEPT ---
+  if (typeof window !== 'undefined' && window.location.pathname === '/__smoketest_phase1') {
+    return <SmokeTest />;
+  }
 
   // Hydration
   useEffect(() => {
