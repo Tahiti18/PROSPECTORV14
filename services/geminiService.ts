@@ -799,17 +799,26 @@ export const generateVideoPayload = async (
   config?: VeoConfig
 ): Promise<string> => {
   // DEBUG ALERT: CONFIRM EXECUTION START
-  alert("DEBUG: Starting Veo Generation Protocol...");
+  alert("DEBUG STEP 1: Starting Veo Generation Protocol...");
   
   pushLog("GENERATING VIDEO ASSET (VEO 3.1)...");
   
   // KIE INTEGRATION: Use HARDCODED key as requested by user.
   // Using explicit key bypassing env to ensure KIE key is used.
   const KIE_KEY = '2f30b2e5cdf012a40e82f10d7c30cb7f';
+  alert(`DEBUG STEP 2: Using Key ${KIE_KEY.slice(0, 5)}...`);
+
+  // LIBRARY CHECK
+  if (typeof GoogleGenAI === 'undefined') {
+      alert("CRITICAL ERROR: GoogleGenAI library not found in window scope.");
+      throw new Error("SDK Missing");
+  }
+
   let ai: GoogleGenAI;
 
   try {
     ai = new GoogleGenAI({ apiKey: KIE_KEY });
+    alert("DEBUG STEP 3: SDK Instantiated Successfully");
   } catch (e: any) {
     alert("CRITICAL: SDK Init Failed with KIE Key. " + e.message);
     throw e;
@@ -854,12 +863,12 @@ export const generateVideoPayload = async (
       }
     }
 
-    alert(`DEBUG: Sending Request to ${settings.modelStr}. Please wait...`);
+    alert(`DEBUG STEP 4: Configuration Ready. Model: ${settings.modelStr}`);
     console.log("[VEO] Sending Request:", request);
     
+    alert("DEBUG STEP 5: Initiating Network Call (fetch)...");
     let operation = await ai.models.generateVideos(request);
-    
-    alert("DEBUG: Operation Initiated. Polling for video...");
+    alert("DEBUG STEP 6: Operation Initiated Successfully! Polling...");
     
     const startTime = Date.now();
     while (!operation.done) {
@@ -894,7 +903,7 @@ export const generateVideoPayload = async (
     pushLog(`ERROR: VEO FAILED - ${msg}`);
     
     // Explicit Alert for the User
-    alert(`VEO ERROR: ${msg}`);
+    alert(`VEO ERROR (CATCH BLOCK): ${msg}`);
     throw new Error(`Veo API Error: ${msg}`);
   }
 };
