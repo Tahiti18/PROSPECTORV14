@@ -346,7 +346,7 @@ export const generateVideoPayload = async (
   leadId?: string,
   startImageBase64?: string,
   endImageBase64?: string, 
-  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p', modelStr: 'veo3_fast' },
+  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p', modelStr: 'veo-3.1-fast' },
   referenceImages?: string[], // Array of base64 strings
   inputVideoBase64?: string // Base64 video for extension
 ): Promise<string | null> => {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SESSION_ASSETS, AssetRecord, importVault, clearVault, saveAsset, subscribeToAssets } from '../../services/geminiService';
+import { SESSION_ASSETS, AssetRecord, importVault, clearVault, saveAsset, subscribeToAssets, generateVideoPayload } from '../../services/geminiService';
 
 export const MediaVault: React.FC = () => {
   const [assets, setAssets] = useState<AssetRecord[]>([]);
+  const [animatingId, setAnimatingId] = useState<string | null>(null);
   const vaultInputRef = useRef<HTMLInputElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +72,33 @@ export const MediaVault: React.FC = () => {
   const handleClear = () => {
     if (confirm("WARNING: THIS WILL DELETE ALL ASSETS FROM BROWSER MEMORY. ENSURE YOU HAVE EXPORTED A BACKUP FIRST. PROCEED?")) {
       clearVault();
+    }
+  };
+
+  const handleAnimate = async (asset: AssetRecord) => {
+    if (asset.type !== 'IMAGE') return;
+    setAnimatingId(asset.id);
+    
+    try {
+        let base64Image = "";
+        if (asset.data.startsWith("data:")) {
+            base64Image = asset.data;
+        } else {
+            // Handle remote URLs if necessary
+            alert("External URL animation not supported in this mode. Download and re-upload.");
+            setAnimatingId(null);
+            return;
+        }
+
+        const prompt = "Cinematic slow motion pan, bringing the image to life, 4k high quality, natural movement";
+        // Calls Veo 3.1 via updated default in service
+        await generateVideoPayload(prompt, asset.leadId, base64Image);
+        // Result is auto-saved to assets by service
+    } catch (e) {
+        console.error("Animation failed", e);
+        alert("Failed to animate image.");
+    } finally {
+        setAnimatingId(null);
     }
   };
 
@@ -168,6 +196,26 @@ export const MediaVault: React.FC = () => {
                  {a.type === 'TEXT' && (
                     <div className="p-4 w-full h-full overflow-y-auto custom-scrollbar bg-slate-900/50">
                         <p className="text-[9px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed">{a.data}</p>
+                    </div>
+                 )}
+                 
+                 {/* ANIMATE OVERLAY (IMAGES ONLY) */}
+                 {a.type === 'IMAGE' && (
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                       <button 
+                         onClick={() => handleAnimate(a)}
+                         disabled={animatingId === a.id}
+                         className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2"
+                       >
+                         {animatingId === a.id ? (
+                            <>
+                               <div className="w-2 h-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                               ANIMATING...
+                            </>
+                         ) : (
+                            <>⚡ ANIMATE VEO</>
+                         )}
+                       </button>
                     </div>
                  )}
               </div>
