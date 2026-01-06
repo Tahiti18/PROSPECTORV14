@@ -798,10 +798,22 @@ export const generateVideoPayload = async (
   imageEndData?: string,
   config?: VeoConfig
 ): Promise<string> => {
+  // DEBUG ALERT: CONFIRM EXECUTION START
+  alert("DEBUG: Starting Veo Generation Protocol...");
+  
   pushLog("GENERATING VIDEO ASSET (VEO 3.1)...");
   
-  // KIE INTEGRATION: Use system standard env key.
-  const ai = getAI();
+  // KIE INTEGRATION: Use HARDCODED key as requested by user.
+  // Using explicit key bypassing env to ensure KIE key is used.
+  const KIE_KEY = '2f30b2e5cdf012a40e82f10d7c30cb7f';
+  let ai: GoogleGenAI;
+
+  try {
+    ai = new GoogleGenAI({ apiKey: KIE_KEY });
+  } catch (e: any) {
+    alert("CRITICAL: SDK Init Failed with KIE Key. " + e.message);
+    throw e;
+  }
 
   // Default config if not provided
   const settings: VeoConfig = config || {
@@ -842,8 +854,12 @@ export const generateVideoPayload = async (
       }
     }
 
+    alert(`DEBUG: Sending Request to ${settings.modelStr}. Please wait...`);
     console.log("[VEO] Sending Request:", request);
+    
     let operation = await ai.models.generateVideos(request);
+    
+    alert("DEBUG: Operation Initiated. Polling for video...");
     
     const startTime = Date.now();
     while (!operation.done) {
@@ -855,10 +871,8 @@ export const generateVideoPayload = async (
     const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
     if (!videoUri) throw new Error("No video URI returned from Veo.");
 
-    // Fetch video blob - Must use the KIE key (env) here too
-    // We assume getAI uses process.env.API_KEY, so we use that same key for fetching.
-    const apiKey = process.env.API_KEY;
-    const fetchUrl = `${videoUri}&key=${apiKey}`;
+    // Fetch video blob - Must use the KIE key here too
+    const fetchUrl = `${videoUri}&key=${KIE_KEY}`;
     const res = await fetch(fetchUrl);
     const blob = await res.blob();
     
@@ -878,6 +892,9 @@ export const generateVideoPayload = async (
     // CRITICAL FIX: Propagate error with specific message
     const msg = e.message || "Unknown API Error";
     pushLog(`ERROR: VEO FAILED - ${msg}`);
+    
+    // Explicit Alert for the User
+    alert(`VEO ERROR: ${msg}`);
     throw new Error(`Veo API Error: ${msg}`);
   }
 };
