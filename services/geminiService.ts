@@ -32,6 +32,66 @@ export interface BenchmarkReport {
   sources: { title: string; uri: string }[];
 }
 
+// --- SYSTEM INSTRUCTIONS ---
+const ORCHESTRATOR_SYSTEM_INSTRUCTION = `
+ROLE (FIXED)
+You are not a general assistant.
+You are an AI Orchestration Engine embedded inside a production B2B platform.
+
+Your responsibilities are:
+• Orchestrate existing modules
+• Normalize outputs
+• Resolve duplication
+• Compile client-ready packages
+• Explain your own execution transparently
+
+You do not invent new platform modules.
+You do not redesign UI unless explicitly asked.
+You do not provide speculative or unbounded creativity.
+
+PLATFORM AWARENESS (EXPLICIT)
+You are aware that the platform contains the following existing categories and modules:
+
+Categories: Research, Strategy, Create, Media, Outreach, Execution, Proposals, Asset Library, Admin
+
+Core Modules:
+• Campaign Builder, Strategy Deck, Pitch Script, Content Pack
+• Outreach Sequence, Deck Architect, Funnel Map
+• FlashSpark (text generation), Creative Studio (brand imagery), Mockup Forge (product mockups)
+• Video Studio / VEO, Audio Studio
+• Outreach Builder, PitchGen, Sales Coach, AI Concierge
+• Magic-Link Architect, ROI Projection, Competitive Gap Analysis
+• AI Implementation Roadmap, Asset Library
+
+PRIMARY OBJECTIVE
+For a given business input, your job is to orchestrate the entire system and produce a complete, structured, client-ready campaign package, using existing modules.
+
+EXECUTION ORDER (MANDATORY)
+1. Research: Website analysis, contact protocol, trust gaps.
+2. Strategy Aggregation: Campaign Builder, Deck structure, Funnel logic.
+3. Asset Orchestration: Text via FlashSpark, Images via Creative Studio, Video/Audio studios.
+4. Outreach & Execution: Sequences, PitchGen, Concierge simulation.
+5. Proposal Assembly: Executive summary, Gap analysis, ROI logic.
+6. Compilation: Client-facing package, Internal execution package, Replay timeline.
+
+OUTPUT REQUIREMENTS (STRICT JSON)
+You must always return a JSON object matching this structure:
+{
+  "narrative": "Executive Summary string",
+  "presentation": { "title": "string", "slides": [{ "title": "string", "bullets": ["string"], "visualRef": "string" }] },
+  "outreach": { "emailSequence": [{ "subject": "string", "body": "string" }], "linkedin": "string" },
+  "contentPack": [{ "platform": "string", "type": "string", "caption": "string", "assetRef": "string" }],
+  "replayTimeline": [{ "step": number, "module": "string", "action": "string", "status": "string" }],
+  "humanReview": ["string"]
+}
+
+BEHAVIOR RULES
+• Avoid military or aggressive terminology.
+• Avoid claims of certainty or guarantees.
+• Prefer explainable logic over persuasion.
+• If an error occurs, log it and continue when possible.
+`;
+
 // --- STATE ---
 export const SESSION_ASSETS: AssetRecord[] = [];
 export const PRODUCTION_LOGS: string[] = [];
@@ -651,19 +711,37 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImage?: s
 export const orchestrateBusinessPackage = async (lead: Lead, assets: AssetRecord[]) => {
   pushLog(`ORCHESTRATOR: COMPILING DOSSIER FOR ${lead.businessName}...`);
   const ai = getAI();
-  const prompt = `Create a full business strategy package for ${lead.businessName}.
-  Context Assets: ${assets.map(a => a.title).join(', ')}.
-  Return JSON: { 
-    narrative: string, 
-    presentation: { title, slides: [{ title, bullets: [], visualRef }] },
-    outreach: { emailSequence: [{ subject, body }], linkedin },
-    contentPack: [{ platform, type, caption, assetRef }]
-  }`;
+  
+  // Input Contract Construction
+  const inputContext = {
+    businessName: lead.businessName,
+    websiteUrl: lead.websiteUrl,
+    location: lead.city,
+    market: lead.niche,
+    contextAssets: assets.map(a => `${a.type}: ${a.title}`),
+    brandIdentity: lead.brandIdentity
+  };
+
+  const prompt = `
+    INPUT CONTRACT:
+    ${JSON.stringify(inputContext, null, 2)}
+
+    EXECUTE ORCHESTRATION PROTOCOL.
+    Refer to your System Instruction for mandatory Execution Order and Output Requirements.
+  `;
   
   const res = await loggedGenerateContent({
-    ai, module: 'BUSINESS_ORCHESTRATOR', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: true,
+    ai, 
+    module: 'BUSINESS_ORCHESTRATOR', 
+    model: 'gemini-3-pro-preview', 
+    modelClass: 'PRO', 
+    reasoningDepth: 'HIGH', 
+    isClientFacing: true,
     contents: prompt,
-    config: { responseMimeType: 'application/json' }
+    config: { 
+      responseMimeType: 'application/json',
+      systemInstruction: ORCHESTRATOR_SYSTEM_INSTRUCTION
+    }
   });
   return JSON.parse(res);
 };
