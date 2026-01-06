@@ -52,6 +52,7 @@ export const PRODUCTION_LOGS: string[] = [];
 export const pushLog = (msg: string) => {
   PRODUCTION_LOGS.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
   if (PRODUCTION_LOGS.length > 200) PRODUCTION_LOGS.pop();
+  console.log(`[SYSTEM] ${msg}`);
 };
 
 export const saveAsset = (type: AssetRecord['type'], title: string, data: string, module?: string, leadId?: string) => {
@@ -272,35 +273,41 @@ const pollKieStatus = async (taskId: string): Promise<string | null> => {
             });
             const raw = await res.text();
             
-            if (!res.ok) continue;
-
             let data;
             try {
                data = JSON.parse(raw);
             } catch {
+               console.warn("Poll response not JSON:", raw);
                continue;
             }
 
-            // Normalize Nested Payload
+            // Normalize Nested Payload - KIE sometimes wraps in 'data'
             const payload = data.data || data; 
             const status = (payload.status || payload.state || '').toUpperCase();
 
-            console.log(`KIE POLL [${taskId}] STATUS: ${status}`, payload);
+            console.log(`KIE POLL [${taskId}] (${attempts}/${maxAttempts}) STATUS: ${status}`, payload);
 
-            // SUCCESS STATES
-            if (status === 'SUCCEEDED' || status === 'COMPLETED' || status === 'SUCCESS') {
-                return payload.url || payload.video_url || payload.result?.url || payload.output?.url || null;
+            // TERMINAL SUCCESS
+            if (['SUCCEEDED', 'COMPLETED', 'SUCCESS', 'DONE'].includes(status)) {
+                const finalUrl = payload.url || payload.video_url || payload.result?.url || payload.output?.url;
+                if (finalUrl) return finalUrl;
+                // If succeeded but no URL yet, might be brief inconsistency, continue polling
+                console.warn("KIE reported success but no URL found in payload yet.");
             }
-            // FAIL STATES
-            if (status === 'FAILED' || status === 'ERROR') {
-                throw new Error(payload.error || 'Task reported failure during polling');
+            
+            // TERMINAL FAILURE
+            if (['FAILED', 'ERROR', 'CANCELED'].includes(status)) {
+                throw new Error(payload.error || `Task failed with status: ${status}`);
             }
-            // PENDING STATES: 'PENDING', 'PROCESSING', 'QUEUED' -> Continue Loop
-        } catch (e) {
-            console.warn("Poll iteration exception:", e);
+            
+            // PENDING STATES: 'PENDING', 'PROCESSING', 'QUEUED', 'STARTING' -> Continue Loop
+        } catch (e: any) {
+            console.warn("Poll iteration exception:", e.message);
+            // Don't break loop on network blip, only on hard failure logic
+            if (e.message.includes('Task failed')) throw e;
         }
     }
-    return null;
+    throw new Error("Polling timed out after 5 minutes.");
 };
 
 export const generateVideoPayload = async (
@@ -383,6 +390,8 @@ export const generateVideoPayload = async (
        const finalUrl = await pollKieStatus(taskId);
        
        if (finalUrl) {
+           // CRITICAL: SAVE ASSET ON COMPLETION
+           console.log("KIE FINAL URL:", finalUrl);
            saveAsset('VIDEO', `VEO_CLIP_${Date.now()}`, finalUrl, 'VIDEO_PITCH', leadId);
            pushLog("VEO: RENDER COMPLETE (ASYNC).");
            toast.success("Video Rendered Successfully.");
@@ -400,6 +409,7 @@ export const generateVideoPayload = async (
     const msg = e.message?.slice(0, 200) || "Unknown Error";
     toast.error(`Video Failed: ${msg}`);
     pushLog(`VEO ERROR: ${e.message}`);
+    // Return null to stop spinner in UI
     return null;
   }
 };

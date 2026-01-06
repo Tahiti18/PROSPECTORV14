@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { SESSION_ASSETS, AssetRecord, importVault, clearVault } from '../../services/geminiService';
+import { SESSION_ASSETS, AssetRecord, importVault, clearVault, saveAsset } from '../../services/geminiService';
 
 export const MediaVault: React.FC = () => {
   const [assets, setAssets] = useState<AssetRecord[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const vaultInputRef = useRef<HTMLInputElement>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setAssets([...SESSION_ASSETS]);
@@ -29,7 +29,7 @@ export const MediaVault: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportVault = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRestoreVault = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -47,6 +47,28 @@ export const MediaVault: React.FC = () => {
       }
     };
     reader.readAsText(file);
+    if (vaultInputRef.current) vaultInputRef.current.value = '';
+  };
+
+  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      if (result) {
+        let type: AssetRecord['type'] = 'TEXT';
+        if (file.type.startsWith('image/')) type = 'IMAGE';
+        else if (file.type.startsWith('video/')) type = 'VIDEO';
+        else if (file.type.startsWith('audio/')) type = 'AUDIO';
+        
+        saveAsset(type, `MANUAL UPLOAD: ${file.name}`, result, 'MEDIA_VAULT');
+        setAssets([...SESSION_ASSETS]); // Trigger update
+      }
+    };
+    reader.readAsDataURL(file);
+    if (mediaInputRef.current) mediaInputRef.current.value = '';
   };
 
   const handleClear = () => {
@@ -64,20 +86,37 @@ export const MediaVault: React.FC = () => {
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Persistent Asset Reservoir (Local Storage)</p>
         </div>
         <div className="flex gap-4">
+           {/* Vault Actions */}
            <button 
              onClick={handleExportVault}
              disabled={assets.length === 0}
              className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-emerald-600/20"
            >
-             BACKUP VAULT (EXPORT)
+             BACKUP VAULT
            </button>
+           
            <button 
-             onClick={() => fileInputRef.current?.click()}
+             onClick={() => vaultInputRef.current?.click()}
              className="bg-slate-900 border border-slate-700 text-slate-300 hover:text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
            >
-             RESTORE VAULT (IMPORT)
+             RESTORE VAULT
            </button>
-           <input type="file" ref={fileInputRef} onChange={handleImportVault} className="hidden" accept=".json" />
+           <input type="file" ref={vaultInputRef} onChange={handleRestoreVault} className="hidden" accept=".json" />
+
+           {/* Manual Media Upload */}
+           <button 
+             onClick={() => mediaInputRef.current?.click()}
+             className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-600/20"
+           >
+             UPLOAD MEDIA
+           </button>
+           <input 
+             type="file" 
+             ref={mediaInputRef} 
+             onChange={handleMediaUpload} 
+             className="hidden" 
+             accept="image/*,video/*,audio/*,text/plain,application/pdf"
+           />
            
            {assets.length > 0 && (
              <button 
@@ -113,7 +152,7 @@ export const MediaVault: React.FC = () => {
                  </div>
                  <div className="text-right">
                     <span className="text-[9px] font-black text-slate-500 block">{a.module?.replace('_', ' ')}</span>
-                    <span className="text-[8px] font-black text-slate-600">{a.timestamp}</span>
+                    <span className="text-[8px] font-black text-slate-600">{new Date(a.timestamp).toLocaleTimeString()}</span>
                  </div>
               </div>
               <div className="space-y-1 relative z-10">
