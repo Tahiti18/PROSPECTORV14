@@ -18,6 +18,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Configuration State
   const [config, setConfig] = useState<VeoConfig>({
@@ -77,6 +78,7 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
     
     setIsGenerating(true);
     setVideoUrl(null);
+    setError(null);
     
     try {
       // Direct call to KIE-powered function
@@ -94,8 +96,10 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
       }
     } catch (e: any) {
       console.error(e);
-      // Display the actual error from the API (e.g. 403, Quota Exceeded)
-      alert(`Generation Failed: ${e.message}`);
+      // Display detailed error in UI
+      const msg = e.message || "Unknown error occurred.";
+      setError(msg);
+      alert(`Generation Failed: ${msg}`);
     } finally {
       setIsGenerating(false);
     }
@@ -223,6 +227,14 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
                  </div>
               ) : videoUrl ? (
                  <video src={videoUrl} controls autoPlay loop className="w-full h-full object-contain" />
+              ) : error ? (
+                 <div className="text-center max-w-md px-10">
+                    <span className="text-6xl block mb-4 grayscale">⚠️</span>
+                    <p className="text-[12px] font-black text-rose-500 uppercase tracking-[0.2em] mb-2">GENERATION FAILED</p>
+                    <p className="text-[10px] font-bold text-slate-400 font-mono bg-slate-900 p-4 rounded-xl border border-slate-800">
+                        {error}
+                    </p>
+                 </div>
               ) : (
                  <div className="text-center opacity-30 select-none">
                     <span className="text-6xl block mb-4 grayscale">🎥</span>

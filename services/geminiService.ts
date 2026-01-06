@@ -800,13 +800,8 @@ export const generateVideoPayload = async (
 ): Promise<string> => {
   pushLog("GENERATING VIDEO ASSET (VEO 3.1)...");
   
-  // KIE API KEY for VEO ONLY - Restored as requested
-  const KIE_API_KEY = '2f30b2e5cdf012a40e82f10d7c30cb7f';
-  // Create specific instance for Veo using KIE key
-  const ai = new GoogleGenAI({ apiKey: KIE_API_KEY });
-  
-  // INTERNAL COST CHECK IS BYPASSED FOR KIE KEY
-  // The user manages their own credits on the KIE platform.
+  // KIE INTEGRATION: Use system standard env key.
+  const ai = getAI();
 
   // Default config if not provided
   const settings: VeoConfig = config || {
@@ -847,6 +842,7 @@ export const generateVideoPayload = async (
       }
     }
 
+    console.log("[VEO] Sending Request:", request);
     let operation = await ai.models.generateVideos(request);
     
     const startTime = Date.now();
@@ -859,8 +855,10 @@ export const generateVideoPayload = async (
     const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
     if (!videoUri) throw new Error("No video URI returned from Veo.");
 
-    // Fetch video blob - Must use the KIE key here too
-    const fetchUrl = `${videoUri}&key=${KIE_API_KEY}`;
+    // Fetch video blob - Must use the KIE key (env) here too
+    // We assume getAI uses process.env.API_KEY, so we use that same key for fetching.
+    const apiKey = process.env.API_KEY;
+    const fetchUrl = `${videoUri}&key=${apiKey}`;
     const res = await fetch(fetchUrl);
     const blob = await res.blob();
     
@@ -877,9 +875,10 @@ export const generateVideoPayload = async (
 
   } catch (e: any) {
     console.error("Veo Gen Error", e);
-    pushLog(`ERROR: VEO FAILED - ${e.message}`);
-    // CRITICAL FIX: Propagate error so UI can display it
-    throw e;
+    // CRITICAL FIX: Propagate error with specific message
+    const msg = e.message || "Unknown API Error";
+    pushLog(`ERROR: VEO FAILED - ${msg}`);
+    throw new Error(`Veo API Error: ${msg}`);
   }
 };
 
