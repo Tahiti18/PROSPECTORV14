@@ -16,9 +16,9 @@ if (typeof (globalThis as any).localStorage === 'undefined') {
   };
 }
 
-const smokeTestMiddleware = (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-  // Normalize path: separate query string
-  const [urlPath, queryString] = (req.url || '').split('?');
+const smokeTestMiddleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
+  // Normalize path: remove query params and trailing slash
+  const urlPath = req.url?.split('?')[0] || '';
   const normalizedPath = urlPath.endsWith('/') && urlPath.length > 1 ? urlPath.slice(0, -1) : urlPath;
 
   // 1. PING ENDPOINT (Diagnostics)
@@ -30,104 +30,108 @@ const smokeTestMiddleware = (req: IncomingMessage, res: ServerResponse, next: ()
     return;
   }
 
-  // 2. SMOKETEST ENDPOINT (Orchestration & Diagnostics)
+  // 2. SMOKETEST ENDPOINT (Orchestration)
   if (normalizedPath === '/__smoketest_phase1') {
     console.log(`PHASE1_SMOKETEST HIT ${req.url}`);
     
-    const params = new URLSearchParams(queryString || '');
-    const mode = params.get('mode') || 'run'; // 'ack' | 'run'
+    const testInput = {
+      id: 'smoke-test-lead-backend',
+      businessName: "Reflections MedSpa (Smoke Test)",
+      websiteUrl: "https://example.com",
+      city: "Houston, TX",
+      niche: "MedSpa",
+      rank: 1,
+      phone: "555-0123",
+      email: "test@example.com",
+      leadScore: 85,
+      assetGrade: "A",
+      socialGap: "Test Gap",
+      visualProof: "Test Visuals",
+      bestAngle: "Test Angle",
+      personalizedHook: "Test Hook",
+      status: "cold",
+      outreachStatus: "cold"
+    };
 
-    // Mode: ACK
-    if (mode === 'ack') {
-      res.setHeader('Content-Type', 'application/json');
-      res.statusCode = 200;
-      res.end(JSON.stringify({ 
-        ok: true, 
-        mode: 'ack', 
-        ts: new Date().toISOString(),
-        message: 'Middleware active. Ready to run.'
-      }));
-      return;
-    }
-
-    // Mode: RUN
     let responded = false;
-    let watchdog: any;
-
-    const respond = (payload: any) => {
-      if (responded || res.writableEnded) return;
+    const send = (code: number, body: any) => {
+      if (responded) return;
       responded = true;
-      clearTimeout(watchdog);
-      
       try {
-        console.log(`PHASE1_SMOKETEST ${payload.status}`);
-        res.setHeader('Content-Type', 'application/json; charset=utf-8');
-        res.statusCode = 200;
-        res.end(JSON.stringify(payload, null, 2));
-      } catch (e) {
-        console.error('PHASE1_SMOKETEST RESPOND ERROR', e);
+        res.setHeader('Content-Type', 'application/json');
+        res.statusCode = code;
+        res.end(JSON.stringify(body, null, 2));
+      } catch(e) {
+        console.error('[SMOKE_TEST] Response send failed', e);
       }
     };
 
-    // Hard Watchdog (60s)
-    watchdog = setTimeout(() => {
-        respond({
-            status: 'TIMEOUT',
-            stepsExecuted: 0,
-            assetsCommitted: 0,
-            error: 'Hard watchdog triggered (60s)',
-            completedAt: new Date().toISOString()
-        });
-    }, 60000);
+    try {
+      // 180s hard timeout (3 minutes)
+      const TIMEOUT_MS = 180000;
+      
+      const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS);
+      });
 
-    // Async Execution IIFE
-    (async () => {
-        try {
-            const testInput = {
-              id: 'smoke-test-lead-backend',
-              businessName: "Reflections MedSpa (Smoke Test)",
-              websiteUrl: "https://example.com",
-              city: "Houston, TX",
-              niche: "MedSpa",
-              rank: 1,
-              phone: "555-0123",
-              email: "test@example.com",
-              leadScore: 85,
-              assetGrade: "A",
-              socialGap: "Test Gap",
-              visualProof: "Test Visuals",
-              bestAngle: "Test Angle",
-              personalizedHook: "Test Hook",
-              status: "cold",
-              outreachStatus: "cold"
-            };
+      const executionPromise = (async () => {
+          // @ts-ignore
+          return await orchestratePhase1BusinessPackage(testInput);
+      })();
 
-            // @ts-ignore
-            const result = await orchestratePhase1BusinessPackage(testInput);
-            const isSuccess = result.status === 'SUCCESS';
-            
-            respond({
-                status: isSuccess ? 'PASS' : 'FAIL',
-                runId: result.runId,
-                stepsExecuted: result.timeline?.length || 0,
-                assetsCommitted: result.assets?.length || 0,
-                failedStep: result.timeline?.find((s: any) => s.status === 'FAILED')?.actionName,
-                error: result.error,
-                completedAt: new Date().toISOString()
-            });
+      // Attach late logger (observability for long running processes)
+      executionPromise.then((res: any) => {
+          if (responded) {
+             const success = res.status === 'SUCCESS';
+             console.log(`PHASE1_SMOKETEST ${success ? 'LATE_PASS' : 'LATE_FAIL'} | RunID: ${res.runId}`);
+          }
+      }).catch((err: any) => {
+          if (responded) {
+             console.log(`PHASE1_SMOKETEST LATE_FAIL | ${err.message}`);
+          }
+      });
 
-        } catch (error: any) {
-            respond({
-                status: 'FAIL',
-                stepsExecuted: 0,
-                assetsCommitted: 0,
-                error: error.message || 'Unknown orchestration error',
-                completedAt: new Date().toISOString()
-            });
-        }
-    })();
+      // @ts-ignore
+      const result: any = await Promise.race([executionPromise, timeoutPromise]);
 
-    return; // Stop middleware chain
+      const isSuccess = result.status === 'SUCCESS';
+      console.log(`PHASE1_SMOKETEST ${isSuccess ? 'PASS' : 'FAIL'}`);
+      
+      send(isSuccess ? 200 : 500, {
+          status: isSuccess ? 'PASS' : 'FAIL',
+          runId: result.runId,
+          stepsExecuted: result.timeline?.length || 0,
+          assetsCommitted: result.assets?.length || 0,
+          failedStep: result.timeline?.find((s: any) => s.status === 'FAILED')?.actionName,
+          error: result.error,
+          completedAt: new Date().toISOString()
+      });
+
+    } catch (error: any) {
+      const isTimeout = error.message === 'TIMEOUT';
+      const label = isTimeout ? 'TIMEOUT' : 'FAIL';
+      console.log(`PHASE1_SMOKETEST ${label}`);
+      
+      send(isTimeout ? 504 : 500, {
+          status: label,
+          stepsExecuted: 0,
+          assetsCommitted: 0,
+          error: error.message,
+          completedAt: new Date().toISOString()
+      });
+    } finally {
+      if (!responded) {
+         console.log('PHASE1_SMOKETEST FAIL (FALLBACK)');
+         send(500, {
+           status: 'FAIL',
+           stepsExecuted: 0,
+           assetsCommitted: 0,
+           error: 'Unhandled critical failure',
+           completedAt: new Date().toISOString()
+         });
+      }
+    }
+    return;
   }
 
   // Continue to next middleware if not matched
