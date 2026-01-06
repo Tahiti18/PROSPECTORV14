@@ -1,7 +1,8 @@
 
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, PreviewServer } from 'vite';
 import react from '@vitejs/plugin-react';
 import { orchestratePhase1BusinessPackage } from './services/orchestratorPhase1';
+import type { IncomingMessage, ServerResponse } from 'http';
 
 // Mock browser globals for Node environment compatibility if needed
 if (typeof (globalThis as any).localStorage === 'undefined') {
@@ -34,8 +35,8 @@ export default defineConfig(({ mode }) => {
       port: process.env.PORT ? parseInt(process.env.PORT) : 4173,
       strictPort: true,
       allowedHosts: true,
-      configurePreviewServer(server) {
-        server.middlewares.use('/__smoketest_phase1', async (req, res, next) => {
+      configurePreviewServer(server: PreviewServer) {
+        server.middlewares.use('/__smoketest_phase1', async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
           console.log('[SMOKE_TEST] Received request for Phase 1 Smoke Test');
           
           const testInput = {
