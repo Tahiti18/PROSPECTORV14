@@ -11,10 +11,8 @@ const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279';
 const KIE_ENDPOINT = 'https://api.kie.ai/api/v1/veo/generate';
 
 const VALID_VEO_MODELS = [
-  'veo3',
-  'veo3_fast',
-  'veo-3.1',
-  'veo-3.1-fast'
+  'veo-3.1-fast-generate-preview', // Economic Default
+  'veo-3.1-generate-preview'       // Pro (User must explicit opt-in)
 ];
 
 // --- TYPES ---
@@ -31,7 +29,7 @@ export interface AssetRecord {
 export interface VeoConfig {
   aspectRatio: '16:9' | '9:16';
   resolution: '720p' | '1080p';
-  modelStr: string; // Changed to string to allow validated list
+  modelStr: string; 
 }
 
 export interface BenchmarkReport {
@@ -56,7 +54,6 @@ const assetListeners = new Set<AssetListener>();
 
 export const subscribeToAssets = (listener: AssetListener) => {
   assetListeners.add(listener);
-  // Send current state immediately
   listener([...SESSION_ASSETS]);
   return () => { assetListeners.delete(listener); };
 };
@@ -84,7 +81,7 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
     timestamp: Date.now()
   };
   SESSION_ASSETS.unshift(asset);
-  notifyAssetListeners(); // Real-time update
+  notifyAssetListeners(); 
   pushLog(`ASSET SAVED: ${title} (${type})`);
   toast.success(`Asset Secured: ${title.slice(0, 20)}...`);
   return asset;
@@ -287,9 +284,8 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImageBase
 
 const pollKieStatus = async (taskId: string): Promise<string | null> => {
     const url = `https://api.kie.ai/api/v1/veo/status/${taskId}`;
-    console.log("STARTING KIE POLL:", url);
     let attempts = 0;
-    const maxAttempts = 60; // 5 minutes (5s interval)
+    const maxAttempts = 60; 
 
     while (attempts < maxAttempts) {
         await new Promise(r => setTimeout(r, 5000));
@@ -303,38 +299,20 @@ const pollKieStatus = async (taskId: string): Promise<string | null> => {
                 }
             });
             const raw = await res.text();
-            
             let data;
-            try {
-               data = JSON.parse(raw);
-            } catch {
-               console.warn("Poll response not JSON:", raw);
-               continue;
-            }
+            try { data = JSON.parse(raw); } catch { continue; }
 
-            // Normalize Nested Payload - KIE sometimes wraps in 'data'
             const payload = data.data || data; 
             const status = (payload.status || payload.state || '').toUpperCase();
 
-            console.log(`KIE POLL [${taskId}] (${attempts}/${maxAttempts}) STATUS: ${status}`, payload);
-
-            // TERMINAL SUCCESS
             if (['SUCCEEDED', 'COMPLETED', 'SUCCESS', 'DONE'].includes(status)) {
                 const finalUrl = payload.url || payload.video_url || payload.result?.url || payload.output?.url;
                 if (finalUrl) return finalUrl;
-                // If succeeded but no URL yet, might be brief inconsistency, continue polling
-                console.warn("KIE reported success but no URL found in payload yet.");
             }
-            
-            // TERMINAL FAILURE
             if (['FAILED', 'ERROR', 'CANCELED'].includes(status)) {
                 throw new Error(payload.error || `Task failed with status: ${status}`);
             }
-            
-            // PENDING STATES: 'PENDING', 'PROCESSING', 'QUEUED', 'STARTING' -> Continue Loop
         } catch (e: any) {
-            console.warn("Poll iteration exception:", e.message);
-            // Don't break loop on network blip, only on hard failure logic
             if (e.message.includes('Task failed')) throw e;
         }
     }
@@ -346,34 +324,22 @@ export const generateVideoPayload = async (
   leadId?: string,
   startImageBase64?: string,
   endImageBase64?: string, 
-  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p', modelStr: 'veo-3.1-fast' },
-  referenceImages?: string[], // Array of base64 strings
-  inputVideoBase64?: string // Base64 video for extension
+  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p', modelStr: 'veo-3.1-fast-generate-preview' },
+  referenceImages?: string[], 
+  inputVideoBase64?: string 
 ): Promise<string | null> => {
   pushLog(`VEO: INITIALIZING VIDEO GENERATION (KIE)...`);
   toast.neural("VEO ENGINE: SENDING PAYLOAD TO KIE CLUSTER...");
 
-  // Clean base64 helpers
   const cleanBase64 = (b64?: string) => b64 ? (b64.includes(',') ? b64.split(',')[1] : b64) : undefined;
-
   const cleanImage = cleanBase64(startImageBase64);
   const cleanEndImage = cleanBase64(endImageBase64);
   const cleanInputVideo = cleanBase64(inputVideoBase64);
   const cleanRefs = referenceImages?.map(img => cleanBase64(img)).filter(Boolean);
 
-  // GUARD: Validate Model
-  if (!VALID_VEO_MODELS.includes(config.modelStr)) {
-      const msg = `Invalid model: ${config.modelStr}. Allowed: ${VALID_VEO_MODELS.join(', ')}`;
-      console.error(msg);
-      toast.error(msg);
-      throw new Error(msg);
-  }
-
-  // Construct KIE-compatible Payload using snake_case
-  // Supports Veo 3.1 features: start, end, references, extension (video input)
   const params: any = {
     prompt: prompt,
-    model: config.modelStr,
+    model: config.modelStr, // Defaults to fast preview for economy
     aspect_ratio: config.aspectRatio,
     resolution: config.resolution,
     ...(cleanImage ? { image: cleanImage } : {}),
@@ -383,98 +349,41 @@ export const generateVideoPayload = async (
   };
 
   try {
-    // --- DEBUG LOGGING ---
-    console.log("KIE SENT PAYLOAD (Keys Only):", Object.keys(params));
-
     const kieResponse = await fetch(KIE_ENDPOINT, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${KIE_KEY}`,
-        "Content-Type": "application/json"
-      },
+      headers: { Authorization: `Bearer ${KIE_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify(params)
     });
 
     const raw = await kieResponse.text();
-    console.log("KIE RAW RESPONSE:", raw);
-
-    if (!kieResponse.ok) {
-      throw new Error(`KIE Error ${kieResponse.status}: ${raw}`);
-    }
+    if (!kieResponse.ok) throw new Error(`KIE Error ${kieResponse.status}: ${raw}`);
 
     let data;
-    try {
-        data = JSON.parse(raw);
-    } catch {
-        throw new Error(`KIE Response Not JSON: ${raw}`);
-    }
+    try { data = JSON.parse(raw); } catch { throw new Error(`KIE Response Not JSON: ${raw}`); }
     
-    // Normalize Payload (Handle wrapped data objects)
     const payload = data.data || data;
-
-    // 1. Immediate Success (URL present)
     const videoUrl = payload.url || payload.video_url || payload.uri || payload.video?.uri;
     if (videoUrl) {
       saveAsset('VIDEO', `VEO_CLIP_${Date.now()}`, videoUrl, 'VIDEO_PITCH', leadId);
-      pushLog("VEO: RENDER COMPLETE (SYNC).");
       toast.success("Video Rendered Successfully.");
       return videoUrl;
     } 
     
-    // 2. Async Task (ID present - Handle various ID keys)
     const taskId = payload.id || payload.task_id || payload.taskId || payload.job_id;
     if (taskId) {
        toast.info(`VEO Job Started: ${taskId}. Polling...`);
-       pushLog(`VEO: Job ${taskId} queued.`);
-       
        const finalUrl = await pollKieStatus(taskId);
-       
        if (finalUrl) {
-           // CRITICAL: SAVE ASSET ON COMPLETION
-           console.log("KIE FINAL URL:", finalUrl);
            saveAsset('VIDEO', `VEO_CLIP_${Date.now()}`, finalUrl, 'VIDEO_PITCH', leadId);
-           pushLog("VEO: RENDER COMPLETE (ASYNC).");
            toast.success("Video Rendered Successfully.");
            return finalUrl;
-       } else {
-           throw new Error("Polling timed out or failed to retrieve URL.");
        }
     } 
-    
-    console.warn("KIE Response unexpected structure:", data);
-    throw new Error(`KIE Unexpected Data: ${JSON.stringify(data)}`);
-
+    throw new Error(`KIE Unexpected Data`);
   } catch (e: any) {
     console.error("Veo Generation Error:", e);
-    const msg = e.message?.slice(0, 200) || "Unknown Error";
-    toast.error(`Video Failed: ${msg}`);
-    pushLog(`VEO ERROR: ${e.message}`);
-    // Return null to stop spinner in UI
+    toast.error(`Video Failed: ${e.message}`);
     return null;
-  }
-};
-
-// --- SMOKE TEST FOR KIE KEY ---
-export const testKieConnection = async () => {
-  try {
-    const res = await fetch(KIE_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${KIE_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: "Smoke Test Connection",
-        model: "veo3_fast", // Use valid KIE model
-        aspect_ratio: "16:9"
-      }),
-    });
-    const txt = await res.text();
-    console.log("KIE Smoke Test Result:", res.status, txt);
-    return res.ok;
-  } catch (e) {
-    console.error("KIE Smoke Test Failed:", e);
-    return false;
   }
 };
 
@@ -488,9 +397,7 @@ export const generateAudioPitch = async (script: string, voiceName: string, lead
       contents: { parts: [{ text: script }] },
       config: {
         responseModalities: ["AUDIO"],
-        speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName } },
-        },
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
       },
     });
 
@@ -508,41 +415,366 @@ export const generateAudioPitch = async (script: string, voiceName: string, lead
   }
 };
 
-// --- STUBS WITH FIXED TYPES ---
-export const enhanceVideoPrompt = async (raw: string) => raw;
-export const generateLeads = async (t: string, n: string, c: number) => ({ leads: [], groundingSources: [] });
-export const generatePlaybookStrategy = async (n: string) => ({});
-export const generateProposalDraft = async (l: Lead) => "";
-export const analyzeVisual = async (b: string, m: string, p: string) => "";
-export const fetchLiveIntel = async (l: Lead, m: string) => ({ visualStack: [], sonicStack: [], sources: [] } as any);
-export const crawlTheaterSignals = async (t: string, s: string) => [];
+// --- REAL IMPLEMENTATIONS OF PREVIOUSLY STUBBED FUNCTIONS (NOW FLASH OPTIMIZED) ---
 
-export const identifySubRegions = async (t: string): Promise<string[]> => {
-    return ["North District", "South District", "Central Business Hub"];
+export const enhanceVideoPrompt = async (raw: string): Promise<string> => {
+  const ai = getAI();
+  const res = await loggedGenerateContent({
+    ai, module: 'PROMPT_ENHANCE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: false,
+    contents: `Enhance this video prompt for Veo 3.1 (Cinematic, Photorealistic, Unreal Engine 5 Style). Keep it under 50 words. Prompt: ${raw}`
+  });
+  return res.trim();
 };
 
-export const analyzeLedger = async (l: Lead[]) => ({ risk: "", opportunity: "" });
-export const generateOutreachSequence = async (l: Lead) => [];
-export const generateMockup = async (n: string, ni: string, id?: string) => "";
-export const fetchBenchmarkData = async (l: Lead) => ({ visualStack: [], sonicStack: [], sources: [] } as any);
-export const performFactCheck = async (l: Lead, c: string) => ({ status: "Unknown" });
-export const synthesizeProduct = async (l: Lead) => ({});
-export const generatePitch = async (l: Lead) => "";
-export const architectFunnel = async (l: Lead) => [];
-export const generateAgencyIdentity = async (n: string, r: string) => ({});
-export const testModelPerformance = async (m: string, p: string) => "";
-export const generateMotionLabConcept = async (l: Lead) => ({});
-export const generateFlashSparks = async (l: Lead) => [];
-export const architectPitchDeck = async (l: Lead) => [];
-export const simulateSandbox = async (l: Lead, v: number, vol: number) => "";
-export const generateTaskMatrix = async (l: Lead) => [];
-export const fetchViralPulseData = async (n: string) => [];
-export const synthesizeArticle = async (s: string, m: string) => "";
-export const analyzeVideoUrl = async (u: string, p: string, id?: string) => "";
-export const generateROIReport = async (l: number, v: number, c: number) => "";
-export const orchestrateBusinessPackage = async (l: Lead, a: any[]) => ({});
-export const generateAffiliateProgram = async (n: string) => ({});
-export const fetchTokenStats = async () => ({});
-export const critiqueVideoPresence = async (l: Lead) => "";
-export const generateNurtureDialogue = async (l: Lead, s: string) => [];
-export const translateTactical = async (t: string, l: string) => "";
+export const generateLeads = async (region: string, niche: string, count: number) => {
+  pushLog(`RADAR: SCANNING ${region} FOR ${niche}...`);
+  const ai = getAI();
+  const prompt = `
+    Find ${count} high-ticket businesses in ${region} in the ${niche || 'Luxury/Medical/Tech'} niche.
+    For each, find: Name, Website, City, Niche, and estimate a 'Social Gap' (why they need AI marketing).
+    
+    Return strict JSON:
+    {
+      "leads": [
+        { "businessName": "", "websiteUrl": "", "city": "", "niche": "", "socialGap": "", "leadScore": 85 }
+      ],
+      "groundingSources": [ {"title": "Source Title", "uri": "url"} ]
+    }
+  `;
+  const res = await loggedGenerateContent({
+    ai, module: 'RADAR_RECON', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
+    contents: prompt,
+    config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
+  });
+  const parsed = safeJsonParse(res);
+  return parsed || { leads: [], groundingSources: [] };
+};
+
+export const generateProposalDraft = async (lead: Lead) => {
+  pushLog(`DRAFTING PROPOSAL FOR ${lead.businessName}...`);
+  const ai = getAI();
+  const prompt = `
+    Write a high-ticket AI Transformation Proposal for ${lead.businessName} (${lead.niche}).
+    Identify their gap: "${lead.socialGap}".
+    Propose: 
+    1. Automated Video Content Engine.
+    2. 24/7 AI Concierge.
+    3. ROI Projection.
+    Format as Markdown. Professional, persuasive, luxurious tone.
+  `;
+  return await loggedGenerateContent({
+    ai, module: 'PROPOSALS', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true, contents: prompt
+  });
+};
+
+export const analyzeVisual = async (base64: string, mimeType: string, prompt: string) => {
+  pushLog(`VISION: ANALYZING FRAME...`);
+  const ai = getAI();
+  const res = await ai.models.generateContent({
+    model: "gemini-2.5-flash-image", // Force Flash for Vision
+    contents: {
+      parts: [
+        { inlineData: { mimeType, data: base64 } },
+        { text: prompt }
+      ]
+    }
+  });
+  return res.text || "Analysis failed.";
+};
+
+export const fetchLiveIntel = async (lead: Lead, module: string) => {
+  pushLog(`INTEL: GATHERING DATA FOR ${module}...`);
+  const ai = getAI();
+  const prompt = `
+    Analyze ${lead.businessName} (${lead.websiteUrl}) for the ${module} module.
+    Provide a deep technical and strategic breakdown.
+    Return JSON matching the BenchmarkReport interface.
+  `;
+  const res = await loggedGenerateContent({
+    ai, module, model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
+    contents: prompt,
+    config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
+  });
+  return safeJsonParse(res) || { visualStack: [], sonicStack: [], sources: [] };
+};
+
+export const crawlTheaterSignals = async (sector: string, signal: string) => {
+  pushLog(`CRAWL: SECTOR ${sector}...`);
+  const ai = getAI();
+  const prompt = `
+    Search for businesses in ${sector} matching signal: "${signal}".
+    Return top 3 results as JSON array of Lead objects.
+  `;
+  const res = await loggedGenerateContent({
+    ai, module: 'AUTO_CRAWL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: false,
+    contents: prompt,
+    config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
+  });
+  return safeJsonParse(res) || [];
+};
+
+export const identifySubRegions = async (theater: string): Promise<string[]> => {
+  const ai = getAI();
+  const res = await loggedGenerateContent({
+    ai, module: 'AUTO_CRAWL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: false,
+    contents: `List 5 key commercial districts or neighborhoods in ${theater} for business targeting. Return JSON array of strings.`,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res) || ["Central District", "Business Park", "Downtown"];
+};
+
+export const analyzeLedger = async (leads: Lead[]) => {
+  const ai = getAI();
+  const prompt = `Analyze these ${leads.length} leads. Summarize the total revenue opportunity and key risks. Return JSON: {risk: string, opportunity: string}`;
+  const res = await loggedGenerateContent({
+    ai, module: 'ANALYTICS', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: false,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res) || { risk: "Unknown", opportunity: "Unknown" };
+};
+
+export const generateOutreachSequence = async (lead: Lead) => {
+  const ai = getAI();
+  const prompt = `Create a 5-step outreach sequence (Email/LinkedIn/Phone) for ${lead.businessName}. JSON Array: [{day: 1, channel: 'Email', purpose: 'Value', content: '...'}].`;
+  const res = await loggedGenerateContent({
+    ai, module: 'SEQUENCER', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res) || [];
+};
+
+export const generateMockup = async (name: string, niche: string, leadId?: string) => {
+  const prompt = `Hyper-realistic 4k product shot for ${name}, a ${niche} brand. Professional lighting, studio setup.`;
+  return await generateVisual(prompt, { id: leadId, businessName: name } as Lead);
+};
+
+export const fetchBenchmarkData = async (lead: Lead) => {
+  return await fetchLiveIntel(lead, 'BENCHMARK');
+};
+
+export const performFactCheck = async (lead: Lead, claim: string) => {
+  const ai = getAI();
+  const prompt = `Verify this claim about ${lead.businessName}: "${claim}". Return JSON: {status: 'Verified'|'Disputed', evidence: string, sources: [{title, uri}]}`;
+  const res = await loggedGenerateContent({
+    ai, module: 'FACT_CHECK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
+  });
+  return safeJsonParse(res) || { status: "Unknown" };
+};
+
+export const synthesizeProduct = async (lead: Lead) => {
+  const ai = getAI();
+  const prompt = `Design a high-ticket AI package for ${lead.businessName}. JSON: {productName, tagline, pricePoint, features: []}`;
+  const res = await loggedGenerateContent({
+    ai, module: 'PRODUCT_SYNTH', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res);
+};
+
+export const generatePitch = async (lead: Lead) => {
+  const ai = getAI();
+  const res = await loggedGenerateContent({
+    ai, module: 'PITCH_GEN', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+    contents: `Write a 30-second elevator pitch for selling AI automation to ${lead.businessName}.`
+  });
+  return res;
+};
+
+export const architectFunnel = async (lead: Lead) => {
+  const ai = getAI();
+  const prompt = `Design a sales funnel for ${lead.businessName}. JSON Array: [{stage, title, description, conversionGoal}]`;
+  const res = await loggedGenerateContent({
+    ai, module: 'FUNNEL_MAP', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res) || [];
+};
+
+export const generateAgencyIdentity = async (niche: string, region: string) => {
+  const ai = getAI();
+  const prompt = `Create an AI Agency Brand Identity for the ${niche} niche in ${region}. JSON: {name, tagline, manifesto, colors: []}`;
+  const res = await loggedGenerateContent({
+    ai, module: 'IDENTITY', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res);
+};
+
+export const testModelPerformance = async (model: string, prompt: string) => {
+  const ai = getAI();
+  try {
+    const res = await ai.models.generateContent({ model, contents: prompt });
+    return res.text || "No response";
+  } catch (e: any) { return e.message; }
+};
+
+export const generateMotionLabConcept = async (lead: Lead) => {
+  const ai = getAI();
+  const prompt = `Create a motion graphics storyboard for ${lead.businessName}. JSON: {title, hook, scenes: [{time, visual, text}]}`;
+  const res = await loggedGenerateContent({
+    ai, module: 'MOTION_LAB', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res);
+};
+
+export const generateFlashSparks = async (lead: Lead) => {
+  const ai = getAI();
+  const prompt = `Generate 6 viral content ideas for ${lead.businessName}. Return JSON array of strings.`;
+  const res = await loggedGenerateContent({
+    ai, module: 'FLASH_SPARK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res) || [];
+};
+
+export const architectPitchDeck = async (lead: Lead) => {
+  const ai = getAI();
+  const prompt = `Outline a 10-slide sales deck for ${lead.businessName}. JSON Array: [{title, narrativeGoal, keyVisuals}]`;
+  const res = await loggedGenerateContent({
+    ai, module: 'DECK_ARCH', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res) || [];
+};
+
+export const simulateSandbox = async (lead: Lead, ltv: number, vol: number) => {
+  const ai = getAI();
+  return await loggedGenerateContent({
+    ai, module: 'DEMO_SANDBOX', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: `Simulate a growth scenario for ${lead.businessName} with LTV $${ltv} and ${vol} leads/mo if they adopt AI. Provide concise markdown report.`
+  });
+};
+
+export const generateTaskMatrix = async (lead: Lead) => {
+  const ai = getAI();
+  const prompt = `Create a checklist of 5 tasks to close ${lead.businessName}. JSON Array: [{id, task, status: 'pending'}]`;
+  const res = await loggedGenerateContent({
+    ai, module: 'TASKS', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: false,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res) || [];
+};
+
+export const fetchViralPulseData = async (niche: string) => {
+  const ai = getAI();
+  const prompt = `What are 5 trending topics in ${niche} right now? JSON Array: [{label, val: number (0-100), type: 'up'|'down'}]`;
+  const res = await loggedGenerateContent({
+    ai, module: 'VIRAL_PULSE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: false,
+    contents: prompt,
+    config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
+  });
+  return safeJsonParse(res) || [];
+};
+
+export const synthesizeArticle = async (source: string, mode: string) => {
+  const ai = getAI();
+  return await loggedGenerateContent({
+    ai, module: 'ARTICLE_INTEL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: `Synthesize this content: ${source}. Mode: ${mode}. Format: Markdown.`,
+    config: { tools: [{ googleSearch: {} }] }
+  });
+};
+
+export const analyzeVideoUrl = async (url: string, prompt: string, leadId?: string) => {
+  const ai = getAI();
+  return await loggedGenerateContent({
+    ai, module: 'VIDEO_AI', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: `Analyze video at ${url}. ${prompt}`,
+    config: { tools: [{ googleSearch: {} }] }
+  });
+};
+
+export const generateROIReport = async (ltv: number, leads: number, conv: number) => {
+  const ai = getAI();
+  return await loggedGenerateContent({
+    ai, module: 'ROI_CALC', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+    contents: `Generate ROI report for LTV $${ltv}, ${leads} leads, ${conv}% lift. Markdown.`
+  });
+};
+
+export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
+  const ai = getAI();
+  const prompt = `
+    Orchestrate a full business package for ${lead.businessName}.
+    Assets Available: ${assets.length}.
+    Return JSON: {
+      narrative: string,
+      presentation: { title: string, slides: [{title, bullets: [], visualRef}] },
+      outreach: { emailSequence: [{subject, body}], linkedin: string },
+      contentPack: [{platform, type, caption, assetRef}]
+    }
+  `;
+  const res = await loggedGenerateContent({
+    ai, module: 'BUSINESS_ORCHESTRATOR', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res);
+};
+
+export const generateAffiliateProgram = async (niche: string) => {
+  const ai = getAI();
+  const prompt = `Design an affiliate program for ${niche}. JSON: {programName, recruitScript, tiers: [{name, commission, requirement}]}`;
+  const res = await loggedGenerateContent({
+    ai, module: 'AFFILIATE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res);
+};
+
+export const fetchTokenStats = async () => {
+  // Mock data for token stats as real usage is tracked in local state
+  return { recentOps: [] };
+};
+
+export const critiqueVideoPresence = async (lead: Lead) => {
+  const ai = getAI();
+  return await loggedGenerateContent({
+    ai, module: 'VIDEO_AI', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: `Critique the video presence of ${lead.businessName}. Use Search to find their videos.`,
+    config: { tools: [{ googleSearch: {} }] }
+  });
+};
+
+export const generateNurtureDialogue = async (lead: Lead, scenario: string) => {
+  const ai = getAI();
+  const prompt = `Simulate a chat between an AI Concierge and a lead from ${lead.businessName}. Scenario: ${scenario}. JSON Array: [{role: 'user'|'ai', text: string}]`;
+  const res = await loggedGenerateContent({
+    ai, module: 'AI_CONCIERGE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res) || [];
+};
+
+export const translateTactical = async (text: string, lang: string) => {
+  const ai = getAI();
+  return await loggedGenerateContent({
+    ai, module: 'TRANSLATOR', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+    contents: `Translate to ${lang} (maintain marketing tone): ${text}`
+  });
+};
+
+export const generatePlaybookStrategy = async (niche: string) => {
+  const ai = getAI();
+  const prompt = `Create a sales playbook strategy for ${niche}. JSON: {strategyName, steps: [{title, tactic}]}`;
+  const res = await loggedGenerateContent({
+    ai, module: 'PLAYBOOK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return safeJsonParse(res);
+};

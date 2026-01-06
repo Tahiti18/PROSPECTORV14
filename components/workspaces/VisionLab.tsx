@@ -101,7 +101,7 @@ export const VisionLab: React.FC<VisionLabProps> = ({ lead }) => {
                  </div>
                  <div>
                     <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter">INTELLIGENCE OUTPUT</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em]">GEMINI 3 PRO VISION CORE</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em]">GEMINI 2.5 FLASH VISION CORE</p>
                  </div>
               </div>
 

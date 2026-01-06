@@ -29,7 +29,8 @@ let user: UserProfile = {
   credits: 9999.00
 };
 
-let economyMode = false;
+// DEFAULTING TO TRUE FOR COST SAFETY
+let economyMode = true;
 
 const PRO_COST_PER_1M = 15.00;
 const FLASH_COST_PER_1M = 0.10;

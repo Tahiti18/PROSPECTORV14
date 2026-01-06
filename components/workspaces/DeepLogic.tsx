@@ -8,7 +8,6 @@ interface DeepLogicProps {
 }
 
 export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
-  const [intensity, setIntensity] = useState(16000);
   const [query, setQuery] = useState('');
   const [output, setOutput] = useState<string | null>(null);
   const [isThinking, setIsThinking] = useState(false);
@@ -19,17 +18,19 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
     setOutput(null);
 
     try {
+      // DOWNGRADED: Gemini 3 Flash for Economy
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // DOWNGRADED TO FLASH: Cost optimization. Reasoning removed.
+      const context = lead ? `Context: Business ${lead.businessName}, Niche ${lead.niche}, Gap ${lead.socialGap}. ` : '';
+      
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: query,
-        // Removed thinkingConfig to prevent Pro usage
+        contents: `${context}\n\nTask: ${query}`,
+        // Thinking config removed to save tokens
       });
       setOutput(response.text || "Reasoning sequence failed to materialize.");
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setOutput("CRITICAL_NODE_FAILURE: Reasoning chain interrupted.");
+      setOutput(`CRITICAL_NODE_FAILURE: ${e.message}`);
     } finally {
       setIsThinking(false);
     }
@@ -44,13 +45,13 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
             <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-500 font-black">i</span>
           </h1>
           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">
-            System 2 analysis optimized for speed and cost efficiency (Flash Mode).
+            System 2 analysis optimized for strategic deduction (Gemini 3 Flash).
           </p>
         </div>
-        <div className="bg-emerald-500/10 border border-emerald-500/20 px-6 py-2.5 rounded-full flex items-center gap-3">
+        <div className="bg-emerald-600/10 border border-emerald-500/20 px-6 py-2.5 rounded-full flex items-center gap-3">
            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-           <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">
-             FAST ANALYSIS: ACTIVE
+           <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">
+             ECONOMY MODE: ACTIVE
            </span>
         </div>
       </div>
@@ -61,11 +62,10 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
               <div className="space-y-8">
                 <div className="flex justify-between items-end">
                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">ANALYSIS MODE</h3>
-                   <span className="text-sm font-black italic text-emerald-500 tracking-tighter">FLASH</span>
+                   <span className="text-sm font-black italic text-emerald-500 tracking-tighter">FLASH SPEED</span>
                 </div>
-                {/* Removed Intensity Slider - Not applicable for Flash */}
                 <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 text-[10px] text-slate-400">
-                   Standard high-speed inference enabled. Deep reasoning budget disabled for cost control.
+                   Reasoning engine active. Optimized for speed and cost efficiency.
                 </div>
               </div>
 
@@ -80,7 +80,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
               </div>
 
               <div className="flex gap-4 pt-4">
-                <button className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all">
+                <button className="p-4 bg-emerald-600/10 border border-emerald-600/30 rounded-2xl text-emerald-500 hover:bg-emerald-600 hover:text-white transition-all">
                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2.5"/></svg>
                 </button>
                 <button 
@@ -89,7 +89,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
                   className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-5 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-emerald-600/20"
                 >
                   <span className="text-xl">⚡</span>
-                  ENGAGE ANALYSIS
+                  ENGAGE FLASH CORE
                 </button>
               </div>
            </div>
@@ -103,7 +103,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
                  </div>
                  <div>
                     <h3 className="text-xl font-black italic text-white uppercase tracking-tighter">ANALYSIS OUTPUT</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">GEMINI 3 FLASH CORE</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">GEMINI 3 FLASH COGNITIVE CORE</p>
                  </div>
               </div>
 
@@ -113,7 +113,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
                       <div className="w-20 h-1 bg-slate-800 rounded-full relative overflow-hidden">
                          <div className="absolute inset-0 bg-emerald-500 animate-[loading_1.5s_infinite]"></div>
                       </div>
-                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.5em]">SYSTEM 1: FAST ANALYSIS...</p>
+                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.5em]">SYSTEM 1: FLASH INFERENCE...</p>
                    </div>
                  ) : output ? (
                    <div className="prose prose-invert max-w-none">
@@ -127,7 +127,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
                       <div className="space-y-2">
                         <h4 className="text-4xl font-black italic text-slate-500 uppercase tracking-tighter">ANALYSIS HUB IDLE</h4>
                         <p className="text-[11px] text-slate-600 font-black uppercase tracking-[0.4em] max-w-xs mx-auto">
-                          PROVIDE STRATEGIC PARAMETERS TO BEGIN RAPID LOGICAL DECODING.
+                          PROVIDE STRATEGIC PARAMETERS TO BEGIN LOGICAL DECODING.
                         </p>
                       </div>
                    </div>

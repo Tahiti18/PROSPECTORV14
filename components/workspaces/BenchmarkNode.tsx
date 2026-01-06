@@ -202,7 +202,7 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                <div className="w-24 h-24 border-4 border-slate-900 border-t-emerald-500 rounded-full animate-spin shadow-2xl shadow-emerald-500/10"></div>
                <div className="text-center space-y-5 animate-pulse">
                   <p className="text-[12px] font-black text-emerald-500 uppercase tracking-[0.7em] italic">DECONSTRUCTING MULTI-LAYER STACK...</p>
-                  <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.4em]">ENGAGING GEMINI 3 PRO COGNITIVE CORE (32K BUDGET)</p>
+                  <p className="text-[10px] text-slate-600 font-bold uppercase tracking-[0.4em]">ENGAGING GEMINI 3 FLASH COGNITIVE CORE</p>
                </div>
             </div>
          )}
