@@ -45,8 +45,8 @@ export const Steps = {
     return await loggedGenerateContent({
       ai,
       module: 'ICP_GEN',
-      model: 'gemini-3-pro-preview',
-      modelClass: 'PRO',
+      model: 'gemini-3-flash-preview',
+      modelClass: 'FLASH',
       reasoningDepth: 'MEDIUM',
       isClientFacing: false,
       contents: prompt,
@@ -69,9 +69,9 @@ export const Steps = {
     return await loggedGenerateContent({
       ai,
       module: 'OFFER_GEN',
-      model: 'gemini-3-pro-preview',
-      modelClass: 'PRO',
-      reasoningDepth: 'HIGH',
+      model: 'gemini-3-flash-preview',
+      modelClass: 'FLASH',
+      reasoningDepth: 'MEDIUM',
       isClientFacing: false,
       contents: prompt,
       config: { responseMimeType: 'application/json' }
@@ -93,9 +93,9 @@ export const Steps = {
     return await loggedGenerateContent({
       ai,
       module: 'OUTREACH_GEN',
-      model: 'gemini-3-pro-preview',
-      modelClass: 'PRO',
-      reasoningDepth: 'HIGH',
+      model: 'gemini-3-flash-preview',
+      modelClass: 'FLASH',
+      reasoningDepth: 'MEDIUM',
       isClientFacing: false,
       contents: prompt,
       config: { responseMimeType: 'application/json' }
@@ -117,7 +117,7 @@ export const Steps = {
     return await loggedGenerateContent({
       ai,
       module: 'REPORT_GEN',
-      model: 'gemini-3-flash-preview', // Flash is fine for formatting
+      model: 'gemini-3-flash-preview',
       modelClass: 'FLASH',
       reasoningDepth: 'LOW',
       isClientFacing: true,

@@ -45,7 +45,7 @@ export const dossierStorage = {
       leadName: lead.businessName,
       version: nextVersion,
       timestamp: Date.now(),
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview', // DOWNGRADED TO FLASH
       contextSnapshot: { assetIds },
       data: packageData
     };

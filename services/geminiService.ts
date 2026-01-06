@@ -218,10 +218,9 @@ const safeJsonParse = (text: string) => {
   }
 };
 
-// --- IMPLEMENTATIONS (Unchanged Logic, just wrapped) ---
+// --- IMPLEMENTATIONS (Cost-Optimized to Flash) ---
 
 export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIdentity> => {
-  // ... existing implementation
   pushLog(`DNA: DEEP FORENSIC SCANNING ${url}...`);
   const ai = getAI();
   
@@ -232,6 +231,7 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
     hostname = url;
   }
 
+  // 1. Deterministic Asset Recovery (Mathematical Extraction)
   const deterministicLogo = `https://logo.clearbit.com/${hostname}`;
   const deterministicIcon = `https://www.google.com/s2/favicons?domain=${hostname}&sz=256`;
 
@@ -276,14 +276,16 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
   `;
   
   try {
+    // DOWNGRADED TO FLASH
     const res = await loggedGenerateContent({
-      ai, module: 'IDENTITY', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
+      ai, module: 'IDENTITY', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
       contents: prompt,
       config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
     });
     
     let data = safeJsonParse(res);
     
+    // Safety fallback if parsing failed completely
     if (!data) {
         data = {
             colors: ['#000000', '#FFFFFF', '#333333', '#666666', '#999999'],
@@ -295,6 +297,7 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
         };
     }
     
+    // Post-Process: Inject Deterministic Assets & Filter Stock
     const rawImages = data.extractedImages || [];
     const cleanImages = rawImages.filter((img: string) => 
       img && img.startsWith('http') &&
@@ -304,9 +307,13 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
       !img.includes('freepik.com')
     );
 
+    // Ensure we have unique images
     const uniqueImages = Array.from(new Set([...cleanImages]));
+
+    // Always prepend the real assets we know exist
     data.extractedImages = [deterministicLogo, deterministicIcon, ...uniqueImages];
     
+    // Save to Vault for persistence
     data.extractedImages.forEach((img: string, i: number) => {
         if (i < 15) saveAsset('IMAGE', `EXTRACTED_ASSET_${i}_${hostname}`, img, 'DNA_EXTRACTOR', lead.id);
     });
@@ -314,6 +321,7 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
     return data;
   } catch (e) {
     console.error("DNA Extraction Failed", e);
+    // Hard Fallback to prevent crash
     return {
         colors: ['#000000', '#FFFFFF', '#333333', '#666666', '#999999'],
         fontPairing: 'Inter / Roboto',
@@ -341,8 +349,9 @@ export const generateLeads = async (theater: string, niche: string, count: numbe
   Identify a specific 'Social Gap' (e.g. inactive instagram, bad website).
   Return JSON: { leads: [ { businessName, websiteUrl, city, niche, leadScore, socialGap, visualProof, bestAngle } ] }`;
 
+  // DOWNGRADED TO FLASH
   const response = await loggedGenerateContent({
-    ai, module: 'RADAR_RECON', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
+    ai, module: 'RADAR_RECON', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
     contents: prompt,
     config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
   });
@@ -350,12 +359,73 @@ export const generateLeads = async (theater: string, niche: string, count: numbe
   return JSON.parse(response);
 };
 
-// ... other functions ...
+export const generatePlaybookStrategy = async (niche: string) => {
+  pushLog(`STRATEGY: ARCHITECTING FOR ${niche}...`);
+  const ai = getAI();
+  const prompt = `Create a sales strategy playbook for selling AI services to ${niche}.
+  Return JSON: { strategyName, steps: [{ title, tactic }] }`;
+  
+  // DOWNGRADED TO FLASH
+  const response = await loggedGenerateContent({
+    ai, module: 'PLAYBOOK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
+    contents: prompt,
+    config: { responseMimeType: 'application/json' }
+  });
+  return JSON.parse(response);
+};
 
-export const crawlTheaterSignals = async (theater: string, signal: string): Promise<Lead[]> => {
+export const generateProposalDraft = async (lead: Lead) => {
+  pushLog(`DRAFTING: PROPOSAL FOR ${lead.businessName}...`);
+  const ai = getAI();
+  const prompt = `Write a high-ticket AI proposal for ${lead.businessName}. Emphasize their gap: ${lead.socialGap}. Format as Markdown.`;
+  // DOWNGRADED TO FLASH
+  return await loggedGenerateContent({
+    ai, module: 'PROPOSALS', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    contents: prompt
+  });
+};
+
+export const analyzeVisual = async (base64: string, mimeType: string, prompt: string) => {
+  pushLog(`VISION: ANALYZING IMAGE...`);
+  // Use logged wrapper manually or construct call
+  const ai = getAI();
+  // Image analysis with Flash is efficient
+  if(!deductCost('gemini-3-flash-preview', 1000)) {
+      throw new Error("Usage blocked.");
+  }
+  
+  // DOWNGRADED TO FLASH
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: {
+      parts: [
+        { inlineData: { mimeType, data: base64 } },
+        { text: prompt }
+      ]
+    }
+  });
+  return response.text || "Analysis failed.";
+};
+
+export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
+  pushLog(`INTEL: FETCHING LIVE DATA FOR ${lead.businessName}...`);
+  const ai = getAI();
+  const prompt = `Analyze ${lead.businessName} (${lead.websiteUrl}) for module: ${module}.
+  Provide deep technical insights.
+  Return JSON matching BenchmarkReport interface.`;
+  
+  // DOWNGRADED TO FLASH
+  const res = await loggedGenerateContent({
+    ai, module, model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
+    contents: prompt,
+    config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
+  });
+  return JSON.parse(res);
+};
+
+export const crawlTheaterSignals = async (theater: string, signal: string) => {
   pushLog(`CRAWL: SEARCHING ${theater} FOR SIGNAL "${signal}"...`);
-  const data = await generateLeads(theater, signal, 5);
-  return (data.leads || []) as Lead[];
+  return (await generateLeads(theater, signal, 5)).leads;
 };
 
 export const identifySubRegions = async (theater: string): Promise<string[]> => {
@@ -386,8 +456,9 @@ export const generateOutreachSequence = async (lead: Lead) => {
   pushLog(`SEQUENCER: MAPPING CAMPAIGN FOR ${lead.businessName}...`);
   const ai = getAI();
   const prompt = `Create a 5-step outreach sequence for ${lead.businessName}. JSON: [{ day, channel, purpose, content }]`;
+  // DOWNGRADED TO FLASH
   const res = await loggedGenerateContent({
-    ai, module: 'SEQUENCER', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: true,
+    ai, module: 'SEQUENCER', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
@@ -404,36 +475,6 @@ export const generateMockup = async (name: string, niche: string, leadId?: strin
   return base64;
 };
 
-// Implemented missing fetchLiveIntel for fetchBenchmarkData dependency
-export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
-  pushLog(`INTEL: SCANNING ${lead.businessName} [${module}]...`);
-  const ai = getAI();
-  const prompt = `
-    Analyze ${lead.businessName} (${lead.websiteUrl}) for module: ${module}.
-    Niche: ${lead.niche}. City: ${lead.city}.
-    
-    Return JSON matching this interface:
-    {
-      entityName: string;
-      missionSummary: string;
-      visualStack: { label: string; description: string }[];
-      sonicStack: { label: string; description: string }[];
-      featureGap: string;
-      businessModel: string;
-      designSystem: string;
-      deepArchitecture: string;
-      sources: { title: string; uri: string }[];
-    }
-  `;
-  
-  const res = await loggedGenerateContent({
-    ai, module, model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
-    contents: prompt,
-    config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
-  });
-  return JSON.parse(res);
-};
-
 export const fetchBenchmarkData = async (lead: Lead) => {
   return fetchLiveIntel(lead, 'BENCHMARK');
 };
@@ -444,8 +485,9 @@ export const performFactCheck = async (lead: Lead, claim: string) => {
   const prompt = `Verify this claim about ${lead.businessName}: "${claim}".
   Return JSON: { status: "Verified" | "Disputed" | "Unknown", evidence: string, sources: [{title, uri}] }`;
   
+  // DOWNGRADED TO FLASH
   const res = await loggedGenerateContent({
-    ai, module: 'FACT_CHECK', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
+    ai, module: 'FACT_CHECK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
     contents: prompt,
     config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
   });
@@ -456,8 +498,9 @@ export const synthesizeProduct = async (lead: Lead) => {
   pushLog(`PRODUCT: DESIGNING OFFER FOR ${lead.businessName}...`);
   const ai = getAI();
   const prompt = `Design a high-ticket AI product for ${lead.businessName}. JSON: { productName, tagline, pricePoint, features: [] }`;
+  // DOWNGRADED TO FLASH
   const res = await loggedGenerateContent({
-    ai, module: 'PRODUCT_SYNTH', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
+    ai, module: 'PRODUCT_SYNTH', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
@@ -476,8 +519,9 @@ export const architectFunnel = async (lead: Lead) => {
   pushLog(`FUNNEL: MAPPING JOURNEY FOR ${lead.businessName}...`);
   const ai = getAI();
   const prompt = `Design a sales funnel for ${lead.businessName}. JSON Array: [{ stage, title, description, conversionGoal }]`;
+  // DOWNGRADED TO FLASH
   const res = await loggedGenerateContent({
-    ai, module: 'FUNNEL_MAP', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'MEDIUM', isClientFacing: false,
+    ai, module: 'FUNNEL_MAP', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
@@ -488,8 +532,9 @@ export const generateAgencyIdentity = async (niche: string, region: string) => {
   pushLog(`IDENTITY: FORGING AGENCY BRAND...`);
   const ai = getAI();
   const prompt = `Create an agency identity for ${niche} in ${region}. JSON: { name, tagline, manifesto, colors: [] }`;
+  // DOWNGRADED TO FLASH
   const res = await loggedGenerateContent({
-    ai, module: 'IDENTITY', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
+    ai, module: 'IDENTITY', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
@@ -510,8 +555,9 @@ export const generateMotionLabConcept = async (lead: Lead) => {
   pushLog(`MOTION: STORYBOARDING FOR ${lead.businessName}...`);
   const ai = getAI();
   const prompt = `Create a motion graphics storyboard for ${lead.businessName}. JSON: { title, hook, scenes: [{ time, visual, text }] }`;
+  // DOWNGRADED TO FLASH
   const res = await loggedGenerateContent({
-    ai, module: 'MOTION_LAB', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
+    ai, module: 'MOTION_LAB', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
@@ -532,8 +578,9 @@ export const architectPitchDeck = async (lead: Lead) => {
   pushLog(`DECK: STRUCTURING SLIDES FOR ${lead.businessName}...`);
   const ai = getAI();
   const prompt = `Outline a pitch deck for ${lead.businessName}. JSON Array: [{ title, narrativeGoal, keyVisuals }]`;
+  // DOWNGRADED TO FLASH
   const res = await loggedGenerateContent({
-    ai, module: 'DECK_ARCH', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
+    ai, module: 'DECK_ARCH', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
@@ -543,8 +590,9 @@ export const architectPitchDeck = async (lead: Lead) => {
 export const simulateSandbox = async (lead: Lead, ltv: number, volume: number) => {
   pushLog(`SANDBOX: RUNNING SIMULATION...`);
   const ai = getAI();
+  // DOWNGRADED TO FLASH
   return await loggedGenerateContent({
-    ai, module: 'DEMO_SANDBOX', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: true,
+    ai, module: 'DEMO_SANDBOX', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
     contents: `Simulate a growth scenario for ${lead.businessName} with LTV $${ltv} and ${volume} leads/mo. Describe the outcome.`
   });
 };
@@ -564,8 +612,9 @@ export const translateTactical = async (text: string, lang: string) => {
 export const generateNurtureDialogue = async (lead: Lead, scenario: string) => {
   const ai = getAI();
   const prompt = `Simulate a chat between a lead (${lead.businessName}) and an AI Concierge. Scenario: ${scenario}. JSON: [{ role: 'user'|'ai', text }]`;
+  // DOWNGRADED TO FLASH
   const res = await loggedGenerateContent({
-    ai, module: 'AI_CONCIERGE', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'MEDIUM', isClientFacing: true,
+    ai, module: 'AI_CONCIERGE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
@@ -580,8 +629,9 @@ export const generateAffiliateProgram = async (niche: string) => {
   pushLog(`AFFILIATE: DESIGNING PROGRAM FOR ${niche}...`);
   const ai = getAI();
   const prompt = `Design an affiliate program for ${niche}. JSON: { programName, tiers: [{ name, requirement, commission }], recruitScript }`;
+  // DOWNGRADED TO FLASH
   const res = await loggedGenerateContent({
-    ai, module: 'AFFILIATE', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'MEDIUM', isClientFacing: false,
+    ai, module: 'AFFILIATE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
@@ -619,8 +669,9 @@ export const fetchTokenStats = async () => {
 export const synthesizeArticle = async (url: string, mode: string) => {
   pushLog(`ARTICLE: PROCESSING ${url}...`);
   const ai = getAI();
+  // DOWNGRADED TO FLASH
   return await loggedGenerateContent({
-    ai, module: 'ARTICLE_INTEL', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: false,
+    ai, module: 'ARTICLE_INTEL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: false,
     contents: `Analyze this content (${url}) in mode: ${mode}. Provide summary and insights.`
   });
 };
@@ -723,12 +774,13 @@ export const orchestrateBusinessPackage = async (lead: Lead, assets: AssetRecord
     Refer to your System Instruction for mandatory Execution Order and Output Requirements.
   `;
   
+  // DOWNGRADED TO FLASH
   const res = await loggedGenerateContent({
     ai, 
     module: 'BUSINESS_ORCHESTRATOR', 
-    model: 'gemini-3-pro-preview', 
-    modelClass: 'PRO', 
-    reasoningDepth: 'HIGH', 
+    model: 'gemini-3-flash-preview', 
+    modelClass: 'FLASH', 
+    reasoningDepth: 'MEDIUM', 
     isClientFacing: true,
     contents: prompt,
     config: { 
@@ -858,47 +910,4 @@ export const generateAudioPitch = async (t: string, v: string, leadId?: string) 
     console.error("TTS Error", e);
     return "";
   }
-};
-
-// --- IMPLEMENT MISSING FUNCTIONS ---
-
-export const generatePlaybookStrategy = async (niche: string) => {
-  pushLog(`PLAYBOOK: ARCHITECTING STRATEGY FOR ${niche}...`);
-  const ai = getAI();
-  const prompt = `Create a high-ticket sales strategy playbook for ${niche}. JSON: { strategyName, steps: [{ title, tactic }] }`;
-  const res = await loggedGenerateContent({
-    ai, module: 'PLAYBOOK', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: true,
-    contents: prompt,
-    config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
-};
-
-export const generateProposalDraft = async (lead: Lead) => {
-  pushLog(`PROPOSAL: DRAFTING FOR ${lead.businessName}...`);
-  const ai = getAI();
-  const prompt = `Write a high-end B2B proposal for ${lead.businessName} (Niche: ${lead.niche}). Focus on AI Automation. Markdown format.`;
-  return await loggedGenerateContent({
-    ai, module: 'PROPOSALS', model: 'gemini-3-pro-preview', modelClass: 'PRO', reasoningDepth: 'HIGH', isClientFacing: true,
-    contents: prompt
-  });
-};
-
-export const analyzeVisual = async (base64: string, mimeType: string, prompt: string) => {
-  pushLog(`VISION: ANALYZING ASSET...`);
-  const ai = getAI();
-  return await loggedGenerateContent({
-    ai, 
-    module: 'VISION_LAB', 
-    model: 'gemini-3-flash-preview', 
-    modelClass: 'FLASH', 
-    reasoningDepth: 'MEDIUM', 
-    isClientFacing: false,
-    contents: {
-      parts: [
-        { inlineData: { mimeType, data: base64 } },
-        { text: prompt }
-      ]
-    }
-  });
 };

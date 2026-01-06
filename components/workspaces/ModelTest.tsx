@@ -38,7 +38,6 @@ export const ModelTest: React.FC = () => {
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-[10px] font-black text-slate-300 focus:outline-none focus:border-emerald-500 uppercase tracking-widest"
                >
                  <option value="gemini-3-flash-preview">GEMINI 3 FLASH</option>
-                 <option value="gemini-3-pro-preview">GEMINI 3 PRO</option>
                  <option value="gemini-2.5-flash-image">GEMINI 2.5 FLASH IMAGE</option>
                </select>
             </div>

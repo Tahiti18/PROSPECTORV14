@@ -23,8 +23,9 @@ export const WorkspaceNode: React.FC<WorkspaceNodeProps> = ({ leads }) => {
       const selectedLead = leads.find(l => l.id === targetId);
       const context = selectedLead ? `Context: Business ${selectedLead.businessName}, Niche ${selectedLead.niche}, Gap ${selectedLead.socialGap}. ` : '';
       
+      // DOWNGRADED TO FLASH
       const response = await ai.models.generateContent({
-        model: "gemini-3-pro-preview",
+        model: "gemini-3-flash-preview",
         contents: `${context}\n\nTask: ${task}`,
       });
       setReport(response.text || "Intelligence feed empty.");
@@ -41,11 +42,11 @@ export const WorkspaceNode: React.FC<WorkspaceNodeProps> = ({ leads }) => {
       <div className="flex justify-between items-start">
         <div className="space-y-2">
           <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter flex items-center gap-3">
-            GEMINI 3 PRO <span className="text-emerald-500 not-italic opacity-40 uppercase tracking-widest">INTELLIGENCE WORKSPACE</span>
+            GEMINI 3 FLASH <span className="text-emerald-500 not-italic opacity-40 uppercase tracking-widest">INTELLIGENCE WORKSPACE</span>
             <span className="w-5 h-5 rounded-full bg-slate-800 text-[10px] flex items-center justify-center not-italic text-slate-500 font-black">i</span>
           </h1>
           <p className="text-[11px] text-slate-500 font-bold uppercase tracking-[0.2em]">
-            Execute complex reasoning and market analysis calibrated for Global theaters.
+            Execute general reasoning and market analysis tasks (Cost-Optimized).
           </p>
         </div>
         <div className="bg-emerald-600/10 border border-emerald-500/20 px-6 py-2.5 rounded-full flex items-center gap-3">
@@ -70,12 +71,12 @@ export const WorkspaceNode: React.FC<WorkspaceNodeProps> = ({ leads }) => {
               </div>
 
               <div className="space-y-4">
-                 <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">ADVANCED REASONING TASK</h3>
+                 <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">INTELLIGENCE TASK</h3>
                  <textarea 
                   value={task}
                   onChange={(e) => setTask(e.target.value)}
                   className="w-full bg-[#020617] border border-slate-800 rounded-3xl p-8 text-sm font-medium text-slate-200 focus:outline-none focus:border-emerald-500 h-56 resize-none shadow-inner placeholder-slate-800 italic leading-relaxed"
-                  placeholder="What complex task should Gemini perform?..."
+                  placeholder="What task should Gemini perform?..."
                  />
               </div>
 
