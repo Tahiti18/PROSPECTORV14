@@ -8,8 +8,7 @@ import { toast } from './toastManager';
 // --- CONSTANTS ---
 // STRICT HARDCODED KEY FOR VEO OPERATIONS
 const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279';
-// KIE Proxy Endpoint - Required because the key is not a direct Google Cloud key
-const KIE_BASE_URL = 'https://api.kie.ai/v1';
+const KIE_ENDPOINT = 'https://api.kie.ai/api/v1/veo/generate';
 
 // --- TYPES ---
 export interface AssetRecord {
@@ -247,7 +246,7 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImageBase
   }
 };
 
-// --- VIDEO GENERATION WITH HARDCODED KIE KEY ---
+// --- VIDEO GENERATION VIA KIE API (DIRECT FETCH) ---
 export const generateVideoPayload = async (
   prompt: string,
   leadId?: string,
@@ -255,75 +254,67 @@ export const generateVideoPayload = async (
   endImageBase64?: string, 
   config: VeoConfig = { aspectRatio: '16:9', resolution: '720p', modelStr: 'veo-3.1-fast-generate-preview' }
 ): Promise<string | null> => {
-  pushLog(`VEO: INITIALIZING VIDEO GENERATION (${config.modelStr})...`);
-  
-  // 1. DIRECT INSTANCE WITH HARDCODED KIE KEY + PROXY URL
-  // We use KIE_BASE_URL because this is a 3rd party key, not a Google Cloud key.
-  const ai = new GoogleGenAI({ 
-    apiKey: KIE_KEY,
-    baseUrl: KIE_BASE_URL 
-  });
+  pushLog(`VEO: INITIALIZING VIDEO GENERATION (KIE)...`);
+  toast.neural("VEO ENGINE: SENDING PAYLOAD TO KIE CLUSTER...");
 
-  // 3. Construct Payload
+  // Clean base64 if present
+  const cleanImage = startImageBase64 
+    ? (startImageBase64.includes(',') ? startImageBase64.split(',')[1] : startImageBase64)
+    : undefined;
+
+  // Construct KIE-compatible Payload
   const payload: any = {
-    model: config.modelStr,
     prompt: prompt,
-    config: {
-      numberOfVideos: 1,
-      resolution: config.resolution,
-      aspectRatio: config.aspectRatio
-    }
+    model: config.modelStr,
+    ratio: config.aspectRatio, // Maps to 'ratio' per KIE conventions
+    resolution: config.resolution,
+    // Add image if exists
+    ...(cleanImage ? { image: cleanImage } : {})
   };
 
-  if (startImageBase64) {
-    // Safe base64 extraction
-    const base64Data = startImageBase64.includes(',') ? startImageBase64.split(',')[1] : startImageBase64;
-    payload.image = {
-      imageBytes: base64Data,
-      mimeType: 'image/png'
-    };
-  }
-  
-  // Note: lastFrame removed to prevent TS build errors.
-
   try {
-    toast.neural("VEO ENGINE: RENDERING STARTED (This takes ~60s)...");
-    
-    // 4. Polling Operation
-    let operation = await ai.models.generateVideos(payload);
-    
-    // Poll loop
-    while (!operation.done) {
-      await new Promise(resolve => setTimeout(resolve, 5000)); // 5s poll
-      operation = await ai.operations.getVideosOperation({ operation: operation });
-      pushLog("VEO: RENDERING IN PROGRESS...");
+    const res = await fetch(KIE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${KIE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`KIE API Error (${res.status}): ${errText}`);
     }
 
-    // 5. Extract Result
-    const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
-    if (videoUri) {
-      // Fetch the actual bytes using the KIE KEY to bypass expiration/CORS issues
-      // Ensure we use the same key for the fetch as the generation
-      const fetchUrl = videoUri.includes('?') ? `${videoUri}&key=${KIE_KEY}` : `${videoUri}?key=${KIE_KEY}`;
-      const videoRes = await fetch(fetchUrl);
-      const videoBlob = await videoRes.blob();
-      const videoUrl = URL.createObjectURL(videoBlob); // Create local blob URL
-      
+    const data = await res.json();
+    
+    // Attempt to locate video URL in response
+    // KIE structure might vary, checking common fields
+    const videoUrl = data.url || data.video_url || data.uri || data.video?.uri;
+
+    if (videoUrl) {
       saveAsset('VIDEO', `VEO_CLIP_${Date.now()}`, videoUrl, 'VIDEO_PITCH', leadId);
       pushLog("VEO: RENDER COMPLETE.");
       toast.success("Video Rendered Successfully.");
       return videoUrl;
+    } else if (data.id) {
+       // Async job started
+       toast.info(`VEO Job Started: ${data.id}. Please check dashboard for result.`);
+       pushLog(`VEO: Job ${data.id} queued.`);
+       return null; 
+    } else {
+       console.warn("KIE Response unexpected structure:", data);
+       throw new Error("No video URL or Job ID in response");
     }
-    
-    throw new Error("No video URI in response");
 
   } catch (e: any) {
     console.error("Veo Generation Error:", e);
-    // Display cleaner error message if it's the specific API Key error
-    if (e.message?.includes("API key not valid") || e.message?.includes("400")) {
-       toast.error(`Invalid API Key / Endpoint. Proxy: ${KIE_BASE_URL}`);
+    // User-friendly error mapping
+    if (e.message?.includes("401") || e.message?.includes("Invalid API Key")) {
+       toast.error("Authentication Failed: Check KIE Key permissions.");
     } else {
-       toast.error(`Video Failed: ${e.message}`);
+       toast.error(`Video Failed: ${e.message.slice(0, 50)}...`);
     }
     pushLog(`VEO ERROR: ${e.message}`);
     return null;
