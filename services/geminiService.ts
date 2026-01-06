@@ -221,7 +221,8 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImageBase
       model: 'gemini-2.5-flash-image',
       contents: { parts },
       config: {
-        imageConfig: { numberOfImages: 1, aspectRatio: "1:1" }
+        // FIX: Removed numberOfImages as it is not supported in current types
+        imageConfig: { aspectRatio: "1:1" }
       }
     });
 
