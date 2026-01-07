@@ -266,7 +266,7 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
   let hostname = '';
   try { hostname = new URL(url).hostname; } catch { hostname = url; }
 
-  // 1. Get Text & Color Data
+  // 1. Get Text & Color Data & Image Links
   const prompt = `
     You are a forensic brand design auditor.
     Analyze the business at: ${url} (Name: ${lead.businessName}).
@@ -275,7 +275,8 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
     Task 2: Identify their primary font style (Serif, Sans, etc).
     Task 3: Write a 1-sentence tagline that captures their essence.
     Task 4: Find 4-6 high-quality image URLs that represent their products, services, or vibe. 
-    Use Google Search to find real images associated with this domain or brand.
+    Use Google Search to find real images associated with this domain or brand. 
+    Look for product shots, lifestyle images, or logo assets.
     
     Return strictly valid JSON:
     {
@@ -308,6 +309,10 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
 
     if (!data.extractedImages || data.extractedImages.length < 2) {
        data.extractedImages = fallbackImages;
+    } else {
+       // Ensure extracted images are valid absolute URLs (basic check)
+       data.extractedImages = data.extractedImages.filter((img: string) => img.startsWith('http'));
+       if (data.extractedImages.length < 2) data.extractedImages = [...data.extractedImages, ...fallbackImages];
     }
     
     // Add Clearbit Logo as a safety asset
