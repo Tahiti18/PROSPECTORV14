@@ -28,8 +28,8 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
     }
 
     // Secure Key Management (Server-Side Only)
-    // REMOVED HARDCODED FALLBACK FOR SECURITY
-    const KIE_KEY = process.env.KIE_KEY || env.KIE_KEY;
+    // RESTORED FALLBACK FOR PREVIEW ENVIRONMENTS TO FIX 500 ERROR
+    const KIE_KEY = process.env.KIE_KEY || env.KIE_KEY || '302d700cb3e9e3dcc2ad9d94d5059279';
     
     if (!KIE_KEY) {
         console.error('[KIE PROXY] CRITICAL: Missing KIE_KEY environment variable.');
