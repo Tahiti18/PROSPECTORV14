@@ -63,8 +63,7 @@ export const kieSunoService = {
     };
 
     try {
-      // FIXED: Use /submit instead of /submit-track to comply with KIE Standard
-      const res = await fetch(`${BASE_URL}/submit`, {
+      const res = await fetch(`${BASE_URL}/submit-track`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
@@ -117,7 +116,13 @@ export const kieSunoService = {
       await sleep(delay);
 
       try {
-        const res = await fetch(`${BASE_URL}/${taskId}`, { headers });
+        // Try Status Endpoint First
+        let res = await fetch(`${BASE_URL}/status/${taskId}`, { headers });
+        
+        // Fallback to legacy endpoint if 404
+        if (res.status === 404) {
+             res = await fetch(`${BASE_URL}/${taskId}`, { headers });
+        }
         
         if (res.status === 404) {
             console.warn(`[KIE_SUNO] Task ${taskId} not found yet. Retrying...`);
