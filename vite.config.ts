@@ -32,7 +32,8 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
     // Secure Key Management (Server-Side Only)
     // In production, this pulls from process.env. In dev, it falls back or uses .env
     const KIE_KEY = process.env.KIE_KEY || env.KIE_KEY || '302d700cb3e9e3dcc2ad9d94d5059279';
-    const KIE_BASE = 'https://api.kie.ai/api/v1/suno';
+    // FIXED: Standard KIE API path usually does not have double /api/ prefix
+    const KIE_BASE = 'https://api.kie.ai/v1/suno';
 
     // Helper to read request body
     const readBody = async () => {
@@ -109,7 +110,7 @@ export default defineConfig(({ mode }) => {
         configureServer(server) {
           server.middlewares.use(createKieProxyMiddleware(env as Record<string, string>));
         },
-        // 2. Mounts middleware in `vite preview` (Railway/Production)
+        // 2. Mounts middleware in `vite preview` (Railway/Production) - THIS FIXES THE 404
         configurePreviewServer(server) {
           server.middlewares.use(createKieProxyMiddleware(env as Record<string, string>));
         }
