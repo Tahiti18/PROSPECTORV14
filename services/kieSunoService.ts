@@ -4,7 +4,7 @@ import { toast } from './toastManager';
 
 // Configuration
 // PROXY ENABLED: Requests now route to the local backend proxy defined in vite.config.ts
-const BASE_URL = '/api/kie/suno';
+const BASE_URL = '/api/kie';
 
 // Types
 export interface SunoJob {
