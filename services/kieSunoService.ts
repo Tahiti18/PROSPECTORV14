@@ -49,13 +49,12 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 export const kieSunoService = {
   
   /**
-   * 1. ASYNC SUBMISSION
+   * 1. ASYNC SUBMISSION WITH ENDPOINT PROBING
    */
   generateMusic: async (prompt: string, instrumental: boolean, webhookUrl?: string): Promise<SunoJob> => {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
-    // Strict payload structure as requested
     const payload: SunoRequest = {
       prompt,
       make_instrumental: instrumental,
@@ -63,44 +62,80 @@ export const kieSunoService = {
       ...(webhookUrl ? { webhook_url: webhookUrl } : {})
     };
 
-    const submitUrl = `${BASE_URL}/submit`;
-    log(`Posting to: ${submitUrl}`);
+    // Candidate endpoints to probe (First non-404 wins)
+    const candidates = [
+        `${BASE_URL}/submit`,
+        `${BASE_URL}/generate`,
+        `${BASE_URL}/create`, 
+        // Fallback absolute URL to bypass any potential local proxy issues
+        'https://api.kie.ai/api/v1/suno/submit' 
+    ];
 
-    try {
-      const res = await fetch(submitUrl, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(payload)
-      });
+    let successData: any = null;
+    let lastError = "No endpoints attempted";
 
-      if (!res.ok) {
-        const errText = await res.text();
-        log(`Error Raw Response: ${errText}`);
-        throw new Error(`KIE API Error (${res.status}): ${errText}`);
-      }
+    for (const url of candidates) {
+        log(`Probing Endpoint: ${url}`);
+        
+        try {
+            // Force absolute URL usage to prevent relative path proxy interception
+            const absoluteUrl = new URL(url).toString(); 
+            
+            const res = await fetch(absoluteUrl, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(payload)
+            });
 
-      const data = await res.json();
-      const taskId = data.id || data.task_id;
+            if (res.status === 404) {
+                log(`Endpoint 404 (Not Found): ${url}`);
+                continue; // Try next candidate
+            }
 
-      if (!taskId) {
-        throw new Error("KIE response missing 'id' or 'task_id'");
-      }
+            if (!res.ok) {
+                // If we get here, the endpoint EXISTS but the request failed (400, 401, 500).
+                // We stop probing because we found the right door, just used the wrong key/payload.
+                const errText = await res.text();
+                throw new Error(`API Error [${res.status}] at ${url}: ${errText}`);
+            }
 
-      log(`Job ${jobId} -> Task ${taskId} Submitted`);
+            // Success (2xx)
+            successData = await res.json();
+            log(`Endpoint Confirmed: ${url}`);
+            break; // Stop probing
 
-      return {
-        id: jobId,
-        taskId,
-        status: 'QUEUED',
-        prompt,
-        instrumental,
-        createdAt: Date.now()
-      };
-
-    } catch (e: any) {
-      log(`Job ${jobId} Failed Initialization`, e);
-      throw e; 
+        } catch (e: any) {
+            // If it's a network error or the explicit error thrown above (non-404), rethrow immediately.
+            // We only loop on explicit 404s.
+            if (e.message.includes("API Error") || e.message.includes("Network")) {
+                throw e; 
+            }
+            // Capture generic errors to throw if all fail
+            lastError = e.message;
+            log(`Probe Failed for ${url}:`, e.message);
+        }
     }
+
+    if (!successData) {
+        throw new Error(`All endpoints returned 404 or failed. Last error: ${lastError}`);
+    }
+
+    const taskId = successData.id || successData.task_id;
+
+    if (!taskId) {
+        throw new Error("KIE response missing 'id' or 'task_id'");
+    }
+
+    log(`Job ${jobId} -> Task ${taskId} Submitted`);
+
+    return {
+      id: jobId,
+      taskId,
+      status: 'QUEUED',
+      prompt,
+      instrumental,
+      createdAt: Date.now()
+    };
   },
 
   /**
