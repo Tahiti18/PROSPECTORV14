@@ -6,15 +6,11 @@ import { toast } from './toastManager';
 const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279'; 
 const BASE_URL = 'https://api.kie.ai/api/v1/suno';
 
-// Fallback Assets (Google Sounds - Reliable CORS)
-const FALLBACK_AUDIO = "https://actions.google.com/sounds/v1/science_fiction/scifi_drone_1.ogg";
-const FALLBACK_COVER = "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1000&auto=format&fit=crop";
-
 // Types
 export interface SunoJob {
   id: string;
   taskId?: string;
-  status: 'IDLE' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'SIMULATED';
+  status: 'IDLE' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
   prompt: string;
   instrumental: boolean;
   resultUrls?: string[];
@@ -118,16 +114,8 @@ export const kieSunoService = {
       };
 
     } catch (e: any) {
-      log(`Job ${jobId} Failed Initialization. FALLING BACK TO SIMULATION.`, e);
-      // Return a simulated job to keep UI alive
-      return {
-        id: `JOB_SIM_${Date.now()}`,
-        taskId: `TASK_SIM_${Date.now()}`,
-        status: 'SIMULATED', // Internal status
-        prompt,
-        instrumental,
-        createdAt: Date.now()
-      };
+      log(`Job ${jobId} Failed Initialization`, e);
+      throw e; // RE-THROW ACTUAL ERROR
     }
   },
 
@@ -135,18 +123,6 @@ export const kieSunoService = {
    * 2. ROBUST POLLING (Exponential Backoff)
    */
   pollTask: async (taskId: string): Promise<SunoClip[]> => {
-    // HANDLE SIMULATION
-    if (taskId.startsWith('TASK_SIM_')) {
-        await sleep(3000); // Fake processing time
-        return [{
-            id: `CLIP_SIM_${Date.now()}`,
-            url: FALLBACK_AUDIO,
-            image_url: FALLBACK_COVER,
-            duration: 120,
-            title: "Generated Track (Simulation)"
-        }];
-    }
-
     let attempts = 0;
     const MAX_TIMEOUT = 180000; // 3 Minutes Max
     const startTime = Date.now();
