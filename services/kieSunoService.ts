@@ -82,7 +82,7 @@ export const kieSunoService = {
         throw new Error(`Proxy Error (${res.status}): ${errMsg}`);
       }
 
-      const taskId = data.id || data.task_id;
+      const taskId = data?.data?.taskId;
 
       if (!taskId) {
         log("Missing Task ID in Response:", data);
