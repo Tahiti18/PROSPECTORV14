@@ -4,6 +4,7 @@ import { Lead } from '../../types';
 import { generateAudioPitch, SESSION_ASSETS, subscribeToAssets } from '../../services/geminiService';
 import { kieSunoService } from '../../services/kieSunoService';
 import { SonicPromptGuide } from './SonicPromptGuide';
+import { SonicStudioPlayer } from './SonicStudioPlayer';
 
 interface SonicStudioProps {
   lead?: Lead;
@@ -208,95 +209,4 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                          <select 
                            value={selectedVibe.value}
                            onChange={(e) => setSelectedVibe(MUSIC_VIBES.find(v => v.value === e.target.value) || MUSIC_VIBES[0])}
-                           className="w-full bg-[#020617] border border-slate-800 rounded-xl px-3 py-3 text-[10px] font-bold text-slate-300 focus:outline-none focus:border-emerald-500 uppercase tracking-widest cursor-pointer"
-                         >
-                            {MUSIC_VIBES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
-                         </select>
-                      </div>
-                   </div>
-
-                   <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Context & Details</label>
-                        <button onClick={() => setShowGuide(true)} className="text-[9px] font-black text-emerald-400 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1">
-                           <span>ⓘ</span> GUIDE
-                        </button>
-                      </div>
-                      <textarea 
-                        value={musicPrompt}
-                        onChange={(e) => setMusicPrompt(e.target.value)}
-                        className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-5 text-[11px] font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-28 resize-none shadow-xl italic"
-                        placeholder="Additional details (instruments, tempo, use case)..."
-                      />
-                   </div>
-                   
-                   <div className="flex items-center gap-3 bg-slate-900 p-4 rounded-xl border border-slate-800">
-                      <input 
-                        type="checkbox" 
-                        checked={isInstrumental} 
-                        onChange={(e) => setIsInstrumental(e.target.checked)}
-                        className="w-4 h-4 accent-emerald-500"
-                      />
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">INSTRUMENTAL ONLY</span>
-                   </div>
-
-                   <button 
-                     onClick={handleMusicGenerate}
-                     disabled={isGenerating}
-                     className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border-b-4 border-indigo-800"
-                   >
-                     {isGenerating ? 'COMPOSING...' : 'GENERATE MUSIC (SUNO)'}
-                   </button>
-                </div>
-              )}
-
-              {/* LOGS */}
-              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 h-32 overflow-y-auto custom-scrollbar font-mono text-[9px] space-y-2 shadow-inner">
-                 {logs.map((l, i) => (
-                    <div key={i} className="text-emerald-500/80 border-b border-slate-800/50 pb-1 last:border-0">{l}</div>
-                 ))}
-                 {logs.length === 0 && <span className="text-slate-600 italic">SYSTEM READY</span>}
-              </div>
-           </div>
-        </div>
-
-        {/* OUTPUT AREA */}
-        <div className="lg:col-span-8 bg-[#0b1021] border border-slate-800 rounded-[48px] p-10 min-h-[500px] flex flex-col shadow-2xl relative overflow-hidden">
-           <div className="flex-1 overflow-y-auto space-y-6 custom-scrollbar pr-4 relative z-10">
-              {generatedAssets.length === 0 && !isGenerating && (
-                <div className="h-full flex flex-col items-center justify-center opacity-20 italic space-y-4">
-                   <span className="text-6xl grayscale">🎧</span>
-                   <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">Audio Matrix Offline</p>
-                </div>
-              )}
-
-              {generatedAssets.map((asset, i) => (
-                <div key={asset.id || i} className="bg-slate-900 border border-slate-800 p-6 rounded-[32px] hover:border-emerald-500/30 transition-all group flex flex-col gap-4 animate-in slide-in-from-bottom-2">
-                   <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${asset.title.includes('SUNO') ? 'bg-indigo-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                            {asset.title.includes('SUNO') ? '♫' : '🎙️'}
-                         </div>
-                         <h4 className="text-[11px] font-black text-white uppercase tracking-widest truncate max-w-[300px]" title={asset.title}>{asset.title}</h4>
-                      </div>
-                      <a href={asset.data} download={`ASSET_${i}.mp3`} className="text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors">DOWNLOAD</a>
-                   </div>
-                   
-                   <div className="bg-black/40 rounded-xl p-2 border border-slate-800">
-                      <audio src={asset.data} controls className="w-full h-8 opacity-80 hover:opacity-100 transition-opacity" />
-                   </div>
-                </div>
-              ))}
-           </div>
-           
-           {isGenerating && (
-              <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center space-y-6">
-                 <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-                 <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] animate-pulse">PROCESSING AUDIO WAVEFORMS...</p>
-              </div>
-           )}
-        </div>
-      </div>
-    </div>
-  );
-};
+                           className="w-full bg-[#020617] border border
