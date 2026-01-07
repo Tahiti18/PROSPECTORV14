@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
 import { generateAudioPitch, SESSION_ASSETS, subscribeToAssets } from '../../services/geminiService';
 import { kieSunoService } from '../../services/kieSunoService';
+import { SonicPromptGuide } from './SonicPromptGuide';
 
 interface SonicStudioProps {
   lead?: Lead;
@@ -50,6 +51,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedAssets, setGeneratedAssets] = useState<any[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
+  const [showGuide, setShowGuide] = useState(false);
 
   // Asset Subscription
   useEffect(() => {
@@ -124,7 +126,18 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500 relative">
+      
+      {showGuide && (
+        <SonicPromptGuide 
+          onClose={() => setShowGuide(false)} 
+          onSelect={(t) => {
+            setMusicPrompt(t);
+            setShowGuide(false);
+          }} 
+        />
+      )}
+
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
           <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">SONIC <span className="text-emerald-600 not-italic">STUDIO</span></h1>
@@ -203,7 +216,12 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                    </div>
 
                    <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Context & Details</label>
+                      <div className="flex justify-between items-center">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Context & Details</label>
+                        <button onClick={() => setShowGuide(true)} className="text-[9px] font-black text-emerald-400 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1">
+                           <span>ⓘ</span> GUIDE
+                        </button>
+                      </div>
                       <textarea 
                         value={musicPrompt}
                         onChange={(e) => setMusicPrompt(e.target.value)}
