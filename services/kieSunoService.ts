@@ -115,13 +115,7 @@ export const kieSunoService = {
       await sleep(delay);
 
       try {
-        // Try Status Endpoint First
-        let res = await fetch(`${BASE_URL}/status/${taskId}`, { headers });
-        
-        // Fallback to legacy endpoint if 404
-        if (res.status === 404) {
-             res = await fetch(`${BASE_URL}/${taskId}`, { headers });
-        }
+        const res = await fetch(`${BASE_URL}/${taskId}`, { headers });
         
         if (res.status === 404) {
             console.warn(`[KIE_SUNO] Task ${taskId} not found yet. Retrying...`);
