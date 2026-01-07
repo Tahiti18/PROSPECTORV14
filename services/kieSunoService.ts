@@ -3,8 +3,8 @@ import { saveAsset } from './geminiService';
 import { toast } from './toastManager';
 
 // Configuration
-const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279'; 
-const BASE_URL = 'https://api.kie.ai/api/v1/suno';
+// NOTE: KIE_KEY is now managed server-side by the proxy middleware.
+const BASE_URL = '/api/kie/suno';
 
 // Types
 export interface SunoJob {
@@ -35,11 +35,6 @@ export interface SunoClip {
 
 // --- API CLIENT ---
 
-const headers = {
-  'Authorization': `Bearer ${KIE_KEY}`,
-  'Content-Type': 'application/json'
-};
-
 const log = (msg: string, data?: any) => {
   console.log(`[KIE_SUNO] ${msg}`, data || '');
 };
@@ -49,7 +44,7 @@ const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 export const kieSunoService = {
   
   /**
-   * 1. ASYNC SUBMISSION WITH ENDPOINT PROBING
+   * 1. ASYNC SUBMISSION (VIA PROXY)
    */
   generateMusic: async (prompt: string, instrumental: boolean, webhookUrl?: string): Promise<SunoJob> => {
     const jobId = `JOB_SUNO_${Date.now()}`;
@@ -62,84 +57,51 @@ export const kieSunoService = {
       ...(webhookUrl ? { webhook_url: webhookUrl } : {})
     };
 
-    // Candidate endpoints to probe (First non-404 wins)
-    const candidates = [
-        `${BASE_URL}/submit`,
-        `${BASE_URL}/generate`,
-        `${BASE_URL}/create`, 
-        // Fallback absolute URL to bypass any potential local proxy issues
-        'https://api.kie.ai/api/v1/suno/submit' 
-    ];
+    // Use local proxy URL
+    const submitUrl = `${BASE_URL}/submit`;
+    log(`Posting to Proxy: ${submitUrl}`);
 
-    let successData: any = null;
-    let lastError = "No endpoints attempted";
+    try {
+      const res = await fetch(submitUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
-    for (const url of candidates) {
-        log(`Probing Endpoint: ${url}`);
-        
-        try {
-            // Force absolute URL usage to prevent relative path proxy interception
-            const absoluteUrl = new URL(url).toString(); 
-            
-            const res = await fetch(absoluteUrl, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(payload)
-            });
+      if (!res.ok) {
+        const errText = await res.text();
+        log(`Error Raw Response: ${errText}`);
+        throw new Error(`Proxy Error (${res.status}): ${errText}`);
+      }
 
-            if (res.status === 404) {
-                log(`Endpoint 404 (Not Found): ${url}`);
-                continue; // Try next candidate
-            }
+      const data = await res.json();
+      const taskId = data.id || data.task_id;
 
-            if (!res.ok) {
-                // If we get here, the endpoint EXISTS but the request failed (400, 401, 500).
-                // We stop probing because we found the right door, just used the wrong key/payload.
-                const errText = await res.text();
-                throw new Error(`API Error [${res.status}] at ${url}: ${errText}`);
-            }
-
-            // Success (2xx)
-            successData = await res.json();
-            log(`Endpoint Confirmed: ${url}`);
-            break; // Stop probing
-
-        } catch (e: any) {
-            // If it's a network error or the explicit error thrown above (non-404), rethrow immediately.
-            // We only loop on explicit 404s.
-            if (e.message.includes("API Error") || e.message.includes("Network")) {
-                throw e; 
-            }
-            // Capture generic errors to throw if all fail
-            lastError = e.message;
-            log(`Probe Failed for ${url}:`, e.message);
-        }
-    }
-
-    if (!successData) {
-        throw new Error(`All endpoints returned 404 or failed. Last error: ${lastError}`);
-    }
-
-    const taskId = successData.id || successData.task_id;
-
-    if (!taskId) {
+      if (!taskId) {
         throw new Error("KIE response missing 'id' or 'task_id'");
+      }
+
+      log(`Job ${jobId} -> Task ${taskId} Submitted via Proxy`);
+
+      return {
+        id: jobId,
+        taskId,
+        status: 'QUEUED',
+        prompt,
+        instrumental,
+        createdAt: Date.now()
+      };
+
+    } catch (e: any) {
+      log(`Job ${jobId} Failed Initialization`, e);
+      throw e; 
     }
-
-    log(`Job ${jobId} -> Task ${taskId} Submitted`);
-
-    return {
-      id: jobId,
-      taskId,
-      status: 'QUEUED',
-      prompt,
-      instrumental,
-      createdAt: Date.now()
-    };
   },
 
   /**
-   * 2. ROBUST POLLING (Exponential Backoff)
+   * 2. ROBUST POLLING (VIA PROXY)
    */
   pollTask: async (taskId: string): Promise<SunoClip[]> => {
     let attempts = 0;
@@ -156,16 +118,19 @@ export const kieSunoService = {
       await sleep(delay);
 
       try {
-        // Ensure absolute URL here as well
-        const absolutePollUrl = new URL(`${BASE_URL}/${taskId}`).toString();
-        const res = await fetch(absolutePollUrl, { headers });
+        // Use local proxy URL for status
+        const statusUrl = `${BASE_URL}/status/${taskId}`;
+        const res = await fetch(statusUrl);
         
         if (res.status === 404) {
             console.warn(`[KIE_SUNO] Task ${taskId} not found yet. Retrying...`);
             continue;
         }
 
-        if (!res.ok) throw new Error(`Status Check Failed: ${res.status}`);
+        if (!res.ok) {
+            const err = await res.text();
+            throw new Error(`Status Check Failed: ${res.status} ${err}`);
+        }
 
         const data = await res.json();
         const status = (data.status || data.state || '').toUpperCase();
