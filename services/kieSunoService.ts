@@ -127,7 +127,7 @@ export const kieSunoService = {
 
       try {
         // Call local proxy status
-        const statusUrl = `${BASE_URL}/status/${taskId}`;
+        const statusUrl = `${BASE_URL}/record-info?taskId=${encodeURIComponent(taskId)}`;
         const res = await fetch(statusUrl);
         
         const data = await res.json();
