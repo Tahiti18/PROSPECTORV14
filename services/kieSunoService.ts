@@ -3,7 +3,8 @@ import { saveAsset, AssetRecord } from './geminiService';
 import { toast } from './toastManager';
 
 // Configuration
-const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279'; // KIE Proxy Key
+// Using the same KIE Proxy Key found in geminiService for Veo
+const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279'; 
 const BASE_URL = 'https://api.kie.ai/api/v1/suno';
 
 // Types
@@ -47,7 +48,7 @@ export const kieSunoService = {
     const payload: SunoRequest = {
       prompt,
       make_instrumental: instrumental,
-      wait_audio: false // Force async
+      wait_audio: false // Force async to prevent browser timeouts
     };
 
     try {
@@ -63,6 +64,7 @@ export const kieSunoService = {
       }
 
       const data = await res.json();
+      // KIE Suno output often puts the task ID in 'id' or 'task_id'
       const taskId = data.id || data.task_id;
 
       if (!taskId) {
@@ -96,13 +98,15 @@ export const kieSunoService = {
     // Polling loop
     while (attempts < maxAttempts) {
       attempts++;
-      const backoff = Math.min(2000 * Math.pow(1.5, attempts), 10000); // Cap at 10s
+      // Exponential backoff: 2s, 3s, 4.5s... capped at 10s
+      const backoff = Math.min(2000 * Math.pow(1.5, attempts), 10000); 
       await new Promise(r => setTimeout(r, backoff));
 
       try {
         const res = await fetch(`${BASE_URL}/${taskId}`, { headers });
+        
         if (!res.ok) {
-            // If 404, it might be too early, warn but don't crash
+            // If 404, it might be too early (propagation delay), warn but don't crash immediately
             if (res.status === 404) {
                 console.warn(`[KIE_SUNO] Task ${taskId} not found yet. Retrying...`);
                 continue;
@@ -117,11 +121,11 @@ export const kieSunoService = {
 
         if (status === 'COMPLETED' || status === 'SUCCESS' || status === 'SUCCEEDED') {
            // Success!
-           // KIE Suno usually returns array of objects with 'audio_url' or just 'audio_url'
+           // KIE Suno usually returns array of objects in 'clips' or 'output'
            let urls: string[] = [];
            
            if (Array.isArray(data.clips)) {
-               urls = data.clips.map((c: any) => c.audio_url || c.audio_url || c.url).filter(Boolean);
+               urls = data.clips.map((c: any) => c.audio_url || c.url).filter(Boolean);
            } else if (Array.isArray(data.output)) {
                urls = data.output.map((c: any) => c.audio_url || c.url).filter(Boolean);
            } else if (data.audio_url) {
@@ -129,15 +133,16 @@ export const kieSunoService = {
            }
 
            if (urls.length > 0) return urls;
-           // If completed but no URLs, strictly fail
-           throw new Error("Task Completed but no Audio URLs found.");
+           
+           // If completed but no URLs, it might be a silent failure or data issue
+           throw new Error("Task Completed but no Audio URLs found in response.");
         }
 
         if (status === 'FAILED' || status === 'ERROR') {
            throw new Error(data.error || "Generation Task Failed at Provider");
         }
 
-        // If processing/submitted, loop continues...
+        // If processing/submitted/queued, loop continues...
 
       } catch (e: any) {
         console.warn(`[KIE_SUNO] Polling error (attempt ${attempts}):`, e.message);
@@ -145,7 +150,7 @@ export const kieSunoService = {
       }
     }
 
-    throw new Error("Polling Timed Out");
+    throw new Error("Polling Timed Out (Target exceeded 3 minutes)");
   },
 
   /**
