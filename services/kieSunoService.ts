@@ -63,11 +63,22 @@ export const kieSunoService = {
     };
 
     try {
-      const res = await fetch(`${BASE_URL}/generate`, {
+      // Primary Attempt
+      let res = await fetch(`${BASE_URL}/generate`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
       });
+
+      // Fallback Attempt if 404 (Endpoint variance)
+      if (res.status === 404) {
+         log("Endpoint /generate not found, trying /create");
+         res = await fetch(`${BASE_URL}/create`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+         });
+      }
 
       if (!res.ok) {
         const errText = await res.text();

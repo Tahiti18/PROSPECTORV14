@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { SESSION_ASSETS, AssetRecord, importVault, clearVault, saveAsset, subscribeToAssets, generateVideoPayload } from '../../services/geminiService';
 
 export const MediaVault: React.FC = () => {
   const [assets, setAssets] = useState<AssetRecord[]>([]);
   const [animatingId, setAnimatingId] = useState<string | null>(null);
+  const [mediaErrors, setMediaErrors] = useState<Set<string>>(new Set());
   const vaultInputRef = useRef<HTMLInputElement>(null);
   const mediaInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,6 +75,10 @@ export const MediaVault: React.FC = () => {
     if (confirm("WARNING: THIS WILL DELETE ALL ASSETS FROM BROWSER MEMORY. ENSURE YOU HAVE EXPORTED A BACKUP FIRST. PROCEED?")) {
       clearVault();
     }
+  };
+
+  const handleMediaError = (id: string) => {
+    setMediaErrors(prev => new Set(prev).add(id));
   };
 
   const handleAnimate = async (asset: AssetRecord) => {
@@ -162,75 +168,94 @@ export const MediaVault: React.FC = () => {
             </div>
          )}
 
-         {assets.map(a => (
-           <div key={a.id} className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 space-y-6 hover:border-emerald-500/40 transition-all group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 blur-[40px] rounded-full"></div>
-              <div className="flex justify-between items-start relative z-10">
-                 <div className={`px-3 py-1 rounded-lg text-[9px] font-black border uppercase tracking-widest ${
-                   a.type === 'VIDEO' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 
-                   a.type === 'IMAGE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                   a.type === 'AUDIO' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
-                   'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                 }`}>
-                   {a.type}
-                 </div>
-                 <div className="text-right">
-                    <span className="text-[9px] font-black text-slate-500 block">{a.module?.replace('_', ' ')}</span>
-                    <span className="text-[8px] font-black text-slate-600">{new Date(a.timestamp).toLocaleTimeString()}</span>
-                 </div>
-              </div>
-              <div className="space-y-1 relative z-10">
-                 <h4 className="text-sm font-black text-slate-200 uppercase tracking-tight truncate" title={a.title}>{a.title}</h4>
-              </div>
-              
-              {/* PREVIEW AREA */}
-              <div className="aspect-video bg-slate-950 rounded-xl overflow-hidden relative border border-slate-800 flex items-center justify-center group-hover:border-slate-700 transition-colors">
-                 {a.type === 'IMAGE' && <img src={a.data} className="w-full h-full object-cover" alt="Asset" />}
-                 {a.type === 'VIDEO' && <video src={a.data} className="w-full h-full object-cover" controls />}
-                 {a.type === 'AUDIO' && (
-                    <div className="w-full h-full flex items-center justify-center bg-amber-500/5">
-                       <span className="text-4xl">🎵</span>
-                       <audio src={a.data} controls className="absolute bottom-2 left-2 right-2 w-[calc(100%-16px)] h-8 opacity-80 hover:opacity-100" />
-                    </div>
-                 )}
-                 {a.type === 'TEXT' && (
-                    <div className="p-4 w-full h-full overflow-y-auto custom-scrollbar bg-slate-900/50">
-                        <p className="text-[9px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed">{a.data}</p>
-                    </div>
-                 )}
-                 
-                 {/* ANIMATE OVERLAY (IMAGES ONLY) */}
-                 {a.type === 'IMAGE' && (
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                       <button 
-                         onClick={() => handleAnimate(a)}
-                         disabled={animatingId === a.id}
-                         className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2"
-                       >
-                         {animatingId === a.id ? (
-                            <>
-                               <div className="w-2 h-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                               ANIMATING...
-                            </>
-                         ) : (
-                            <>⚡ ANIMATE VEO</>
-                         )}
-                       </button>
-                    </div>
-                 )}
-              </div>
+         {assets.map(a => {
+           const isError = mediaErrors.has(a.id);
+           return (
+             <div key={a.id} className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 space-y-6 hover:border-emerald-500/40 transition-all group relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 blur-[40px] rounded-full"></div>
+                <div className="flex justify-between items-start relative z-10">
+                   <div className={`px-3 py-1 rounded-lg text-[9px] font-black border uppercase tracking-widest ${
+                     a.type === 'VIDEO' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 
+                     a.type === 'IMAGE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                     a.type === 'AUDIO' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
+                     'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                   }`}>
+                     {a.type}
+                   </div>
+                   <div className="text-right">
+                      <span className="text-[9px] font-black text-slate-500 block">{a.module?.replace('_', ' ')}</span>
+                      <span className="text-[8px] font-black text-slate-600">{new Date(a.timestamp).toLocaleTimeString()}</span>
+                   </div>
+                </div>
+                <div className="space-y-1 relative z-10">
+                   <h4 className="text-sm font-black text-slate-200 uppercase tracking-tight truncate" title={a.title}>{a.title}</h4>
+                </div>
+                
+                {/* PREVIEW AREA */}
+                <div className="aspect-video bg-slate-950 rounded-xl overflow-hidden relative border border-slate-800 flex items-center justify-center group-hover:border-slate-700 transition-colors">
+                   {isError ? (
+                      <div className="flex flex-col items-center justify-center text-rose-500 text-center p-4">
+                         <span className="text-2xl mb-2">⚠️</span>
+                         <p className="text-[8px] font-black uppercase tracking-widest">ASSET EXPIRED / INVALID</p>
+                      </div>
+                   ) : (
+                     <>
+                       {a.type === 'IMAGE' && <img src={a.data} className="w-full h-full object-cover" alt="Asset" onError={() => handleMediaError(a.id)} />}
+                       {a.type === 'VIDEO' && <video src={a.data} className="w-full h-full object-cover" controls onError={() => handleMediaError(a.id)} />}
+                       {a.type === 'AUDIO' && (
+                          <div className="w-full h-full flex items-center justify-center bg-amber-500/5 relative">
+                             {a.metadata?.coverUrl && <img src={a.metadata.coverUrl} className="absolute inset-0 w-full h-full object-cover opacity-20" />}
+                             <span className="text-4xl relative z-10">🎵</span>
+                             <audio 
+                                src={a.data} 
+                                controls 
+                                crossOrigin="anonymous"
+                                className="absolute bottom-2 left-2 right-2 w-[calc(100%-16px)] h-8 opacity-80 hover:opacity-100 relative z-20" 
+                                onError={() => handleMediaError(a.id)}
+                             />
+                          </div>
+                       )}
+                       {a.type === 'TEXT' && (
+                          <div className="p-4 w-full h-full overflow-y-auto custom-scrollbar bg-slate-900/50">
+                              <p className="text-[9px] text-slate-400 font-mono whitespace-pre-wrap leading-relaxed">{a.data}</p>
+                          </div>
+                       )}
+                     </>
+                   )}
+                   
+                   {/* ANIMATE OVERLAY (IMAGES ONLY) */}
+                   {a.type === 'IMAGE' && !isError && (
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                         <button 
+                           onClick={() => handleAnimate(a)}
+                           disabled={animatingId === a.id}
+                           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2"
+                         >
+                           {animatingId === a.id ? (
+                              <>
+                                 <div className="w-2 h-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                 ANIMATING...
+                              </>
+                           ) : (
+                              <>⚡ ANIMATE VEO</>
+                           )}
+                         </button>
+                      </div>
+                   )}
+                </div>
 
-              <div className="pt-4 border-t border-slate-800/50 flex gap-3 relative z-10">
-                 <a 
-                   href={a.type === 'TEXT' ? `data:text/plain;charset=utf-8,${encodeURIComponent(a.data)}` : a.data} 
-                   download={`POM_${a.id}.${a.type === 'TEXT' ? 'txt' : a.type === 'VIDEO' ? 'mp4' : a.type === 'IMAGE' ? 'png' : 'bin'}`} 
-                   className="flex-1 bg-emerald-600/10 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white py-3 rounded-xl text-[8px] font-black text-emerald-400 uppercase tracking-widest transition-all text-center flex items-center justify-center"
-                 >
-                   DOWNLOAD FILE
-                 </a>
-              </div>
-           </div>
-         ))}
+                <div className="pt-4 border-t border-slate-800/50 flex gap-3 relative z-10">
+                   <a 
+                     href={a.type === 'TEXT' ? `data:text/plain;charset=utf-8,${encodeURIComponent(a.data)}` : a.data} 
+                     download={`POM_${a.id}.${a.type === 'TEXT' ? 'txt' : a.type === 'VIDEO' ? 'mp4' : a.type === 'IMAGE' ? 'png' : 'bin'}`} 
+                     className="flex-1 bg-emerald-600/10 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white py-3 rounded-xl text-[8px] font-black text-emerald-400 uppercase tracking-widest transition-all text-center flex items-center justify-center"
+                   >
+                     DOWNLOAD FILE
+                   </a>
+                </div>
+             </div>
+           );
+         })}
       </div>
     </div>
   );
