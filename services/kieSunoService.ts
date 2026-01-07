@@ -63,32 +63,12 @@ export const kieSunoService = {
     };
 
     try {
-      // Primary Attempt
-      let res = await fetch(`${BASE_URL}/generate`, {
+      // FIXED: Direct call to correct endpoint without fallbacks
+      const res = await fetch(`${BASE_URL}/submit-track`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
       });
-
-      // Fallback Attempt if 404 (Endpoint variance)
-      if (res.status === 404) {
-         log("Endpoint /generate not found, trying /create");
-         res = await fetch(`${BASE_URL}/create`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(payload)
-         });
-      }
-
-      // Fallback Attempt 2: Submit
-      if (res.status === 404) {
-         log("Endpoint /create not found, trying /submit");
-         res = await fetch(`${BASE_URL}/submit`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(payload)
-         });
-      }
 
       if (!res.ok) {
         const errText = await res.text();
