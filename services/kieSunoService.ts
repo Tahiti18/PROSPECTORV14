@@ -1,5 +1,5 @@
 
-import { saveAsset, AssetRecord } from './geminiService';
+import { saveAsset } from './geminiService';
 import { toast } from './toastManager';
 
 // Configuration
@@ -63,11 +63,8 @@ export const kieSunoService = {
     };
 
     try {
-      // FIXED: Direct call to correct endpoint /submit-track
-      // Removed legacy /submit or /generate paths that cause 404s
-      const endpoint = `${BASE_URL}/submit-track`;
-      
-      const res = await fetch(endpoint, {
+      // FIXED: Use /submit instead of /submit-track to comply with KIE Standard
+      const res = await fetch(`${BASE_URL}/submit`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
@@ -75,9 +72,6 @@ export const kieSunoService = {
 
       if (!res.ok) {
         const errText = await res.text();
-        if (res.status === 404) {
-             throw new Error(`KIE Endpoint Not Found: ${endpoint}. Check API Configuration.`);
-        }
         throw new Error(`KIE API Error (${res.status}): ${errText}`);
       }
 
@@ -101,7 +95,7 @@ export const kieSunoService = {
 
     } catch (e: any) {
       log(`Job ${jobId} Failed Initialization`, e);
-      throw e; // RE-THROW ACTUAL ERROR
+      throw e; 
     }
   },
 
