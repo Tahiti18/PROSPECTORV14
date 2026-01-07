@@ -64,7 +64,10 @@ export const kieSunoService = {
 
     try {
       // FIXED: Direct call to correct endpoint /submit-track
-      const res = await fetch(`${BASE_URL}/submit-track`, {
+      // Removed legacy /submit or /generate paths that cause 404s
+      const endpoint = `${BASE_URL}/submit-track`;
+      
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
@@ -73,7 +76,7 @@ export const kieSunoService = {
       if (!res.ok) {
         const errText = await res.text();
         if (res.status === 404) {
-             throw new Error("KIE Endpoint /submit-track Not Found. Check API Configuration.");
+             throw new Error(`KIE Endpoint Not Found: ${endpoint}. Check API Configuration.`);
         }
         throw new Error(`KIE API Error (${res.status}): ${errText}`);
       }
