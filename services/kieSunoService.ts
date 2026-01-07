@@ -55,7 +55,8 @@ export const kieSunoService = {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
-    const payload: SunoRequest = {
+    // Strict payload structure as requested
+    const payload = {
       prompt,
       make_instrumental: instrumental,
       wait_audio: false
