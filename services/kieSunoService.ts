@@ -156,7 +156,9 @@ export const kieSunoService = {
       await sleep(delay);
 
       try {
-        const res = await fetch(`${BASE_URL}/${taskId}`, { headers });
+        // Ensure absolute URL here as well
+        const absolutePollUrl = new URL(`${BASE_URL}/${taskId}`).toString();
+        const res = await fetch(absolutePollUrl, { headers });
         
         if (res.status === 404) {
             console.warn(`[KIE_SUNO] Task ${taskId} not found yet. Retrying...`);
