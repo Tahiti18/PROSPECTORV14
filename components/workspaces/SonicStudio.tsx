@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
-import { generateAudioPitch } from '../../services/geminiService';
+import { generateAudioPitch, SESSION_ASSETS, subscribeToAssets } from '../../services/geminiService';
 import { kieSunoService } from '../../services/kieSunoService';
 
 interface SonicStudioProps {
@@ -9,6 +9,27 @@ interface SonicStudioProps {
 }
 
 type StudioMode = 'VOICE' | 'MUSIC';
+
+const MUSIC_GENRES = [
+  { value: 'electronic', label: 'Electronic / Synth' },
+  { value: 'hip_hop', label: 'Hip Hop / Trap' },
+  { value: 'rock', label: 'Rock / Metal' },
+  { value: 'pop', label: 'Modern Pop' },
+  { value: 'jazz', label: 'Jazz / Blues' },
+  { value: 'cinematic', label: 'Cinematic / Orchestral' },
+  { value: 'ambient', label: 'Ambient / Lo-fi' },
+  { value: 'corporate', label: 'Corporate / Upbeat' }
+];
+
+const MUSIC_VIBES = [
+  { value: 'uplifting', label: 'Uplifting & Energetic' },
+  { value: 'chill', label: 'Chill & Relaxed' },
+  { value: 'dark', label: 'Dark & Moody' },
+  { value: 'epic', label: 'Epic & Intense' },
+  { value: 'romantic', label: 'Romantic & Soft' },
+  { value: 'mysterious', label: 'Mysterious & Tense' },
+  { value: 'tech', label: 'Futuristic & Tech' }
+];
 
 export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   const [mode, setMode] = useState<StudioMode>('VOICE');
@@ -20,26 +41,43 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   const [voiceText, setVoiceText] = useState(defaultScript);
   
   // Music State
-  const defaultMusicPrompt = lead
-    ? `Upbeat corporate electronic background music, inspiring, tech-forward, suitable for ${lead.niche} brand.`
-    : "Lo-fi chill hip hop beats, relaxing, study music";
-  const [musicPrompt, setMusicPrompt] = useState(defaultMusicPrompt);
+  const [musicPrompt, setMusicPrompt] = useState(lead ? `Suitable for ${lead.niche} brand campaign.` : "Background music for video content.");
+  const [selectedGenre, setSelectedGenre] = useState(MUSIC_GENRES[0]);
+  const [selectedVibe, setSelectedVibe] = useState(MUSIC_VIBES[0]);
   const [isInstrumental, setIsInstrumental] = useState(true);
 
   // Common State
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedAssets, setGeneratedAssets] = useState<{ type: 'VOICE' | 'MUSIC', url: string, label: string }[]>([]);
+  const [generatedAssets, setGeneratedAssets] = useState<any[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
+
+  // Asset Subscription
+  useEffect(() => {
+    // Load initial assets filtered by AUDIO type
+    const initialAudio = SESSION_ASSETS.filter(a => a.type === 'AUDIO');
+    setGeneratedAssets(initialAudio);
+
+    const unsub = subscribeToAssets((allAssets) => {
+        const audioAssets = allAssets.filter(a => a.type === 'AUDIO');
+        setGeneratedAssets(audioAssets);
+    });
+    return () => unsub();
+  }, []);
 
   // Sync when lead changes
   useEffect(() => {
     if (lead) {
         setVoiceText(lead.personalizedHook || `Hello ${lead.businessName}, I see a huge opportunity to dominate the ${lead.city} market with AI video automation. Let's chat.`);
-        setMusicPrompt(`Upbeat corporate electronic background music, inspiring, tech-forward, suitable for ${lead.niche} brand.`);
+        setMusicPrompt(`Suitable for ${lead.niche} brand campaign.`);
+        // Smart default for corporate clients
+        if (lead.niche.toLowerCase().includes('tech') || lead.niche.toLowerCase().includes('saas')) {
+            setSelectedGenre(MUSIC_GENRES.find(g => g.value === 'electronic') || MUSIC_GENRES[0]);
+            setSelectedVibe(MUSIC_VIBES.find(v => v.value === 'tech') || MUSIC_VIBES[0]);
+        }
     }
   }, [lead?.id]);
 
-  const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 5));
+  const addLog = (msg: string) => setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 10));
 
   const handleVoiceGenerate = async () => {
     if (!voiceText) return;
@@ -49,7 +87,6 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     try {
       const url = await generateAudioPitch(voiceText, 'Kore', lead?.id);
       if (url) {
-        setGeneratedAssets(prev => [{ type: 'VOICE', url, label: 'Sales Pitch (Kore)' }, ...prev]); 
         addLog("Voice Synthesis Complete.");
       } else {
         addLog("Error: TTS Synthesis Failed.");
@@ -67,16 +104,14 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     setIsGenerating(true);
     addLog("Contacting Suno Music Engine...");
 
+    // Construct the composite prompt
+    const finalPrompt = `${selectedVibe.label} ${selectedGenre.label} music, ${musicPrompt}`;
+    addLog(`Prompt: ${finalPrompt.slice(0, 40)}...`);
+
     try {
-      const urls = await kieSunoService.runFullCycle(musicPrompt, isInstrumental, lead?.id);
+      const urls = await kieSunoService.runFullCycle(finalPrompt, isInstrumental, lead?.id);
       if (urls.length > 0) {
-        const newAssets = urls.map((u, i) => ({ 
-            type: 'MUSIC' as const, 
-            url: u, 
-            label: `Generated Track ${i+1}: ${musicPrompt.slice(0, 15)}...` 
-        }));
-        setGeneratedAssets(prev => [...newAssets, ...prev]);
-        addLog("Music Generation Successful.");
+        addLog(`Success: ${urls.length} tracks generated.`);
       } else {
         addLog("Music Task Completed but no audio returned.");
       }
@@ -142,13 +177,38 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
               {/* MUSIC CONTROLS */}
               {mode === 'MUSIC' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4">
+                   
+                   {/* GENRE & VIBE SELECTORS */}
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Genre</label>
+                         <select 
+                           value={selectedGenre.value}
+                           onChange={(e) => setSelectedGenre(MUSIC_GENRES.find(g => g.value === e.target.value) || MUSIC_GENRES[0])}
+                           className="w-full bg-[#020617] border border-slate-800 rounded-xl px-3 py-3 text-[10px] font-bold text-slate-300 focus:outline-none focus:border-emerald-500 uppercase tracking-widest cursor-pointer"
+                         >
+                            {MUSIC_GENRES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+                         </select>
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Vibe</label>
+                         <select 
+                           value={selectedVibe.value}
+                           onChange={(e) => setSelectedVibe(MUSIC_VIBES.find(v => v.value === e.target.value) || MUSIC_VIBES[0])}
+                           className="w-full bg-[#020617] border border-slate-800 rounded-xl px-3 py-3 text-[10px] font-bold text-slate-300 focus:outline-none focus:border-emerald-500 uppercase tracking-widest cursor-pointer"
+                         >
+                            {MUSIC_VIBES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+                         </select>
+                      </div>
+                   </div>
+
                    <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Musical Vibe</label>
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Context & Details</label>
                       <textarea 
                         value={musicPrompt}
                         onChange={(e) => setMusicPrompt(e.target.value)}
-                        className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-5 text-[11px] font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-32 resize-none shadow-xl italic"
-                        placeholder="Describe the music style, mood, and instruments..."
+                        className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-5 text-[11px] font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-28 resize-none shadow-xl italic"
+                        placeholder="Additional details (instruments, tempo, use case)..."
                       />
                    </div>
                    
@@ -193,19 +253,19 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
               )}
 
               {generatedAssets.map((asset, i) => (
-                <div key={i} className="bg-slate-900 border border-slate-800 p-6 rounded-[32px] hover:border-emerald-500/30 transition-all group flex flex-col gap-4 animate-in slide-in-from-bottom-2">
+                <div key={asset.id || i} className="bg-slate-900 border border-slate-800 p-6 rounded-[32px] hover:border-emerald-500/30 transition-all group flex flex-col gap-4 animate-in slide-in-from-bottom-2">
                    <div className="flex justify-between items-center">
                       <div className="flex items-center gap-3">
-                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${asset.type === 'MUSIC' ? 'bg-indigo-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                            {asset.type === 'MUSIC' ? '♫' : '🎙️'}
+                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black ${asset.title.includes('SUNO') ? 'bg-indigo-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                            {asset.title.includes('SUNO') ? '♫' : '🎙️'}
                          </div>
-                         <h4 className="text-[11px] font-black text-white uppercase tracking-widest truncate max-w-[200px]">{asset.label}</h4>
+                         <h4 className="text-[11px] font-black text-white uppercase tracking-widest truncate max-w-[300px]" title={asset.title}>{asset.title}</h4>
                       </div>
-                      <a href={asset.url} download={`ASSET_${i}.mp3`} className="text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors">DOWNLOAD</a>
+                      <a href={asset.data} download={`ASSET_${i}.mp3`} className="text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors">DOWNLOAD</a>
                    </div>
                    
                    <div className="bg-black/40 rounded-xl p-2 border border-slate-800">
-                      <audio src={asset.url} controls className="w-full h-8 opacity-80 hover:opacity-100 transition-opacity" />
+                      <audio src={asset.data} controls className="w-full h-8 opacity-80 hover:opacity-100 transition-opacity" />
                    </div>
                 </div>
               ))}
