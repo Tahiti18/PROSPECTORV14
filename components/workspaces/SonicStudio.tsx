@@ -26,7 +26,7 @@ const VIBES = ['Uplifting', 'Melancholic', 'Energetic', 'Relaxing', 'Suspenseful
 const DURATIONS = [
   { label: '15s (Spot)', val: 15 },
   { label: '30s (Ad)', val: 30 },
-  { label: '2m (Full)', val: 120 }
+  { label: '60s (Full)', val: 60 }
 ];
 
 const VOICES = ['Kore', 'Fenrir', 'Puck', 'Charon', 'Zephyr'];
@@ -197,10 +197,10 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
     
     try {
-        const fullPrompt = `${musicPrompt} [${targetDuration.label}]`;
+        const fullPrompt = musicPrompt;
         const [, result] = await Promise.all([
             minDelay,
-            kieSunoService.runFullCycle(fullPrompt, isInstrumental, lead?.id, coverImage || undefined)
+            kieSunoService.runFullCycle(fullPrompt, isInstrumental, lead?.id, coverImage || undefined, targetDuration.val)
         ]);
         
         toast.success("Music Generation Complete");
@@ -532,8 +532,8 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
             {activeTab === 'MIXER' && (
                 <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-6 shadow-xl h-full flex flex-col gap-4">
                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                      <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">DECK B: VOICE</span>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                      <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">DECK B: VOICE</span>
                    </div>
                    <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-4">
                       <select 

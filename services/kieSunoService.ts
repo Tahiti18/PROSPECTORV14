@@ -23,6 +23,7 @@ export interface SunoRequest {
   make_instrumental: boolean;
   wait_audio: boolean;
   webhook_url?: string;
+  duration?: number;
 }
 
 export interface SunoClip {
@@ -46,7 +47,7 @@ export const kieSunoService = {
   /**
    * 1. ASYNC SUBMISSION (VIA PROXY)
    */
-  generateMusic: async (prompt: string, instrumental: boolean, webhookUrl?: string): Promise<SunoJob> => {
+  generateMusic: async (prompt: string, instrumental: boolean, duration?: number, webhookUrl?: string): Promise<SunoJob> => {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
@@ -54,6 +55,7 @@ export const kieSunoService = {
       prompt,
       make_instrumental: instrumental,
       wait_audio: false,
+      ...(duration ? { duration } : {}),
       ...(webhookUrl ? { webhook_url: webhookUrl } : {})
     };
 
@@ -182,9 +184,9 @@ export const kieSunoService = {
   /**
    * 3. ORCHESTRATOR
    */
-  runFullCycle: async (prompt: string, instrumental: boolean, leadId?: string, customCoverUrl?: string): Promise<string[]> => {
+  runFullCycle: async (prompt: string, instrumental: boolean, leadId?: string, customCoverUrl?: string, duration?: number): Promise<string[]> => {
     // 1. Start Async
-    const job = await kieSunoService.generateMusic(prompt, instrumental);
+    const job = await kieSunoService.generateMusic(prompt, instrumental, duration);
     
     // 2. Poll for Result
     const clips = await kieSunoService.pollTask(job.taskId!);
