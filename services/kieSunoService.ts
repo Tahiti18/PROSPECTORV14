@@ -58,6 +58,7 @@ export const kieSunoService = {
     };
 
     // Call local proxy with the CORRECTED endpoint
+    // The user diagnosed that the backend expects 'suno_submit'
     const submitUrl = `${BASE_URL}/suno_submit`;
     log(`Posting to Proxy: ${submitUrl}`);
 

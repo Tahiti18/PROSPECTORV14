@@ -2,7 +2,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { Buffer } from 'node:buffer';
 
 // Mock browser globals for Node environment compatibility if needed
 if (typeof (globalThis as any).localStorage === 'undefined') {
