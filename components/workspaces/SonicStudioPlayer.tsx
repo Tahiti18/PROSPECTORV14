@@ -117,27 +117,12 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets }) 
          <div className="relative z-10 flex flex-col items-center space-y-6">
             {/* Metadata */}
             <div className="text-center space-y-2 max-w-lg">
-               {currentTrack?.metadata?.coverUrl && (
-                  <img src={currentTrack.metadata.coverUrl} className="w-16 h-16 rounded-xl border border-slate-700 mx-auto mb-4 shadow-lg object-cover" />
-               )}
                <h3 className="text-lg font-black text-white uppercase tracking-tight truncate">
                  {currentTrack?.title || "Unknown Track"}
                </h3>
-               {currentTrack?.metadata?.promptSignature && (
-                  <p className="text-[10px] font-medium text-slate-500 uppercase tracking-widest truncate">
-                     {currentTrack.metadata.promptSignature}
-                  </p>
-               )}
-               <div className="flex gap-2 justify-center mt-1">
-                  <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-[0.3em] bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-500/20">
-                    {currentTrack?.module?.replace('_', ' ') || 'SYSTEM AUDIO'}
-                  </span>
-                  {currentTrack?.metadata?.isInstrumental && (
-                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
-                        INSTRUMENTAL
-                     </span>
-                  )}
-               </div>
+               <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-[0.3em] bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-500/20">
+                 {currentTrack?.module?.replace('_', ' ') || 'SYSTEM AUDIO'}
+               </span>
             </div>
 
             {/* Visualizer */}
@@ -167,7 +152,7 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets }) 
                     onChange={handleSeek}
                     className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400"
                   />
-                  <span className="text-[9px] font-mono text-slate-500 w-8">{formatTime(duration || currentTrack?.metadata?.duration || 0)}</span>
+                  <span className="text-[9px] font-mono text-slate-500 w-8">{formatTime(duration)}</span>
                </div>
 
                {/* Buttons */}
@@ -231,23 +216,14 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets }) 
                        <p className="text-[8px] font-mono text-slate-600 truncate">{new Date(asset.timestamp).toLocaleTimeString()}</p>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 text-[8px] font-black text-slate-600 uppercase tracking-widest">
-                            {asset.metadata?.isInstrumental !== undefined ? (
-                                asset.metadata.isInstrumental ? <span>🎵 INST</span> : <span>🎙️ VOC</span>
-                            ) : null}
-                            {asset.metadata?.duration && <span>| {Math.floor(asset.metadata.duration / 60)}:{(asset.metadata.duration % 60).toString().padStart(2, '0')}</span>}
-                        </div>
-
-                        <a 
-                          href={asset.data} 
-                          download={`TRACK_${i+1}.mp3`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-600 hover:text-emerald-400 transition-colors"
-                        >
-                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                        </a>
-                    </div>
+                    <a 
+                      href={asset.data} 
+                      download={`TRACK_${i+1}.mp3`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-600 hover:text-emerald-400 transition-colors"
+                    >
+                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    </a>
                  </div>
                );
             })}

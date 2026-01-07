@@ -3,6 +3,7 @@ import { saveAsset, AssetRecord } from './geminiService';
 import { toast } from './toastManager';
 
 // Configuration
+// Using the same KIE Proxy Key found in geminiService for Veo
 const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279'; 
 const BASE_URL = 'https://api.kie.ai/api/v1/suno';
 
@@ -22,7 +23,6 @@ export interface SunoRequest {
   prompt: string;
   make_instrumental: boolean;
   wait_audio: boolean;
-  webhook_url?: string; // Added for async callback support
 }
 
 export interface SunoClip {
@@ -44,23 +44,19 @@ const log = (msg: string, data?: any) => {
   console.log(`[KIE_SUNO] ${msg}`, data || '');
 };
 
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
 export const kieSunoService = {
   
   /**
-   * 1. ASYNC SUBMISSION
-   * Submits job with wait_audio: false for immediate Task ID return.
+   * 1. SUBMIT JOB
    */
-  generateMusic: async (prompt: string, instrumental: boolean, webhookUrl?: string): Promise<SunoJob> => {
+  generateMusic: async (prompt: string, instrumental: boolean): Promise<SunoJob> => {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
     const payload: SunoRequest = {
       prompt,
       make_instrumental: instrumental,
-      wait_audio: false, // FORCE ASYNC
-      ...(webhookUrl ? { webhook_url: webhookUrl } : {})
+      wait_audio: false // Force async to prevent browser timeouts
     };
 
     try {
@@ -76,6 +72,7 @@ export const kieSunoService = {
       }
 
       const data = await res.json();
+      // KIE Suno output often puts the task ID in 'id' or 'task_id'
       const taskId = data.id || data.task_id;
 
       if (!taskId) {
@@ -100,106 +97,92 @@ export const kieSunoService = {
   },
 
   /**
-   * 2. ROBUST POLLING (Exponential Backoff)
-   * Fallback strategy when Webhooks are not available.
+   * 2. POLL STATUS (Exponential Backoff)
    */
   pollTask: async (taskId: string): Promise<SunoClip[]> => {
     let attempts = 0;
-    const MAX_TIMEOUT = 180000; // 3 Minutes Max
-    const startTime = Date.now();
+    const maxAttempts = 30; // 30 attempts * ~5s avg = ~2.5 mins max wait
     
-    // Backoff Configuration
-    const INITIAL_DELAY = 2000;
-    const MAX_DELAY = 10000;
-    const GROWTH_FACTOR = 1.5;
-
-    while ((Date.now() - startTime) < MAX_TIMEOUT) {
+    // Polling loop
+    while (attempts < maxAttempts) {
       attempts++;
-      
-      // Calculate Backoff: min(2000 * 1.5^attempts, 10000)
-      const delay = Math.min(INITIAL_DELAY * Math.pow(GROWTH_FACTOR, attempts), MAX_DELAY);
-      await sleep(delay);
+      // Exponential backoff: 2s, 3s, 4.5s... capped at 10s
+      const backoff = Math.min(2000 * Math.pow(1.5, attempts), 10000); 
+      await new Promise(r => setTimeout(r, backoff));
 
       try {
         const res = await fetch(`${BASE_URL}/${taskId}`, { headers });
         
-        // Handle 404 Propagation Delay
-        if (res.status === 404) {
-            console.warn(`[KIE_SUNO] Task ${taskId} not found yet (Propagation). Retrying...`);
-            continue;
+        if (!res.ok) {
+            // If 404, it might be too early (propagation delay), warn but don't crash immediately
+            if (res.status === 404) {
+                console.warn(`[KIE_SUNO] Task ${taskId} not found yet. Retrying...`);
+                continue;
+            }
+            throw new Error(`Status Check Failed: ${res.status}`);
         }
-
-        if (!res.ok) throw new Error(`Status Check Failed: ${res.status}`);
 
         const data = await res.json();
-        const status = (data.status || data.state || '').toUpperCase();
+        const status = (data.status || '').toUpperCase();
         
-        log(`Poll ${taskId} [${attempts}]: ${status}`);
+        log(`Poll ${taskId}: ${status}`);
 
-        // --- CLEAR STATUS TRANSITIONS ---
-        
-        // 1. Success State
-        if (['COMPLETED', 'SUCCESS', 'SUCCEEDED'].includes(status)) {
-           return kieSunoService.parseClips(data);
+        if (status === 'COMPLETED' || status === 'SUCCESS' || status === 'SUCCEEDED') {
+           // Success!
+           // KIE Suno usually returns array of objects in 'clips' or 'output'
+           let clips: SunoClip[] = [];
+           
+           const rawClips = data.clips || data.output || [];
+           
+           if (Array.isArray(rawClips)) {
+               clips = rawClips.map((c: any) => ({
+                   id: c.id,
+                   url: c.audio_url || c.url || c.video_url, // Prefer audio_url
+                   image_url: c.image_url || c.image_large_url,
+                   duration: c.duration,
+                   title: c.title
+               })).filter(c => c.url);
+           } else if (data.audio_url) {
+               clips = [{
+                   id: data.id,
+                   url: data.audio_url,
+                   image_url: data.image_url,
+                   duration: data.duration
+               }];
+           }
+
+           if (clips.length > 0) return clips;
+           
+           // If completed but no URLs, it might be a silent failure or data issue
+           throw new Error("Task Completed but no Audio URLs found in response.");
         }
 
-        // 2. Failure State
-        if (['FAILED', 'ERROR'].includes(status)) {
+        if (status === 'FAILED' || status === 'ERROR') {
            throw new Error(data.error || "Generation Task Failed at Provider");
         }
 
-        // 3. Pending States (QUEUED, PROCESSING, SUBMITTED) -> Continue Loop
+        // If processing/submitted/queued, loop continues...
 
       } catch (e: any) {
-        console.warn(`[KIE_SUNO] Polling error:`, e.message);
-        // Break on critical errors, continue on network blips
-        if (e.message.includes("401") || e.message.includes("403")) throw e;
+        console.warn(`[KIE_SUNO] Polling error (attempt ${attempts}):`, e.message);
+        if (attempts > 5 && e.message.includes("Status Check Failed")) throw e; // Hard fail after 5 bad network hits
       }
     }
 
-    throw new Error("Polling Timed Out (Exceeded 3 minutes)");
-  },
-
-  // Helper to normalize KIE response formats
-  parseClips: (data: any): SunoClip[] => {
-      let clips: SunoClip[] = [];
-      const rawClips = data.clips || data.output || [];
-      
-      if (Array.isArray(rawClips)) {
-          clips = rawClips.map((c: any) => ({
-              id: c.id,
-              url: c.audio_url || c.url || c.video_url,
-              image_url: c.image_url || c.image_large_url,
-              duration: c.duration,
-              title: c.title
-          })).filter(c => c.url);
-      } else if (data.audio_url) {
-          clips = [{
-              id: data.id,
-              url: data.audio_url,
-              image_url: data.image_url,
-              duration: data.duration
-          }];
-      }
-
-      if (clips.length === 0) throw new Error("Task Completed but no Audio URLs found.");
-      return clips;
+    throw new Error("Polling Timed Out (Target exceeded 3 minutes)");
   },
 
   /**
-   * 3. ORCHESTRATOR
-   * Client-side wrapper that handles the full lifecycle.
+   * 3. ORCHESTRATOR (Client-Side Wrapper)
    */
   runFullCycle: async (prompt: string, instrumental: boolean, leadId?: string): Promise<string[]> => {
-    // 1. Start Async
+    // 1. Start
     const job = await kieSunoService.generateMusic(prompt, instrumental);
     
-    // 2. Poll for Result
+    // 2. Poll
     const clips = await kieSunoService.pollTask(job.taskId!);
     
-    // 3. Process Results
-    const signature = prompt.split(',')[0].trim().slice(0, 30);
-
+    // 3. Save Assets
     if (clips && clips.length > 0) {
         clips.forEach((clip, i) => {
             const displayTitle = clip.title || `SUNO_TRACK_${i+1}`;
@@ -209,14 +192,7 @@ export const kieSunoService = {
                 displayTitle, 
                 clip.url, 
                 'SONIC_STUDIO', 
-                leadId,
-                {
-                    sunoJobId: clip.id || job.taskId,
-                    promptSignature: signature,
-                    duration: clip.duration || 120,
-                    isInstrumental: instrumental,
-                    coverUrl: clip.image_url
-                }
+                leadId
             );
         });
         toast.success(`Generated ${clips.length} Music Tracks.`);
