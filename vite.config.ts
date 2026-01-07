@@ -20,22 +20,25 @@ if (typeof (globalThis as any).localStorage === 'undefined') {
 // Global Lock for Concurrency Control
 let isSmokeTestRunning = false;
 
-// --- KIE PROXY MIDDLEWARE ---
+// --- KIE PROXY MIDDLEWARE (BACKEND ROUTER) ---
 const createKieProxyMiddleware = (env: Record<string, string>) => {
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const protocol = (req.headers['x-forwarded-proto'] as string) || 'http';
     const host = req.headers.host || 'localhost';
     const urlObj = new URL(req.url || '', `${protocol}://${host}`);
     
-    // Match /api/kie/suno routes
+    // 1. ROUTER ENTRY POINT
+    // Matches: /api/kie/suno/*
     if (!urlObj.pathname.startsWith('/api/kie/suno')) {
       return next();
     }
 
+    // Secure Key Management (Server-Side Only)
+    // Checks process.env first (Railway), then .env file
     const KIE_KEY = process.env.KIE_KEY || env.KIE_KEY || '302d700cb3e9e3dcc2ad9d94d5059279';
     const KIE_BASE = 'https://api.kie.ai/api/v1/suno';
 
-    // Helper to read body
+    // Helper to read request body
     const readBody = async () => {
       const buffers = [];
       for await (const chunk of req) {
@@ -45,10 +48,10 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
     };
 
     try {
-      // 1. SUBMIT ENDPOINT (POST)
+      // 2. POST ROUTE: /submit
       if (urlObj.pathname === '/api/kie/suno/submit' && req.method === 'POST') {
         const bodyStr = await readBody();
-        console.log('[KIE_PROXY] Forwarding SUBMIT to KIE...');
+        console.log('[BACKEND_PROXY] Forwarding SUBMIT to KIE...');
 
         const kieRes = await fetch(`${KIE_BASE}/submit`, {
           method: 'POST',
@@ -59,6 +62,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
           body: bodyStr
         });
 
+        // Proxy Response Back to Client
         const data = await kieRes.text();
         res.statusCode = kieRes.status;
         res.setHeader('Content-Type', 'application/json');
@@ -66,12 +70,11 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return;
       }
 
-      // 2. STATUS ENDPOINT (GET)
-      // Pattern: /api/kie/suno/status/:taskId
+      // 3. GET ROUTE: /status/:taskId
       const statusMatch = urlObj.pathname.match(/\/api\/kie\/suno\/status\/([^/]+)/);
       if (statusMatch && req.method === 'GET') {
         const taskId = statusMatch[1];
-        console.log(`[KIE_PROXY] Forwarding STATUS check for ${taskId}...`);
+        console.log(`[BACKEND_PROXY] Forwarding STATUS check for ${taskId}...`);
 
         const kieRes = await fetch(`${KIE_BASE}/${taskId}`, {
           method: 'GET',
@@ -81,6 +84,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
           }
         });
 
+        // Proxy Response Back to Client
         const data = await kieRes.text();
         res.statusCode = kieRes.status;
         res.setHeader('Content-Type', 'application/json');
@@ -88,12 +92,12 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return;
       }
 
-      // 404 for unmatched /api/kie paths
+      // 404 Handler for /api/kie/suno namespace
       res.statusCode = 404;
       res.end(JSON.stringify({ error: 'Proxy route not found' }));
 
     } catch (e: any) {
-      console.error('[KIE_PROXY] Error:', e);
+      console.error('[BACKEND_PROXY] Error:', e);
       res.statusCode = 500;
       res.end(JSON.stringify({ error: e.message }));
     }
@@ -102,44 +106,37 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
 
 const createSmokeTestMiddleware = (env: Record<string, string>) => {
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-    // Normalize URL
     const protocol = (req.headers['x-forwarded-proto'] as string) || 'http';
     const host = req.headers.host || 'localhost';
     const urlObj = new URL(req.url || '', `${protocol}://${host}`);
     
-    // Strict Path Matching
     const pathname = urlObj.pathname.endsWith('/') && urlObj.pathname.length > 1 ? urlObj.pathname.slice(0, -1) : urlObj.pathname;
     if (pathname !== '/__smoketest_phase1') {
       return next();
     }
 
-    // 1. SECURITY & CONFIGURATION CHECK
     const ENABLED = process.env.SMOKE_TEST_PHASE1 === '1' || env.SMOKE_TEST_PHASE1 === '1';
     const REQUIRED_TOKEN = process.env.SMOKE_TEST_TOKEN || env.SMOKE_TEST_TOKEN;
     const providedToken = urlObj.searchParams.get('token');
 
     if (!ENABLED || !REQUIRED_TOKEN || providedToken !== REQUIRED_TOKEN) {
-      // Return 404 to mask existence if unauthorized or disabled
       res.statusCode = 404;
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ error: 'Not Found' }));
       return;
     }
 
-    // Common Headers
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store, no-cache');
 
     const mode = urlObj.searchParams.get('mode');
 
-    // 2. ACK MODE (Liveness)
     if (mode === 'ack') {
       res.statusCode = 200;
       res.end(JSON.stringify({ status: 'READY', ts: new Date().toISOString() }));
       return;
     }
 
-    // 3. RUN MODE (Orchestration)
     if (isSmokeTestRunning) {
       console.log('PHASE1_SMOKETEST BUSY');
       res.statusCode = 429;
@@ -156,7 +153,6 @@ const createSmokeTestMiddleware = (env: Record<string, string>) => {
     isSmokeTestRunning = true;
     let responseSent = false;
 
-    // Response Helper
     const sendResponse = (code: number, body: any) => {
       if (responseSent) return;
       responseSent = true;
@@ -188,23 +184,17 @@ const createSmokeTestMiddleware = (env: Record<string, string>) => {
         outreachStatus: "cold"
       };
 
-      // Check for media flag (for heavy testing)
       const enableMedia = urlObj.searchParams.get('media') === '1';
-
-      // 180s Hard Timeout
       const TIMEOUT_MS = 180000;
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS);
       });
 
-      // Orchestration Promise
       const runnerPromise = (async () => {
         // @ts-ignore
         return await orchestratePhase1BusinessPackage(testInput, { mediaPolicy: enableMedia ? 'on' : 'off' });
       })();
 
-      // LATE LOGGING HANDLER
-      // We attach this separately to the runner so it logs even if the main response timed out.
       runnerPromise.then((res: any) => {
         if (responseSent) {
            const status = res.status === 'SUCCESS' ? 'LATE_PASS' : 'LATE_FAIL';
@@ -216,15 +206,11 @@ const createSmokeTestMiddleware = (env: Record<string, string>) => {
         }
       });
 
-      // RACE
       // @ts-ignore
       const result: any = await Promise.race([runnerPromise, timeoutPromise]);
-
-      // SUCCESS PATH
       const isSuccess = result.status === 'SUCCESS';
       console.log(`PHASE1_SMOKETEST ${isSuccess ? 'PASS' : 'FAIL'}`);
       
-      // Cleanup Lock
       isSmokeTestRunning = false;
 
       sendResponse(isSuccess ? 200 : 500, {
@@ -238,7 +224,6 @@ const createSmokeTestMiddleware = (env: Record<string, string>) => {
       });
 
     } catch (error: any) {
-      // FAILURE / TIMEOUT PATH
       isSmokeTestRunning = false;
       const isTimeout = error.message === 'TIMEOUT';
       const statusLabel = isTimeout ? 'TIMEOUT' : 'FAIL';
@@ -260,11 +245,11 @@ const phase1SmoketestPlugin = (env: Record<string, string>): Plugin => ({
   name: 'phase1-smoketest',
   configurePreviewServer(server: PreviewServer) {
     server.middlewares.use(createSmokeTestMiddleware(env));
-    server.middlewares.use(createKieProxyMiddleware(env)); // ADD PROXY
+    server.middlewares.use(createKieProxyMiddleware(env)); // MOUNT ROUTER
   },
   configureServer(server: ViteDevServer) {
     server.middlewares.use(createSmokeTestMiddleware(env));
-    server.middlewares.use(createKieProxyMiddleware(env)); // ADD PROXY
+    server.middlewares.use(createKieProxyMiddleware(env)); // MOUNT ROUTER
   }
 });
 
@@ -272,7 +257,6 @@ const phase1SmoketestPlugin = (env: Record<string, string>): Plugin => ({
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, (process as any).cwd(), '');
   
-  // Ensure Node process env is populated for server-side logic
   if (env.API_KEY) {
     process.env.API_KEY = env.API_KEY;
   }

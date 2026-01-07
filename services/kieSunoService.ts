@@ -3,7 +3,7 @@ import { saveAsset } from './geminiService';
 import { toast } from './toastManager';
 
 // Configuration
-// NOTE: KIE_KEY is now managed server-side by the proxy middleware.
+// PROXY ENABLED: Requests now route to the local backend proxy defined in vite.config.ts
 const BASE_URL = '/api/kie/suno';
 
 // Types
@@ -57,7 +57,7 @@ export const kieSunoService = {
       ...(webhookUrl ? { webhook_url: webhookUrl } : {})
     };
 
-    // Use local proxy URL
+    // Call local proxy
     const submitUrl = `${BASE_URL}/submit`;
     log(`Posting to Proxy: ${submitUrl}`);
 
@@ -118,12 +118,12 @@ export const kieSunoService = {
       await sleep(delay);
 
       try {
-        // Use local proxy URL for status
+        // Call local proxy status
         const statusUrl = `${BASE_URL}/status/${taskId}`;
         const res = await fetch(statusUrl);
         
         if (res.status === 404) {
-            console.warn(`[KIE_SUNO] Task ${taskId} not found yet. Retrying...`);
+            console.warn(`[KIE_SUNO] Task ${taskId} not found at proxy. Retrying...`);
             continue;
         }
 
