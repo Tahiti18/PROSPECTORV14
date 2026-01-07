@@ -166,19 +166,39 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   };
 
   const handleGenerateVoice = async () => {
+    if (!voiceText) {
+        toast.error("Please enter text for speech generation");
+        return;
+    }
     setIsGeneratingVoice(true);
     try {
-        await generateAudioPitch(voiceText, selectedVoice, lead?.id);
+        const result = await generateAudioPitch(voiceText, selectedVoice, lead?.id);
+        if (result) {
+            toast.success("Voice Generated Successfully");
+        } else {
+            throw new Error("Voice generation yielded no result");
+        }
+    } catch (e: any) {
+        console.error("Voice Gen Error:", e);
+        toast.error(`Voice Generation Failed: ${e.message || "Unknown Error"}`);
     } finally {
         setIsGeneratingVoice(false);
     }
   };
 
   const handleGenerateMusic = async () => {
+    if (!musicPrompt) {
+        toast.error("Music Prompt cannot be empty");
+        return;
+    }
     setIsGeneratingMusic(true);
     try {
         const fullPrompt = `${musicPrompt} [${targetDuration.label}]`;
         await kieSunoService.runFullCycle(fullPrompt, isInstrumental, lead?.id, coverImage || undefined);
+        toast.success("Music Generation Complete");
+    } catch (e: any) {
+        console.error("Music Gen Error:", e);
+        toast.error(`Generation Failed: ${e.message || "Service Unreachable"}`);
     } finally {
         setIsGeneratingMusic(false);
     }
@@ -192,7 +212,13 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
             `Album cover for ${lead?.businessName || 'Brand'}, ${musicPrompt}, minimal high design`, 
             lead || {} 
         );
-        if (url) setCoverImage(url);
+        if (url) {
+            setCoverImage(url);
+            toast.success("Cover Art Generated");
+        }
+    } catch (e) {
+        console.error("Cover Gen Error:", e);
+        toast.error("Failed to generate cover art");
     } finally {
         setIsGeneratingCover(false);
     }
