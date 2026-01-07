@@ -14,6 +14,8 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  
   // Simulated Stems state
   const [activeStems, setActiveStems] = useState({ drums: true, bass: true, vocals: true, other: true });
 
@@ -36,22 +38,41 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
     const updateTime = () => setProgress(audio.currentTime);
     const updateDuration = () => setDuration(audio.duration);
     const onEnded = () => setIsPlaying(false);
+    const onError = (e: any) => {
+        console.error("Audio Playback Error", e);
+        setLoadError("Playback Failed: Source Unreachable");
+        setIsPlaying(false);
+    };
+    const onCanPlay = () => setLoadError(null);
 
     audio.addEventListener('timeupdate', updateTime);
     audio.addEventListener('loadedmetadata', updateDuration);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
+    audio.addEventListener('canplay', onCanPlay);
 
     return () => {
       audio.removeEventListener('timeupdate', updateTime);
       audio.removeEventListener('loadedmetadata', updateDuration);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
+      audio.removeEventListener('canplay', onCanPlay);
     };
   }, [currentAssetIndex]);
 
   useEffect(() => {
     if (audioRef.current) {
-        if (isPlaying) audioRef.current.play().catch(e => console.warn(e));
-        else audioRef.current.pause();
+        if (isPlaying) {
+            const playPromise = audioRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.warn("Autoplay prevented or interrupted", error);
+                    setIsPlaying(false);
+                });
+            }
+        } else {
+            audioRef.current.pause();
+        }
     }
   }, [isPlaying]);
 
@@ -59,19 +80,16 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
 
   const selectAsset = (index: number) => {
     setCurrentAssetIndex(index);
-    // If it's audio, autoplay. If image, just show.
-    if (assets[index].type === 'AUDIO') {
-        setIsPlaying(true);
-    } else {
-        setIsPlaying(false);
-    }
+    setLoadError(null);
+    setIsPlaying(false);
+    // Optional: Auto-play on selection if desired, but safer to wait for user interaction to avoid race conditions
+    // setIsPlaying(true); 
   };
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm("Are you sure you want to delete this asset?")) {
         deleteAsset(id);
-        // If deleted current, shift index
         if (currentAsset?.id === id) {
             setCurrentAssetIndex(0);
             setIsPlaying(false);
@@ -96,9 +114,8 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
 
   const toggleStem = (stem: keyof typeof activeStems) => {
     setActiveStems(prev => ({ ...prev, [stem]: !prev[stem] }));
-    // Simulate audio change (volume dip effect to fake stem toggling)
     if (audioRef.current) {
-        audioRef.current.volume = 0.5; // Dip
+        audioRef.current.volume = 0.5;
         setTimeout(() => { if (audioRef.current) audioRef.current.volume = 1.0; }, 200);
     }
   };
@@ -114,23 +131,26 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
 
   return (
     <div className="flex flex-col h-full bg-[#05091a] rounded-[32px] overflow-hidden border border-slate-800 shadow-2xl relative">
-      {/* Audio Element (Hidden if image) */}
+      {/* Hidden Master Audio Element */}
       {currentAsset?.type === 'AUDIO' && (
-        <audio ref={audioRef} src={currentAsset.data} onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
+        <audio 
+            ref={audioRef} 
+            src={currentAsset.data} 
+            crossOrigin="anonymous" 
+            preload="metadata"
+        />
       )}
 
-      {/* --- TOP: THE DECK (Visualizer & Controls) --- */}
+      {/* --- TOP: THE DECK --- */}
       <div className="bg-[#0b1021] p-8 border-b border-slate-800 relative overflow-hidden flex-none">
-         {/* Background Glow */}
          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-emerald-500/5 blur-[80px] rounded-full pointer-events-none"></div>
 
          <div className="relative z-10 flex flex-col items-center space-y-8">
             
-            {/* 1. VISUALIZER & COVER / IMAGE VIEW */}
+            {/* VISUALIZER / COVER */}
             <div className="flex items-center gap-12 w-full max-w-4xl justify-center h-48">
                 {currentAsset?.type === 'AUDIO' ? (
                     <>
-                        {/* Cover Art */}
                         <div className="w-48 h-48 rounded-3xl overflow-hidden border-2 border-slate-800 shadow-2xl relative group shrink-0">
                             {currentAsset.metadata?.coverUrl ? (
                                 <img src={currentAsset.metadata.coverUrl} className="w-full h-full object-cover" />
@@ -146,27 +166,35 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                             )}
                         </div>
 
-                        {/* Frequency Analyzer (Simulated) */}
                         <div className="flex-1 h-32 bg-slate-950/50 rounded-2xl border border-slate-800 flex items-end justify-center gap-1 p-4 overflow-hidden relative shadow-inner">
                             <div className="absolute top-2 left-3 flex items-center gap-2">
                                 <div className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`}></div>
-                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">FREQ ANALYZER</span>
+                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">
+                                    {loadError ? 'SIGNAL LOST' : 'FREQ ANALYZER'}
+                                </span>
                             </div>
                             
-                            {[...Array(40)].map((_, i) => (
-                                <div 
-                                    key={i} 
-                                    className={`w-2 rounded-t-sm transition-all duration-[50ms] ${isPlaying ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-slate-800'}`}
-                                    style={{ 
-                                        height: isPlaying ? `${Math.random() * 80 + 10}%` : '5%',
-                                        opacity: isPlaying ? (i % 2 === 0 ? 1 : 0.8) : 0.3
-                                    }}
-                                ></div>
-                            ))}
+                            {loadError ? (
+                                <div className="flex items-center justify-center h-full w-full">
+                                    <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-950/50 px-3 py-1 rounded border border-rose-500/20">
+                                        {loadError}
+                                    </p>
+                                </div>
+                            ) : (
+                                [...Array(40)].map((_, i) => (
+                                    <div 
+                                        key={i} 
+                                        className={`w-2 rounded-t-sm transition-all duration-[50ms] ${isPlaying ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-slate-800'}`}
+                                        style={{ 
+                                            height: isPlaying ? `${Math.random() * 80 + 10}%` : '5%',
+                                            opacity: isPlaying ? (i % 2 === 0 ? 1 : 0.8) : 0.3
+                                        }}
+                                    ></div>
+                                ))
+                            )}
                         </div>
                     </>
                 ) : (
-                    // IMAGE VIEW
                     <div className="h-full flex items-center justify-center relative group">
                         <img src={currentAsset?.data} className="h-full object-contain rounded-xl border border-slate-800 shadow-xl" />
                         {onSetCover && (
@@ -181,7 +209,7 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                 )}
             </div>
 
-            {/* 2. METADATA & STEMS */}
+            {/* METADATA */}
             <div className="text-center space-y-4">
                 <div>
                     <h3 className="text-2xl font-black text-white uppercase tracking-tight truncate px-4 max-w-2xl mx-auto">
@@ -198,7 +226,6 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                     </div>
                 </div>
 
-                {/* Stem Separation UI (Simulated Pro UI) */}
                 {currentAsset?.type === 'AUDIO' ? (
                     <div className="flex gap-3 justify-center items-center p-2 bg-slate-900/50 rounded-xl border border-slate-800/50 inline-flex">
                         <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mr-2">STEMS</span>
@@ -216,12 +243,10 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                             </button>
                         ))}
                     </div>
-                ) : (
-                    <div className="h-8"></div> // Spacer
-                )}
+                ) : <div className="h-8"></div>}
             </div>
 
-            {/* 3. TRANSPORT (Audio Only) */}
+            {/* TRANSPORT */}
             {currentAsset?.type === 'AUDIO' ? (
                 <div className="w-full max-w-2xl space-y-4">
                    <div className="flex items-center gap-4 w-full">
@@ -232,7 +257,8 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                         max={duration || 100} 
                         value={progress} 
                         onChange={handleSeek}
-                        className="flex-1 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400"
+                        disabled={!!loadError}
+                        className="flex-1 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       <span className="text-[9px] font-mono text-slate-500 w-10">{formatTime(duration || currentAsset?.metadata?.duration || 0)}</span>
                    </div>
@@ -242,7 +268,11 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                          <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
                       </button>
 
-                      <button onClick={togglePlay} className="w-16 h-16 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/30 transition-all active:scale-95 border-b-4 border-emerald-800">
+                      <button 
+                        onClick={togglePlay} 
+                        disabled={!!loadError}
+                        className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-95 border-b-4 ${loadError ? 'bg-slate-700 text-slate-500 border-slate-900 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 border-emerald-800'}`}
+                      >
                          {isPlaying ? (
                            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                          ) : (
@@ -271,7 +301,7 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
          </div>
       </div>
 
-      {/* --- BOTTOM: THE GALLERY (Grid) --- */}
+      {/* --- BOTTOM: THE GALLERY --- */}
       <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#020617] p-8">
          <div className="flex justify-between items-center mb-6">
             <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">ASSET GALLERY</h4>
@@ -289,31 +319,34 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                    onClick={() => selectAsset(i)}
                    className={`group relative aspect-square rounded-3xl overflow-hidden cursor-pointer transition-all border-2 ${active ? 'border-emerald-500 ring-4 ring-emerald-500/20' : 'border-slate-800 hover:border-slate-600'}`}
                  >
-                    {/* Background Image */}
                     {asset.type === 'IMAGE' ? (
                         <img src={asset.data} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                    ) : asset.metadata?.coverUrl ? (
-                        <img src={asset.metadata.coverUrl} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                     ) : (
-                        <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-                            <span className="text-4xl opacity-50 grayscale">💿</span>
+                        // Audio Thumbnail
+                        <div className="w-full h-full bg-slate-950 flex flex-col items-center justify-center relative">
+                            {asset.metadata?.coverUrl ? (
+                                <img src={asset.metadata.coverUrl} className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                            ) : (
+                                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-indigo-500/10"></div>
+                            )}
+                            <span className="text-4xl relative z-10 drop-shadow-xl">{active && isPlaying ? '🔊' : '🎵'}</span>
+                            <div className="absolute bottom-4 left-0 right-0 text-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <span className="text-[8px] font-black text-white bg-black/60 px-2 py-1 rounded">PLAY</span>
+                            </div>
                         </div>
                     )}
 
-                    {/* Type Badge */}
-                    <div className="absolute top-3 left-3 px-2 py-1 rounded bg-black/60 backdrop-blur text-[8px] font-black text-white uppercase tracking-widest border border-white/10">
+                    <div className="absolute top-3 left-3 px-2 py-1 rounded bg-black/60 backdrop-blur text-[8px] font-black text-white uppercase tracking-widest border border-white/10 z-20">
                         {asset.type === 'AUDIO' ? '♫' : '🖼️'}
                     </div>
 
-                    {/* Overlay */}
-                    <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-5 transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                    <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent flex flex-col justify-end p-5 transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         <div className="flex flex-col gap-1 mb-6">
                             <p className="text-[11px] font-black text-white uppercase truncate">{asset.title}</p>
                             <p className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest truncate">{asset.module}</p>
                         </div>
                     </div>
                     
-                    {/* Actions (Always visible on hover) */}
                     <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
                        <button 
                          onClick={(e) => handleDelete(e, asset.id)}
@@ -327,9 +360,8 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                          download={`ASSET_${i+1}.${asset.type === 'AUDIO' ? exportFormat.toLowerCase() : 'png'}`}
                          onClick={(e) => e.stopPropagation()}
                          className="p-2 bg-black/60 hover:bg-emerald-600 text-white rounded-xl backdrop-blur-md transition-colors flex items-center gap-1"
-                         title={`Download ${exportFormat}`}
+                         title="Download"
                        >
-                          <span className="text-[8px] font-black">{exportFormat}</span>
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                        </a>
                     </div>
