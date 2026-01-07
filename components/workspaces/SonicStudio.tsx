@@ -20,6 +20,9 @@ const PRESETS = [
   { id: 'CINEMATIC', label: 'Epic Cinematic', prompt: 'Orchestral hybrid, hans zimmer style, deep drums, epic swelling strings', icon: '🎬' }
 ];
 
+const GENRES = ['Cinematic', 'Electronic', 'Rock', 'Hip Hop', 'Jazz', 'Ambient', 'Corporate', 'Pop', 'Synthwave', 'Lo-Fi'];
+const VIBES = ['Uplifting', 'Melancholic', 'Energetic', 'Relaxing', 'Suspenseful', 'Motivational', 'Dark', 'Ethereal', 'Punchy', 'Warm'];
+
 const DURATIONS = [
   { label: '15s (Spot)', val: 15 },
   { label: '30s (Ad)', val: 30 },
@@ -113,6 +116,14 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     const enhancers = ["high fidelity", "studio quality", "grammy award winning", "wide stereo", "warm analog warmth", "mixed and mastered"];
     setMusicPrompt(prev => `${prev}, ${enhancers.join(', ')}`);
     toast.neural("PROMPT ENHANCED WITH AUDIO ENGINEERING TAGS");
+  };
+
+  const toggleKeyword = (keyword: string) => {
+    if (musicPrompt.includes(keyword)) {
+        setMusicPrompt(prev => prev.replace(keyword, '').replace(', ,', ',').trim());
+    } else {
+        setMusicPrompt(prev => prev ? `${prev}, ${keyword}` : keyword);
+    }
   };
 
   const handlePresetSelect = (p: typeof PRESETS[0]) => {
@@ -265,6 +276,46 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                    </div>
                 </div>
 
+                {/* Genre & Vibe Selectors */}
+                <div className="space-y-4">
+                   <div className="space-y-2">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">GENRE DEFINITION</label>
+                      <div className="flex flex-wrap gap-2">
+                         {GENRES.map(g => (
+                           <button 
+                             key={g}
+                             onClick={() => toggleKeyword(g)}
+                             className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                               musicPrompt.includes(g) 
+                                 ? 'bg-emerald-600 border-emerald-500 text-white' 
+                                 : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300'
+                             }`}
+                           >
+                             {g}
+                           </button>
+                         ))}
+                      </div>
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ATMOSPHERIC VIBE</label>
+                      <div className="flex flex-wrap gap-2">
+                         {VIBES.map(v => (
+                           <button 
+                             key={v}
+                             onClick={() => toggleKeyword(v)}
+                             className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+                               musicPrompt.includes(v) 
+                                 ? 'bg-indigo-600 border-indigo-500 text-white' 
+                                 : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300'
+                             }`}
+                           >
+                             {v}
+                           </button>
+                         ))}
+                      </div>
+                   </div>
+                </div>
+
                 {/* Prompt with Magic Wand */}
                 <div className="space-y-3">
                    <div className="flex justify-between items-center">
@@ -280,7 +331,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                    <textarea 
                      value={musicPrompt}
                      onChange={(e) => setMusicPrompt(e.target.value)}
-                     className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-4 text-sm font-medium text-slate-300 focus:outline-none focus:border-emerald-500 h-32 resize-none shadow-inner placeholder-slate-700 italic"
+                     className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-4 text-sm font-medium text-slate-300 focus:outline-none focus:border-emerald-500 h-24 resize-none shadow-inner placeholder-slate-700 italic"
                      placeholder="Describe the sound..."
                    />
                 </div>
