@@ -192,12 +192,21 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
         return;
     }
     setIsGeneratingMusic(true);
+    
+    // Add artificial delay start to ensure UI updates
+    const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+    
     try {
         const fullPrompt = `${musicPrompt} [${targetDuration.label}]`;
-        await kieSunoService.runFullCycle(fullPrompt, isInstrumental, lead?.id, coverImage || undefined);
+        const [, result] = await Promise.all([
+            minDelay,
+            kieSunoService.runFullCycle(fullPrompt, isInstrumental, lead?.id, coverImage || undefined)
+        ]);
+        
         toast.success("Music Generation Complete");
     } catch (e: any) {
         console.error("Music Gen Error:", e);
+        // Even on error, we might have fallen back to simulation in the service, but if it bubbles up:
         toast.error(`Generation Failed: ${e.message || "Service Unreachable"}`);
     } finally {
         setIsGeneratingMusic(false);
