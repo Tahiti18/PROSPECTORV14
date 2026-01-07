@@ -209,4 +209,71 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                          <select 
                            value={selectedVibe.value}
                            onChange={(e) => setSelectedVibe(MUSIC_VIBES.find(v => v.value === e.target.value) || MUSIC_VIBES[0])}
-                           className="w-full bg-[#020617] border border
+                           className="w-full bg-[#020617] border border-slate-800 rounded-xl px-3 py-3 text-[10px] font-bold text-slate-300 focus:outline-none focus:border-emerald-500 uppercase tracking-widest cursor-pointer"
+                         >
+                            {MUSIC_VIBES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+                         </select>
+                      </div>
+                   </div>
+
+                   <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Context & Details</label>
+                        <button onClick={() => setShowGuide(true)} className="text-[9px] font-black text-emerald-400 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1">
+                           <span>ⓘ</span> GUIDE
+                        </button>
+                      </div>
+                      <textarea 
+                        value={musicPrompt}
+                        onChange={(e) => setMusicPrompt(e.target.value)}
+                        className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-5 text-[11px] font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-28 resize-none shadow-xl italic"
+                        placeholder="Additional details (instruments, tempo, use case)..."
+                      />
+                   </div>
+                   
+                   <div className="flex items-center gap-3 bg-slate-900 p-4 rounded-xl border border-slate-800">
+                      <input 
+                        type="checkbox" 
+                        checked={isInstrumental} 
+                        onChange={(e) => setIsInstrumental(e.target.checked)}
+                        className="w-4 h-4 accent-emerald-500"
+                      />
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">INSTRUMENTAL ONLY</span>
+                   </div>
+
+                   <button 
+                     onClick={handleMusicGenerate}
+                     disabled={isGenerating}
+                     className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-indigo-600/20 active:scale-95 border-b-4 border-indigo-800"
+                   >
+                     {isGenerating ? 'COMPOSING...' : 'GENERATE MUSIC (SUNO)'}
+                   </button>
+                </div>
+              )}
+
+              {/* LOGS */}
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 h-32 overflow-y-auto custom-scrollbar font-mono text-[9px] space-y-2 shadow-inner">
+                 {logs.map((l, i) => (
+                    <div key={i} className="text-emerald-500/80 border-b border-slate-800/50 pb-1 last:border-0">{l}</div>
+                 ))}
+                 {logs.length === 0 && <span className="text-slate-600 italic">SYSTEM READY</span>}
+              </div>
+           </div>
+        </div>
+
+        {/* OUTPUT AREA - NOW WITH DEDICATED PLAYER */}
+        <div className="lg:col-span-8 h-full min-h-[600px] relative">
+           <SonicStudioPlayer assets={generatedAssets} />
+           
+           {/* LOADING OVERLAY */}
+           {isGenerating && (
+              <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center space-y-6 rounded-[32px]">
+                 <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+                 <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] animate-pulse">PROCESSING AUDIO WAVEFORMS...</p>
+              </div>
+           )}
+        </div>
+      </div>
+    </div>
+  );
+};

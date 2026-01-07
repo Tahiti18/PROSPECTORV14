@@ -17,6 +17,14 @@ const VALID_VEO_MODELS = [
 ];
 
 // --- TYPES ---
+export interface AudioMetadata {
+  sunoJobId?: string;
+  promptSignature?: string; // e.g., "Lo-fi Hip Hop • Chill"
+  duration?: number;        // seconds
+  isInstrumental?: boolean;
+  coverUrl?: string;
+}
+
 export interface AssetRecord {
   id: string;
   type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO';
@@ -25,6 +33,7 @@ export interface AssetRecord {
   module?: string;
   leadId?: string;
   timestamp: number;
+  metadata?: AudioMetadata;
 }
 
 export interface VeoConfig {
@@ -71,7 +80,14 @@ export const pushLog = (msg: string) => {
   console.log(`[SYSTEM] ${msg}`);
 };
 
-export const saveAsset = (type: AssetRecord['type'], title: string, data: string, module?: string, leadId?: string) => {
+export const saveAsset = (
+  type: AssetRecord['type'], 
+  title: string, 
+  data: string, 
+  module?: string, 
+  leadId?: string,
+  metadata?: AudioMetadata
+) => {
   const asset: AssetRecord = {
     id: uuidLike(),
     type,
@@ -79,7 +95,8 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
     data,
     module,
     leadId,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    metadata
   };
   SESSION_ASSETS.unshift(asset);
   notifyAssetListeners(); 
@@ -509,7 +526,11 @@ export const generateAudioPitch = async (script: string, voiceName: string, lead
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (base64Audio) {
        const url = `data:audio/wav;base64,${base64Audio}`;
-       saveAsset('AUDIO', `AUDIO_${Date.now()}`, url, 'SONIC_STUDIO', leadId); 
+       saveAsset('AUDIO', `AUDIO_${Date.now()}`, url, 'SONIC_STUDIO', leadId, {
+         duration: script.length / 15, // Approx duration logic
+         isInstrumental: false,
+         promptSignature: 'Spoken Pitch'
+       }); 
        return url; 
     }
     return null;

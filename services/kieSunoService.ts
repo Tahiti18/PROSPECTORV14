@@ -25,6 +25,14 @@ export interface SunoRequest {
   wait_audio: boolean;
 }
 
+export interface SunoClip {
+  id?: string;
+  url: string;
+  image_url?: string;
+  duration?: number;
+  title?: string;
+}
+
 // --- API CLIENT ---
 
 const headers = {
@@ -91,7 +99,7 @@ export const kieSunoService = {
   /**
    * 2. POLL STATUS (Exponential Backoff)
    */
-  pollTask: async (taskId: string): Promise<string[]> => {
+  pollTask: async (taskId: string): Promise<SunoClip[]> => {
     let attempts = 0;
     const maxAttempts = 30; // 30 attempts * ~5s avg = ~2.5 mins max wait
     
@@ -122,17 +130,28 @@ export const kieSunoService = {
         if (status === 'COMPLETED' || status === 'SUCCESS' || status === 'SUCCEEDED') {
            // Success!
            // KIE Suno usually returns array of objects in 'clips' or 'output'
-           let urls: string[] = [];
+           let clips: SunoClip[] = [];
            
-           if (Array.isArray(data.clips)) {
-               urls = data.clips.map((c: any) => c.audio_url || c.url).filter(Boolean);
-           } else if (Array.isArray(data.output)) {
-               urls = data.output.map((c: any) => c.audio_url || c.url).filter(Boolean);
+           const rawClips = data.clips || data.output || [];
+           
+           if (Array.isArray(rawClips)) {
+               clips = rawClips.map((c: any) => ({
+                   id: c.id,
+                   url: c.audio_url || c.url || c.video_url, // Prefer audio_url
+                   image_url: c.image_url || c.image_large_url,
+                   duration: c.duration,
+                   title: c.title
+               })).filter(c => c.url);
            } else if (data.audio_url) {
-               urls = [data.audio_url];
+               clips = [{
+                   id: data.id,
+                   url: data.audio_url,
+                   image_url: data.image_url,
+                   duration: data.duration
+               }];
            }
 
-           if (urls.length > 0) return urls;
+           if (clips.length > 0) return clips;
            
            // If completed but no URLs, it might be a silent failure or data issue
            throw new Error("Task Completed but no Audio URLs found in response.");
@@ -161,21 +180,34 @@ export const kieSunoService = {
     const job = await kieSunoService.generateMusic(prompt, instrumental);
     
     // 2. Poll
-    const audioUrls = await kieSunoService.pollTask(job.taskId!);
+    const clips = await kieSunoService.pollTask(job.taskId!);
     
+    // Extract signature from prompt (e.g. "Uplifting Electronic music...")
+    // We roughly take the first few words or split by comma
+    const signature = prompt.split(',')[0].trim().slice(0, 30);
+
     // 3. Save Assets
-    if (audioUrls && audioUrls.length > 0) {
-        audioUrls.forEach((url, i) => {
+    if (clips && clips.length > 0) {
+        clips.forEach((clip, i) => {
+            const displayTitle = clip.title || `SUNO_TRACK_${i+1}`;
+            
             saveAsset(
                 'AUDIO', 
-                `SUNO_TRACK_${i+1}: ${prompt.slice(0, 20)}...`, 
-                url, 
+                displayTitle, 
+                clip.url, 
                 'SONIC_STUDIO', 
-                leadId
+                leadId,
+                {
+                    sunoJobId: clip.id || job.taskId,
+                    promptSignature: signature,
+                    duration: clip.duration || 120, // Default 2 mins if unknown
+                    isInstrumental: instrumental,
+                    coverUrl: clip.image_url
+                }
             );
         });
-        toast.success(`Generated ${audioUrls.length} Music Tracks.`);
-        return audioUrls;
+        toast.success(`Generated ${clips.length} Music Tracks.`);
+        return clips.map(c => c.url);
     }
     
     return [];
