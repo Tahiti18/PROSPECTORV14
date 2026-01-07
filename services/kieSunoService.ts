@@ -55,13 +55,11 @@ export const kieSunoService = {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
-    const payload: SunoRequest = {
-      prompt,
-      make_instrumental: instrumental,
-      wait_audio: false,
-      ...(duration ? { duration } : {}),
-      ...(webhookUrl ? { webhook_url: webhookUrl } : {})
-    };
+    const payload = {
+  prompt: prompt,
+  make_instrumental: instrumental,
+  wait_audio: false
+};
 
     // Call local proxy with the CORRECTED endpoint
     const submitUrl = `${BASE_URL}/submit`;
