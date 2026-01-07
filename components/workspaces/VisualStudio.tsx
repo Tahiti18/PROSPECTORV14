@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
 import { generateVisual, saveAsset, generateVideoPayload } from '../../services/geminiService';
@@ -65,7 +66,8 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
     setIsGenerating(true);
     setGeneratedVideo(null); // Reset video if regenerating image
     try {
-      const base64Image = await generateVisual(prompt, lockedLead, mode === 'EDIT' ? uploadedImage || undefined : undefined);
+      // FIX: Ensure lockedLead is not undefined (pass empty object as fallback)
+      const base64Image = await generateVisual(prompt, lockedLead || {}, mode === 'EDIT' ? uploadedImage || undefined : undefined);
       if (base64Image) setGeneratedImage(base64Image);
     } catch (e) {
       console.error(e);

@@ -120,7 +120,10 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   };
 
   const handleWriteLyrics = async () => {
-    if (!lead) return;
+    if (!lead) {
+      toast.error("Please select a lead to generate lyrics.");
+      return;
+    }
     setIsWritingLyrics(true);
     try {
         const text = await generateLyrics(lead, musicPrompt, 'JINGLE');
@@ -130,6 +133,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
         toast.success("Lyricsmith: Script Generated & Copied to Voice Engine");
     } catch (e) {
         console.error(e);
+        toast.error("Failed to generate lyrics.");
     } finally {
         setIsWritingLyrics(false);
     }
@@ -157,7 +161,11 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   const handleGenerateCover = async () => {
     setIsGeneratingCover(true);
     try {
-        const url = await generateVisual(`Album cover for ${lead?.businessName}, ${musicPrompt}, minimal high design`, lead);
+        // FIX: Provide empty object fallback for lead to satisfy Partial<Lead> type
+        const url = await generateVisual(
+            `Album cover for ${lead?.businessName || 'Brand'}, ${musicPrompt}, minimal high design`, 
+            lead || {} 
+        );
         if (url) setCoverImage(url);
     } finally {
         setIsGeneratingCover(false);
@@ -263,10 +271,10 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                       <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">SONIC PROMPT</label>
                       <button 
                         onClick={handleMagicEnhance} 
-                        className="text-[9px] font-bold text-indigo-400 hover:text-white uppercase tracking-widest flex items-center gap-1 px-2 py-1 rounded hover:bg-indigo-900/30 transition-all"
+                        className="text-[9px] font-bold text-indigo-400 hover:text-white uppercase tracking-widest flex items-center gap-1 px-2 py-1 rounded hover:bg-indigo-900/30 transition-all border border-indigo-500/30"
                         title="Intelligently expand simple words into complex audio engineering prompts"
                       >
-                         <span>⚡</span> MAGIC WAND
+                         <span className="animate-pulse">⚡</span> MAGIC WAND
                       </button>
                    </div>
                    <textarea 
@@ -286,7 +294,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                            <button
                              key={d.val}
                              onClick={() => setTargetDuration(d)}
-                             className={`flex-1 py-2 text-[8px] font-black rounded transition-all ${targetDuration.val === d.val ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                             className={`flex-1 py-2 text-[8px] font-black rounded transition-all ${targetDuration.val === d.val ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                            >
                              {d.label.split(' ')[0]}
                            </button>
@@ -300,7 +308,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                            <button
                              key={fmt}
                              onClick={() => setExportFormat(fmt as any)}
-                             className={`flex-1 py-2 text-[8px] font-black rounded transition-all ${exportFormat === fmt ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                             className={`flex-1 py-2 text-[8px] font-black rounded transition-all ${exportFormat === fmt ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                            >
                              {fmt}
                            </button>
@@ -438,7 +446,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                    <button 
                      onClick={() => setIsPlayingMix(!isPlayingMix)}
                      disabled={!mixMusicId && !mixVoiceId}
-                     className="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group"
+                     className="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group border-4 border-slate-200 hover:border-white"
                    >
                       {isPlayingMix ? (
                         <svg className="w-8 h-8 group-hover:text-rose-500 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
