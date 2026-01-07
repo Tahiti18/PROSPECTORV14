@@ -5,14 +5,16 @@ import { AssetRecord, deleteAsset } from '../../services/geminiService';
 interface SonicStudioPlayerProps {
   assets: AssetRecord[];
   onSetCover?: (url: string) => void;
+  exportFormat?: 'MP3' | 'WAV';
 }
 
-export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, onSetCover }) => {
+export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, onSetCover, exportFormat = 'MP3' }) => {
   // State
   const [currentAssetIndex, setCurrentAssetIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  // Simulated Stems state
   const [activeStems, setActiveStems] = useState({ drums: true, bass: true, vocals: true, other: true });
 
   // Refs
@@ -94,10 +96,10 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
 
   const toggleStem = (stem: keyof typeof activeStems) => {
     setActiveStems(prev => ({ ...prev, [stem]: !prev[stem] }));
-    // Simulate audio change (volume dip)
+    // Simulate audio change (volume dip effect to fake stem toggling)
     if (audioRef.current) {
         audioRef.current.volume = 0.5; // Dip
-        setTimeout(() => { if (audioRef.current) audioRef.current.volume = 1.0; }, 300);
+        setTimeout(() => { if (audioRef.current) audioRef.current.volume = 1.0; }, 200);
     }
   };
 
@@ -144,16 +146,20 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                             )}
                         </div>
 
-                        {/* Freq Analyzer */}
-                        <div className="flex-1 h-32 bg-slate-950/50 rounded-2xl border border-slate-800 flex items-end justify-center gap-1 p-4 overflow-hidden relative">
-                            <div className="absolute top-2 left-2 text-[8px] font-black text-slate-600 uppercase tracking-widest">FREQ ANALYZER</div>
+                        {/* Frequency Analyzer (Simulated) */}
+                        <div className="flex-1 h-32 bg-slate-950/50 rounded-2xl border border-slate-800 flex items-end justify-center gap-1 p-4 overflow-hidden relative shadow-inner">
+                            <div className="absolute top-2 left-3 flex items-center gap-2">
+                                <div className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`}></div>
+                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">FREQ ANALYZER</span>
+                            </div>
+                            
                             {[...Array(40)].map((_, i) => (
                                 <div 
                                     key={i} 
-                                    className={`w-2 rounded-t-sm transition-all duration-75 ${isPlaying ? 'bg-emerald-500' : 'bg-slate-800'}`}
+                                    className={`w-2 rounded-t-sm transition-all duration-[50ms] ${isPlaying ? 'bg-gradient-to-t from-emerald-600 to-emerald-400' : 'bg-slate-800'}`}
                                     style={{ 
                                         height: isPlaying ? `${Math.random() * 80 + 10}%` : '5%',
-                                        opacity: i > 20 ? 0.6 : 1
+                                        opacity: isPlaying ? (i % 2 === 0 ? 1 : 0.8) : 0.3
                                     }}
                                 ></div>
                             ))}
@@ -192,17 +198,18 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                     </div>
                 </div>
 
-                {/* Controls based on Type */}
+                {/* Stem Separation UI (Simulated Pro UI) */}
                 {currentAsset?.type === 'AUDIO' ? (
-                    <div className="flex gap-2 justify-center">
+                    <div className="flex gap-3 justify-center items-center p-2 bg-slate-900/50 rounded-xl border border-slate-800/50 inline-flex">
+                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mr-2">STEMS</span>
                         {['DRUMS', 'BASS', 'VOCALS', 'OTHER'].map(stem => (
                             <button
                                 key={stem}
                                 onClick={() => toggleStem(stem.toLowerCase() as any)}
-                                className={`px-3 py-1 rounded text-[8px] font-black uppercase tracking-widest border transition-all ${
+                                className={`px-4 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all ${
                                     activeStems[stem.toLowerCase() as keyof typeof activeStems] 
-                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                                        : 'bg-slate-900 border-slate-800 text-slate-600 line-through'
+                                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]' 
+                                        : 'bg-slate-950 border-slate-800 text-slate-600 opacity-50 line-through decoration-slate-600'
                                 }`}
                             >
                                 {stem}
@@ -317,11 +324,12 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets, on
                        </button>
                        <a 
                          href={asset.data} 
-                         download={`ASSET_${i+1}.${asset.type === 'AUDIO' ? 'mp3' : 'png'}`}
+                         download={`ASSET_${i+1}.${asset.type === 'AUDIO' ? exportFormat.toLowerCase() : 'png'}`}
                          onClick={(e) => e.stopPropagation()}
-                         className="p-2 bg-black/60 hover:bg-emerald-600 text-white rounded-xl backdrop-blur-md transition-colors"
-                         title="Download"
+                         className="p-2 bg-black/60 hover:bg-emerald-600 text-white rounded-xl backdrop-blur-md transition-colors flex items-center gap-1"
+                         title={`Download ${exportFormat}`}
                        >
+                          <span className="text-[8px] font-black">{exportFormat}</span>
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                        </a>
                     </div>

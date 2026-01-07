@@ -35,10 +35,10 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   const [activeTab, setActiveTab] = useState<'MUSIC' | 'VOICE' | 'MIXER'>('MUSIC');
   const [musicPrompt, setMusicPrompt] = useState('');
   const [voiceText, setVoiceText] = useState('');
-  const [lyrics, setLyrics] = useState('');
   const [selectedVoice, setSelectedVoice] = useState('Kore');
   const [isInstrumental, setIsInstrumental] = useState(true);
   const [targetDuration, setTargetDuration] = useState(DURATIONS[1]);
+  const [exportFormat, setExportFormat] = useState<'MP3' | 'WAV'>('MP3');
   
   // Assets
   const [coverImage, setCoverImage] = useState<string | null>(null);
@@ -110,8 +110,9 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   // --- ACTIONS ---
 
   const handleMagicEnhance = () => {
-    const enhancers = ["high fidelity", "studio quality", "grammy award winning", "wide stereo", "warm analog warmth"];
+    const enhancers = ["high fidelity", "studio quality", "grammy award winning", "wide stereo", "warm analog warmth", "mixed and mastered"];
     setMusicPrompt(prev => `${prev}, ${enhancers.join(', ')}`);
+    toast.neural("PROMPT ENHANCED WITH AUDIO ENGINEERING TAGS");
   };
 
   const handlePresetSelect = (p: typeof PRESETS[0]) => {
@@ -123,10 +124,10 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     setIsWritingLyrics(true);
     try {
         const text = await generateLyrics(lead, musicPrompt, 'JINGLE');
-        setLyrics(text);
         setVoiceText(text); // Auto-copy to voice input
         setIsInstrumental(false); // Assume vocal track needed
         setActiveTab('VOICE'); // Switch to see lyrics
+        toast.success("Lyricsmith: Script Generated & Copied to Voice Engine");
     } catch (e) {
         console.error(e);
     } finally {
@@ -239,9 +240,9 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                    </div>
                 </div>
 
-                {/* Presets */}
+                {/* Industry Presets Rack */}
                 <div className="space-y-3">
-                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">SMART PRESETS</label>
+                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">INDUSTRY PRESETS</label>
                    <div className="grid grid-cols-3 gap-2">
                       {PRESETS.map(p => (
                         <button 
@@ -250,18 +251,22 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                           className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 p-3 rounded-xl flex flex-col items-center gap-1 transition-all group"
                         >
                            <span className="text-xl group-hover:scale-110 transition-transform">{p.icon}</span>
-                           <span className="text-[7px] font-bold text-slate-500 uppercase tracking-wide">{p.id}</span>
+                           <span className="text-[7px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-emerald-400">{p.id}</span>
                         </button>
                       ))}
                    </div>
                 </div>
 
-                {/* Prompt */}
+                {/* Prompt with Magic Wand */}
                 <div className="space-y-3">
-                   <div className="flex justify-between">
+                   <div className="flex justify-between items-center">
                       <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">SONIC PROMPT</label>
-                      <button onClick={handleMagicEnhance} className="text-[9px] font-bold text-indigo-400 hover:text-white uppercase tracking-widest flex items-center gap-1">
-                         <span>✨</span> ENHANCE
+                      <button 
+                        onClick={handleMagicEnhance} 
+                        className="text-[9px] font-bold text-indigo-400 hover:text-white uppercase tracking-widest flex items-center gap-1 px-2 py-1 rounded hover:bg-indigo-900/30 transition-all"
+                        title="Intelligently expand simple words into complex audio engineering prompts"
+                      >
+                         <span>⚡</span> MAGIC WAND
                       </button>
                    </div>
                    <textarea 
@@ -272,37 +277,50 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                    />
                 </div>
 
-                {/* Controls */}
+                {/* Duration & Hi-Fi Controls */}
                 <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-2">
                       <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">DURATION</label>
-                      <select 
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-bold text-white outline-none"
-                        onChange={(e) => setTargetDuration(DURATIONS.find(d => d.val === parseInt(e.target.value)) || DURATIONS[1])}
-                      >
-                         {DURATIONS.map(d => <option key={d.val} value={d.val}>{d.label}</option>)}
-                      </select>
+                      <div className="flex bg-slate-950 rounded-lg p-1 border border-slate-800">
+                         {DURATIONS.map(d => (
+                           <button
+                             key={d.val}
+                             onClick={() => setTargetDuration(d)}
+                             className={`flex-1 py-2 text-[8px] font-black rounded transition-all ${targetDuration.val === d.val ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                           >
+                             {d.label.split(' ')[0]}
+                           </button>
+                         ))}
+                      </div>
                    </div>
                    <div className="space-y-2">
-                      <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">MODE</label>
-                      <button 
-                        onClick={() => setIsInstrumental(!isInstrumental)}
-                        className={`w-full py-2 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${isInstrumental ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-indigo-600 border-indigo-500 text-white'}`}
-                      >
-                        {isInstrumental ? 'INSTRUMENTAL' : 'VOCAL TRACK'}
-                      </button>
+                      <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">HI-FI EXPORT</label>
+                      <div className="flex bg-slate-950 rounded-lg p-1 border border-slate-800">
+                         {['MP3', 'WAV'].map((fmt) => (
+                           <button
+                             key={fmt}
+                             onClick={() => setExportFormat(fmt as any)}
+                             className={`flex-1 py-2 text-[8px] font-black rounded transition-all ${exportFormat === fmt ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                           >
+                             {fmt}
+                           </button>
+                         ))}
+                      </div>
                    </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-800">
                    <div className="flex gap-4">
+                      {/* Lyricsmith Engine Trigger */}
                       <button 
                         onClick={handleWriteLyrics} 
                         disabled={isWritingLyrics}
-                        className="flex-1 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all"
+                        className="flex-1 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-1 group"
                       >
-                        {isWritingLyrics ? 'WRITING...' : 'WRITE LYRICS'}
+                        <span className="text-lg group-hover:scale-110 transition-transform">🎙️</span>
+                        <span>{isWritingLyrics ? 'WRITING...' : 'LYRICSMITH'}</span>
                       </button>
+                      
                       <button 
                         onClick={handleGenerateMusic}
                         disabled={isGeneratingMusic}
@@ -366,52 +384,66 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
              <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 shadow-2xl space-y-8 animate-in slide-in-from-left-4">
                 <div className="flex justify-between items-center mb-4">
                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">MULTI-TRACK MIXER</h3>
-                   <span className="text-[9px] font-bold text-rose-500 uppercase tracking-widest">LIVE PREVIEW</span>
+                   <span className="text-[9px] font-bold text-rose-500 uppercase tracking-widest animate-pulse">● LIVE PREVIEW</span>
                 </div>
 
-                {/* Track 1: Music */}
-                <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-4">
+                {/* Deck A: Music */}
+                <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-6 relative overflow-hidden">
+                   <div className="absolute top-0 left-0 h-full w-1 bg-emerald-500"></div>
                    <div className="flex justify-between items-center">
-                      <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">MUSIC TRACK</span>
+                      <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">DECK A: MUSIC</span>
                       <select 
-                        className="bg-slate-900 text-[9px] font-bold text-white border-none outline-none max-w-[150px] truncate"
+                        className="bg-slate-950 text-[9px] font-bold text-white border border-slate-800 rounded px-2 py-1 outline-none max-w-[150px] truncate"
                         onChange={(e) => setMixMusicId(e.target.value)}
                         value={mixMusicId || ''}
                       >
-                         <option value="">-- Select Track --</option>
+                         <option value="">-- Load Track --</option>
                          {generatedAssets.filter(a => a.metadata?.isInstrumental).map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
                       </select>
                    </div>
-                   <input type="range" min="0" max="1" step="0.1" value={musicVol} onChange={(e) => setMusicVol(parseFloat(e.target.value))} className="w-full accent-emerald-500" />
+                   <div className="space-y-2">
+                      <div className="flex justify-between text-[8px] font-black text-slate-500">
+                         <span>VOL</span>
+                         <span>{Math.round(musicVol * 100)}%</span>
+                      </div>
+                      <input type="range" min="0" max="1" step="0.01" value={musicVol} onChange={(e) => setMusicVol(parseFloat(e.target.value))} className="w-full accent-emerald-500 h-1 bg-slate-800 rounded-full appearance-none" />
+                   </div>
                 </div>
 
-                {/* Track 2: Voice */}
-                <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-4">
+                {/* Deck B: Voice */}
+                <div className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 space-y-6 relative overflow-hidden">
+                   <div className="absolute top-0 left-0 h-full w-1 bg-indigo-500"></div>
                    <div className="flex justify-between items-center">
-                      <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">VOICE TRACK</span>
+                      <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">DECK B: VOICE</span>
                       <select 
-                        className="bg-slate-900 text-[9px] font-bold text-white border-none outline-none max-w-[150px] truncate"
+                        className="bg-slate-950 text-[9px] font-bold text-white border border-slate-800 rounded px-2 py-1 outline-none max-w-[150px] truncate"
                         onChange={(e) => setMixVoiceId(e.target.value)}
                         value={mixVoiceId || ''}
                       >
-                         <option value="">-- Select Voice --</option>
+                         <option value="">-- Load Voice --</option>
                          {generatedAssets.filter(a => !a.metadata?.isInstrumental).map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
                       </select>
                    </div>
-                   <input type="range" min="0" max="1" step="0.1" value={voiceVol} onChange={(e) => setVoiceVol(parseFloat(e.target.value))} className="w-full accent-indigo-500" />
+                   <div className="space-y-2">
+                      <div className="flex justify-between text-[8px] font-black text-slate-500">
+                         <span>VOL</span>
+                         <span>{Math.round(voiceVol * 100)}%</span>
+                      </div>
+                      <input type="range" min="0" max="1" step="0.01" value={voiceVol} onChange={(e) => setVoiceVol(parseFloat(e.target.value))} className="w-full accent-indigo-500 h-1 bg-slate-800 rounded-full appearance-none" />
+                   </div>
                 </div>
 
-                {/* Transport */}
+                {/* Master Transport */}
                 <div className="pt-4 flex justify-center">
                    <button 
                      onClick={() => setIsPlayingMix(!isPlayingMix)}
                      disabled={!mixMusicId && !mixVoiceId}
-                     className="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50"
+                     className="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed group"
                    >
                       {isPlayingMix ? (
-                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <svg className="w-8 h-8 group-hover:text-rose-500 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                       ) : (
-                        <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <svg className="w-8 h-8 ml-1 group-hover:text-emerald-600 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                       )}
                    </button>
                 </div>
@@ -431,6 +463,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                setCoverImage(url);
                toast.success("Cover Art Selected for Next Generation");
              }}
+             exportFormat={exportFormat}
            />
         </div>
       </div>
