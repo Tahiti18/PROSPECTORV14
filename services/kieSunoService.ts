@@ -37,7 +37,11 @@ export interface SunoClip {
 // --- API CLIENT ---
 
 const log = (msg: string, data?: any) => {
-  console.log(`[KIE_SUNO] ${msg}`, data || '');
+  if (data) {
+      console.log(`[KIE_SUNO] ${msg}`, data);
+  } else {
+      console.log(`[KIE_SUNO] ${msg}`);
+  }
 };
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -72,16 +76,18 @@ export const kieSunoService = {
         body: JSON.stringify(payload)
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const errText = await res.text();
-        log(`Error Raw Response: ${errText}`);
-        throw new Error(`Proxy Error (${res.status}): ${errText}`);
+        log(`Error Response Body:`, data);
+        const errMsg = data.error || (data.raw ? `Raw: ${data.raw}` : 'Unknown Proxy Error');
+        throw new Error(`Proxy Error (${res.status}): ${errMsg}`);
       }
 
-      const data = await res.json();
       const taskId = data.id || data.task_id;
 
       if (!taskId) {
+        log("Missing Task ID in Response:", data);
         throw new Error("KIE response missing 'id' or 'task_id'");
       }
 
@@ -124,20 +130,23 @@ export const kieSunoService = {
         const statusUrl = `${BASE_URL}/status/${taskId}`;
         const res = await fetch(statusUrl);
         
+        const data = await res.json();
+
         if (res.status === 404) {
-            console.warn(`[KIE_SUNO] Task ${taskId} not found at proxy. Retrying...`);
+            console.warn(`[KIE_SUNO] Task ${taskId} not found at proxy (404). Raw response:`, data);
+            // Don't continue forever if we get a persistent 404
+            if (attempts > 5) throw new Error("Task Not Found (404) persistently.");
             continue;
         }
 
         if (!res.ok) {
-            const err = await res.text();
-            throw new Error(`Status Check Failed: ${res.status} ${err}`);
+            const errMsg = data.error || (data.raw ? `Raw: ${data.raw}` : 'Unknown Error');
+            throw new Error(`Status Check Failed (${res.status}): ${errMsg}`);
         }
 
-        const data = await res.json();
         const status = (data.status || data.state || '').toUpperCase();
         
-        log(`Poll ${taskId} [${attempts}]: ${status}`);
+        log(`Poll ${taskId} [${attempts}]: ${status}`, data);
 
         if (['COMPLETED', 'SUCCESS', 'SUCCEEDED'].includes(status)) {
            return kieSunoService.parseClips(data);
@@ -150,6 +159,7 @@ export const kieSunoService = {
       } catch (e: any) {
         console.warn(`[KIE_SUNO] Polling error:`, e.message);
         if (e.message.includes("401") || e.message.includes("403")) throw e;
+        if (e.message.includes("404")) throw e; // Fail fast on 404 now that we have debug logging
       }
     }
 
