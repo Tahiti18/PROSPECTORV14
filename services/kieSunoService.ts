@@ -56,14 +56,18 @@ export const kieSunoService = {
     log(`Initializing Job ${jobId}`);
 
     // Strict payload structure as requested
-    const payload = {
+    const payload: SunoRequest = {
       prompt,
       make_instrumental: instrumental,
-      wait_audio: false
+      wait_audio: false,
+      ...(webhookUrl ? { webhook_url: webhookUrl } : {})
     };
 
+    const submitUrl = `${BASE_URL}/submit`;
+    log(`Posting to: ${submitUrl}`);
+
     try {
-      const res = await fetch(`${BASE_URL}/submit`, {
+      const res = await fetch(submitUrl, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(payload)
@@ -71,6 +75,7 @@ export const kieSunoService = {
 
       if (!res.ok) {
         const errText = await res.text();
+        log(`Error Raw Response: ${errText}`);
         throw new Error(`KIE API Error (${res.status}): ${errText}`);
       }
 
