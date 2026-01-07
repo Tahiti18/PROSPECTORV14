@@ -4,6 +4,7 @@ import { Lead } from '../../types';
 import { generateAudioPitch, generateLyrics, SESSION_ASSETS, subscribeToAssets, generateVisual, AssetRecord } from '../../services/geminiService';
 import { kieSunoService } from '../../services/kieSunoService';
 import { SonicStudioPlayer } from './SonicStudioPlayer';
+import { toast } from '../../services/toastManager';
 
 interface SonicStudioProps {
   lead?: Lead;
@@ -64,10 +65,20 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   // --- INITIALIZATION ---
 
   useEffect(() => {
-    // Load assets
-    const initial = SESSION_ASSETS.filter(a => a.type === 'AUDIO');
-    setGeneratedAssets(initial);
-    const unsub = subscribeToAssets((all) => setGeneratedAssets(all.filter(a => a.type === 'AUDIO')));
+    // Filter for Audio AND Images relevant to this lead (or global if no lead)
+    const filterAssets = (all: AssetRecord[]) => {
+        return all.filter(a => {
+            const isTypeMatch = a.type === 'AUDIO' || a.type === 'IMAGE';
+            const isLeadMatch = lead ? a.leadId === lead.id : true;
+            return isTypeMatch && isLeadMatch;
+        });
+    };
+
+    setGeneratedAssets(filterAssets(SESSION_ASSETS));
+    
+    const unsub = subscribeToAssets((all) => {
+        setGeneratedAssets(filterAssets(all));
+    });
     
     // Default Prompts
     if (lead) {
@@ -414,7 +425,13 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
 
         {/* --- RIGHT: GALLERY & VISUALIZER --- */}
         <div className="xl:col-span-8 h-full min-h-[700px]">
-           <SonicStudioPlayer assets={generatedAssets} />
+           <SonicStudioPlayer 
+             assets={generatedAssets} 
+             onSetCover={(url) => {
+               setCoverImage(url);
+               toast.success("Cover Art Selected for Next Generation");
+             }}
+           />
         </div>
       </div>
     </div>
