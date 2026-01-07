@@ -32,7 +32,8 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
     // Secure Key Management (Server-Side Only)
     // In production, this pulls from process.env. In dev, it falls back or uses .env
     const KIE_KEY = process.env.KIE_KEY || env.KIE_KEY || '302d700cb3e9e3dcc2ad9d94d5059279';
-    // FIXED: Standard KIE API path usually does not have double /api/ prefix
+    
+    // FIXED: Removed extra '/api' segment to match standard KIE endpoints
     const KIE_BASE = 'https://api.kie.ai/v1/suno';
 
     // Helper to read request body
