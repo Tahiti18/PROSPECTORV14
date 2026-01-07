@@ -64,7 +64,7 @@ export const kieSunoService = {
     };
 
     // Call local proxy with the CORRECTED endpoint
-    const submitUrl = `${BASE_URL}/suno_submit`;
+    const submitUrl = `${BASE_URL}/submit`;
     log(`Posting to Proxy: ${submitUrl}`);
 
     try {
