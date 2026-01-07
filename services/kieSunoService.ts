@@ -58,14 +58,13 @@ export const kieSunoService = {
     const payload: SunoRequest = {
       prompt,
       make_instrumental: instrumental,
-      wait_audio: false,
-      ...(webhookUrl ? { webhook_url: webhookUrl } : {})
+      wait_audio: false
     };
 
     try {
-      const res = await fetch(`${BASE_URL}/submit-track`, {
+      const res = await fetch(`${BASE_URL}/submit`, {
         method: 'POST',
-        headers,
+        headers: headers,
         body: JSON.stringify(payload)
       });
 
