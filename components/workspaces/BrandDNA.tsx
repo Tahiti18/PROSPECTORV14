@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Lead, CreativeAsset, Campaign } from '../../types';
-import { extractBrandDNA, generateVisual, saveAsset, generateVideoPayload } from '../../services/geminiService';
+import { Lead, CreativeAsset, Campaign, BrandIdentity } from '../../types';
+import { extractBrandDNA, generateVisual, saveAsset, generateVideoPayload, loggedGenerateContent, getAI } from '../../services/geminiService';
 import { toast } from '../../services/toastManager';
 
 interface BrandDNAProps {
@@ -9,43 +9,53 @@ interface BrandDNAProps {
   onUpdateLead?: (id: string, updates: Partial<Lead>) => void;
 }
 
-type ViewMode = 'IDLE' | 'SCANNING' | 'DASHBOARD' | 'CAMPAIGN' | 'EDITOR';
+// UI Modes matching the Pomelli flow
+type ViewMode = 'IDLE' | 'SCANNING' | 'DASHBOARD' | 'STRATEGY_SELECT' | 'CAMPAIGN' | 'EDITOR';
 
-const CREATIVE_ANGLES = [
-  { id: 'PURIST', label: 'THE PURIST', desc: 'Minimalist product focus', prompt: 'Minimalist luxury product shot, clean background, soft lighting, 8k resolution' },
-  { id: 'STORY', label: 'THE STORY', desc: 'Lifestyle context', prompt: 'Lifestyle context, model using the product, warm lighting, emotional connection' },
-  { id: 'VALUE', label: 'THE VALUE', desc: 'Offer driven', prompt: 'Bold typographic layout, solid color background, high contrast, professional ad' },
-  { id: 'ABSTRACT', label: 'THE ABSTRACT', desc: 'Brand texture', prompt: 'Abstract texture background, brand pattern, artistic, cinematic lighting' }
-];
+interface CampaignConcept {
+  id: string;
+  title: string;
+  hook: string;
+  visualDirection: string;
+}
 
 export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
   // --- STATE ---
   const [view, setView] = useState<ViewMode>('IDLE');
   const [targetUrl, setTargetUrl] = useState(lead?.websiteUrl || '');
   
-  // Scanning State
-  const [scanStep, setScanStep] = useState(0);
-  const SCAN_STEPS = ["Analyzing visual hierarchy...", "Extracting color hex codes...", "Identifying typography...", "Writing brand tagline...", "Compiling DNA Matrix..."];
-
-  // Campaign State
-  const [campaignPrompt, setCampaignPrompt] = useState("");
-  const [activeCampaign, setActiveCampaign] = useState<Campaign | null>(null);
-  const [isGeneratingCampaign, setIsGeneratingCampaign] = useState(false);
-  
-  // Editor State
-  const [activeAssetId, setActiveAssetId] = useState<string | null>(null);
-  const [animatingAssetId, setAnimatingAssetId] = useState<string | null>(null);
-
   // Data State
   const [adHocLead, setAdHocLead] = useState<Partial<Lead>>({
     id: 'temp-adhoc',
-    businessName: 'AD-HOC TARGET',
+    businessName: 'TARGET BRAND',
     niche: 'Unclassified',
     brandIdentity: undefined
   });
 
   const activeEntity = lead || adHocLead as Lead;
   const activeIdentity = activeEntity.brandIdentity;
+
+  // Flow State
+  const [concepts, setConcepts] = useState<CampaignConcept[]>([]);
+  const [selectedConcept, setSelectedConcept] = useState<CampaignConcept | null>(null);
+  const [activeCampaign, setActiveCampaign] = useState<Campaign | null>(null);
+  
+  // Loading States
+  const [scanStep, setScanStep] = useState(0);
+  const [isGeneratingConcepts, setIsGeneratingConcepts] = useState(false);
+  const [isGeneratingCreatives, setIsGeneratingCreatives] = useState(false);
+  
+  // Editor
+  const [activeAssetId, setActiveAssetId] = useState<string | null>(null);
+  const [animatingAssetId, setAnimatingAssetId] = useState<string | null>(null);
+
+  const SCAN_STEPS = [
+    "Establishing uplink to visual cortex...",
+    "Extracting typographic hierarchy...",
+    "Sampling chromatic values...",
+    "Analyzing brand archetype...",
+    "Compiling DNA Matrix..."
+  ];
 
   useEffect(() => {
     if (activeIdentity) {
@@ -59,14 +69,13 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
     if (!targetUrl.trim()) return;
     
     let safeUrl = targetUrl.trim();
-    if (!/^https?:\/\//i.test(safeUrl)) {
-        safeUrl = `https://${safeUrl}`;
-    }
+    if (!/^https?:\/\//i.test(safeUrl)) safeUrl = `https://${safeUrl}`;
     setTargetUrl(safeUrl); 
 
     setView('SCANNING');
     setScanStep(0);
 
+    // Simulated scanning progress
     const interval = setInterval(() => {
         setScanStep(prev => (prev < SCAN_STEPS.length - 1 ? prev + 1 : prev));
     }, 1500);
@@ -86,97 +95,132 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
     } catch (e) {
       clearInterval(interval);
       console.error("Extraction Failed:", e);
+      toast.error("Extraction failed. Please try again.");
       setView('IDLE');
     }
   };
 
-  const handleGenerateCampaign = async () => {
-    if (!campaignPrompt) return;
-    setIsGeneratingCampaign(true);
-    
-    // We will generate 4 distinct assets based on angles
-    const newAssets: CreativeAsset[] = [];
-    const timestamp = Date.now();
-
+  const generateConcepts = async () => {
+    setIsGeneratingConcepts(true);
     try {
-        // Parallel generation for speed in this demo context
-        // In prod, maybe sequential or batched to manage rate limits
-        const promises = CREATIVE_ANGLES.map(async (angle, idx) => {
-            // Incorporate extracted colors into prompt
-            const brandColors = activeIdentity?.colors?.join(', ') || '';
-            const basePrompt = `Vertical 9:16 social media background for ${activeEntity.businessName}, ${angle.prompt}. Context: ${campaignPrompt}. Brand colors: ${brandColors}. Style: ${activeIdentity?.visualTone || 'Luxury'}.`;
+        const ai = getAI();
+        const prompt = `
+            Analyze the brand "${activeEntity.businessName}" (${activeIdentity?.visualTone}).
+            Generate 3 distinct, high-end social media campaign concepts.
             
-            // Try to use an extracted image as a base if available for the 'Purist' angle
-            let baseImage = undefined;
-            if (angle.id === 'PURIST' && activeIdentity?.extractedImages?.[0]) {
-                // If we had a proxy to convert URL to base64 we'd use it here.
-                // For now, we rely on text-to-image to simulate the composition.
-            }
-
-            const img = await generateVisual(basePrompt, activeEntity);
-            
-            if (img) {
-                return {
-                    id: `creative-${timestamp}-${idx}`,
-                    type: 'static',
-                    angle: angle.id,
-                    imageUrl: img,
-                    headline: idx === 0 ? "TIMELESS." : idx === 1 ? "PURE ELEGANCE." : idx === 2 ? "A LEGACY REBORN." : "THE FUTURE.",
-                    subhead: activeIdentity?.tagline || "Discover the collection.",
-                    cta: "SHOP NOW",
-                    status: 'ready'
-                } as CreativeAsset;
-            }
-            return null;
+            Return JSON:
+            [
+                { 
+                    "title": "Campaign Title (e.g. A Love That Endures)", 
+                    "hook": "Emotional or logical hook description", 
+                    "visualDirection": "Specific visual style instructions for this campaign" 
+                }
+            ]
+        `;
+        
+        const response = await loggedGenerateContent({
+            ai, module: 'BRAND_DNA', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+            contents: prompt,
+            config: { responseMimeType: 'application/json' }
         });
 
-        const results = await Promise.all(promises);
-        const validAssets = results.filter(Boolean) as CreativeAsset[];
-        
-        const newCampaign: Campaign = {
-            id: `camp-${timestamp}`,
-            name: campaignPrompt,
-            timestamp,
-            creatives: validAssets
-        };
-
-        setActiveCampaign(newCampaign);
-        setView('CAMPAIGN');
-
-        // Save to lead history if possible
-        if (lead && onUpdateLead) {
-            const currentCampaigns = lead.campaigns || [];
-            onUpdateLead(lead.id, { campaigns: [newCampaign, ...currentCampaigns] });
-        }
+        const parsed = JSON.parse(response);
+        const newConcepts = parsed.map((c: any, i: number) => ({ ...c, id: `concept-${i}` }));
+        setConcepts(newConcepts);
+        setView('STRATEGY_SELECT');
 
     } catch (e) {
         console.error(e);
-        toast.error("Campaign Generation Failed");
+        toast.error("Failed to generate concepts.");
     } finally {
-        setIsGeneratingCampaign(false);
+        setIsGeneratingConcepts(false);
     }
+  };
+
+  const handleSelectConcept = async (concept: CampaignConcept) => {
+      setSelectedConcept(concept);
+      setIsGeneratingCreatives(true);
+      setView('CAMPAIGN'); // Move to campaign view, show loading state
+
+      const timestamp = Date.now();
+      const angles = ['STORY', 'PRODUCT', 'LIFESTYLE', 'ABSTRACT'];
+      
+      try {
+          // Generate 4 assets in parallel based on the selected concept
+          const promises = angles.map(async (angle, idx) => {
+              const prompt = `
+                  Create a vertical (9:16) social media image for "${activeEntity.businessName}".
+                  Campaign Theme: "${concept.title}".
+                  Visual Direction: ${concept.visualDirection}.
+                  Angle: ${angle}.
+                  Brand Colors: ${activeIdentity?.colors.join(', ')}.
+                  Style: High-end, photorealistic, ${activeIdentity?.visualTone}.
+              `;
+              
+              const imgUrl = await generateVisual(prompt, activeEntity);
+              
+              return {
+                  id: `creative-${timestamp}-${idx}`,
+                  type: 'static',
+                  angle: angle,
+                  imageUrl: imgUrl,
+                  headline: idx === 0 ? concept.title : (idx === 1 ? "Discover." : (idx === 2 ? "The New Standard." : activeEntity.businessName)),
+                  subhead: concept.hook.slice(0, 40) + "...",
+                  cta: "Shop Now",
+                  status: 'ready'
+              } as CreativeAsset;
+          });
+
+          const results = await Promise.all(promises);
+          const validAssets = results.filter(r => r.imageUrl) as CreativeAsset[];
+
+          const newCampaign: Campaign = {
+              id: `camp-${timestamp}`,
+              name: concept.title,
+              timestamp,
+              creatives: validAssets
+          };
+
+          setActiveCampaign(newCampaign);
+          
+          if (lead && onUpdateLead) {
+              const current = lead.campaigns || [];
+              onUpdateLead(lead.id, { campaigns: [newCampaign, ...current] });
+          }
+
+      } catch (e) {
+          console.error(e);
+          toast.error("Asset generation failed.");
+      } finally {
+          setIsGeneratingCreatives(false);
+      }
+  };
+
+  const handleSaveAssetToVault = (asset: CreativeAsset) => {
+      saveAsset(
+          asset.type === 'motion' ? 'VIDEO' : 'IMAGE',
+          `${asset.headline} - ${asset.angle}`,
+          asset.type === 'motion' && asset.videoUrl ? asset.videoUrl : asset.imageUrl,
+          'BRAND_DNA',
+          activeEntity.id
+      );
   };
 
   const handleAnimateAsset = async (asset: CreativeAsset) => {
       setAnimatingAssetId(asset.id);
       try {
           const videoUrl = await generateVideoPayload(
-              `Cinematic slow motion animation of ${asset.angle.toLowerCase()} commercial, ${activeIdentity?.visualTone}`, 
+              `Cinematic slow motion animation of ${asset.angle} shot, ${activeIdentity?.visualTone}, ${selectedConcept?.visualDirection}`, 
               activeEntity.id, 
-              asset.imageUrl // Base64
+              asset.imageUrl 
           );
           
           if (videoUrl && activeCampaign) {
               const updatedCreatives = activeCampaign.creatives.map(c => 
                   c.id === asset.id ? { ...c, type: 'motion', videoUrl: videoUrl } : c
               );
-              const updatedCampaign = { ...activeCampaign, creatives: updatedCreatives as CreativeAsset[] }; // cast needed due to type narrowing
-              setActiveCampaign(updatedCampaign);
-              
-              if (lead && onUpdateLead) {
-                  const others = (lead.campaigns || []).filter(c => c.id !== activeCampaign.id);
-                  onUpdateLead(lead.id, { campaigns: [updatedCampaign, ...others] });
-              }
+              // @ts-ignore
+              setActiveCampaign(prev => ({ ...prev!, creatives: updatedCreatives }));
           }
       } catch (e) {
           console.error(e);
@@ -185,337 +229,254 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
       }
   };
 
-  const handleSaveAssetToVault = (asset: CreativeAsset) => {
-      const content = asset.type === 'motion' && asset.videoUrl ? asset.videoUrl : asset.imageUrl;
-      const type = asset.type === 'motion' ? 'VIDEO' : 'IMAGE';
-      saveAsset(type, `CAMPAIGN_${asset.headline}`, content, 'BRAND_DNA', activeEntity.id);
-  };
-
   // --- RENDERERS ---
 
-  // 1. SCANNING UI
+  if (view === 'IDLE') {
+    return (
+        <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 bg-[#0b0c0f]">
+            <div className="max-w-2xl w-full text-center space-y-12 animate-in fade-in duration-700">
+                <div className="space-y-6">
+                    <span className="text-6xl animate-pulse">🧬</span>
+                    <h1 className="text-6xl font-serif text-[#e2e2e2] italic tracking-tight">Welcome to Pomelli</h1>
+                    <p className="text-sm text-slate-400 font-medium uppercase tracking-[0.2em]">
+                        Easily generate on-brand social media campaigns.
+                    </p>
+                </div>
+
+                <div className="relative group max-w-lg mx-auto">
+                    <input 
+                        value={targetUrl}
+                        onChange={(e) => setTargetUrl(e.target.value)}
+                        placeholder="https://yourbrand.com"
+                        className="w-full bg-[#1a1a1a] border border-slate-800 text-[#e2e2e2] px-8 py-6 rounded-full text-center text-sm font-medium focus:outline-none focus:border-[#d4ff5f] transition-all shadow-2xl"
+                    />
+                    <button 
+                        onClick={handleExtract}
+                        className="mt-8 bg-[#d4ff5f] hover:bg-[#b8e645] text-black px-10 py-4 rounded-full text-xs font-black uppercase tracking-[0.1em] transition-transform active:scale-95 shadow-[0_0_20px_rgba(212,255,95,0.3)]"
+                    >
+                        Generate Business DNA
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+  }
+
   if (view === 'SCANNING') {
-    return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 bg-[#020617]">
-         <div className="relative w-full max-w-md bg-[#0b1021] border border-slate-800 rounded-[32px] p-10 overflow-hidden shadow-2xl">
-            <div className="absolute inset-0 bg-emerald-500/10 blur-[60px] animate-pulse"></div>
-            <div className="absolute inset-0 border-2 border-emerald-500/30 rounded-[32px] animate-pulse"></div>
-            <div className="relative z-10 flex flex-col items-center text-center space-y-8">
-               <div className="space-y-4">
-                  <h2 className="text-3xl font-serif text-white italic">Generating your Business DNA</h2>
-                  <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-xs mx-auto">
-                     We're researching and analyzing your business. <br/>It will take a few moments.
-                  </p>
-               </div>
-               <div className="w-full bg-[#05091a] border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-center gap-3 shadow-inner">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
-                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{SCAN_STEPS[scanStep]}</span>
-               </div>
-               <div className="w-full space-y-4">
-                  <div className="aspect-video rounded-xl bg-black overflow-hidden relative border border-slate-800">
-                     <iframe src={targetUrl} className="w-full h-full opacity-50 scale-150 pointer-events-none" />
-                     <div className="absolute inset-0 bg-gradient-to-t from-[#0b1021] to-transparent"></div>
-                     <div className="absolute bottom-4 left-0 right-0 text-center">
-                        <span className="text-[9px] font-black text-white bg-black/50 px-3 py-1 rounded-full border border-white/10 uppercase tracking-widest">
-                           {activeEntity.businessName || 'TARGET SITE'}
-                        </span>
-                     </div>
-                  </div>
-               </div>
-            </div>
-         </div>
-      </div>
-    );
-  }
-
-  // 2. DASHBOARD UI
-  if (view === 'DASHBOARD' && activeIdentity) {
-    return (
-      <div className="max-w-[1600px] mx-auto py-8 px-6 space-y-10 animate-in fade-in zoom-in-95 duration-700">
-         <div className="flex items-center gap-4 mb-8">
-            <button onClick={() => setView('IDLE')} className="px-4 py-2 rounded-full border border-slate-700 text-[10px] font-bold text-slate-400 hover:text-white transition-colors">← BACK</button>
-            <div className="h-px flex-1 bg-slate-800"></div>
-         </div>
-
-         <div className="text-center space-y-2">
-            <span className="text-2xl mb-2 block">🧬</span>
-            <h1 className="text-5xl font-serif text-white italic">Your Business DNA</h1>
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-[0.2em]">Snapshot of {activeEntity.businessName}</p>
-         </div>
-
-         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-8 bg-[#1a1a1a] rounded-[48px] border border-slate-800 shadow-2xl">
-            {/* Identity Card */}
-            <div className="md:col-span-6 bg-[#252525] rounded-[32px] p-10 flex flex-col justify-between min-h-[300px] relative overflow-hidden group">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[50px]"></div>
-               <div>
-                  <h2 className="text-4xl font-serif text-white">{activeEntity.businessName}</h2>
-                  <a href={targetUrl} target="_blank" className="text-[10px] text-emerald-400 hover:text-emerald-300 font-mono mt-2 block flex items-center gap-1">
-                     🔗 {new URL(targetUrl || 'https://google.com').hostname}
-                  </a>
-               </div>
-               <div className="mt-8">
-                  <p className="text-lg text-slate-300 font-serif italic leading-relaxed">"{activeIdentity.tagline}"</p>
-               </div>
-            </div>
-
-            {/* Typography */}
-            <div className="md:col-span-3 bg-[#e8e8e3] rounded-[32px] p-8 flex flex-col items-center justify-center text-center text-[#1a1a1a]">
-               <span className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-60">Typography</span>
-               <span className="text-7xl font-serif mb-2">Aa</span>
-               <span className="text-xs font-bold uppercase tracking-wide">{activeIdentity.fontPairing?.split('/')[0] || 'Serif'}</span>
-            </div>
-
-            {/* Color Palette */}
-            <div className="md:col-span-3 bg-[#252525] rounded-[32px] p-8 flex flex-col justify-center">
-               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-6 text-center">PALETTE</span>
-               <div className="flex flex-wrap justify-center gap-3">
-                  {activeIdentity.colors?.slice(0, 5).map((c, i) => (
-                     <div key={i} className="group relative">
-                        <div className="w-10 h-10 rounded-full border border-white/10 shadow-lg cursor-pointer" style={{ backgroundColor: c }}></div>
-                        <span className="absolute top-full mt-2 left-1/2 -translate-x-1/2 text-[8px] font-mono text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity bg-black px-1 rounded">{c}</span>
-                     </div>
-                  ))}
-               </div>
-            </div>
-
-            {/* Extracted Assets Grid */}
-            <div className="md:col-span-12">
-               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 ml-2">DETECTED ASSETS</h3>
-               <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                  {activeIdentity.extractedImages?.map((img, i) => (
-                     <div key={i} className="aspect-square bg-black rounded-2xl overflow-hidden relative group border border-slate-800 hover:border-emerald-500 transition-colors cursor-pointer">
-                        <img src={img} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute top-2 right-2 w-4 h-4 bg-emerald-500 rounded-full border-2 border-black flex items-center justify-center shadow-lg">
-                           <span className="text-[8px] text-black font-bold">✓</span>
+      return (
+        <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 bg-[#0b0c0f]">
+            <div className="relative w-full max-w-md bg-[#161616] rounded-[32px] p-12 text-center shadow-2xl border border-slate-800/50">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#d4ff5f]/5 to-transparent rounded-[32px] pointer-events-none"></div>
+                <div className="space-y-8 relative z-10">
+                    <h2 className="text-3xl font-serif text-[#e2e2e2] italic">Generating your Business DNA</h2>
+                    <p className="text-xs text-slate-400 font-medium leading-relaxed max-w-xs mx-auto">
+                        We're researching and analyzing your business.<br/>
+                        It will take several minutes. Feel free to come back later.
+                    </p>
+                    
+                    <div className="flex justify-center py-8">
+                        <div className="relative">
+                            <div className="w-16 h-16 border-2 border-slate-800 rounded-full animate-[spin_3s_linear_infinite]"></div>
+                            <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-[#d4ff5f] rounded-full animate-[spin_1.5s_linear_infinite]"></div>
                         </div>
-                     </div>
-                  ))}
-                  {(!activeIdentity.extractedImages || activeIdentity.extractedImages.length === 0) && (
-                     <div className="col-span-6 bg-[#252525] rounded-2xl p-8 text-center text-slate-500 text-xs font-bold uppercase tracking-widest">
-                        No assets detected via generic scan.
-                     </div>
-                  )}
-               </div>
+                    </div>
+
+                    <div className="inline-flex items-center gap-3 px-6 py-3 bg-[#1a1a1a] rounded-full border border-slate-800">
+                        <span className="text-[#d4ff5f] text-lg">✨</span>
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{SCAN_STEPS[scanStep]}</span>
+                    </div>
+                </div>
             </div>
-         </div>
-
-         {/* Campaign Trigger */}
-         <div className="flex justify-end">
-            <button 
-               onClick={() => setView('CAMPAIGN')}
-               className="bg-[#d4ff5f] hover:bg-[#b8e645] text-black px-8 py-4 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all shadow-xl hover:shadow-[#d4ff5f]/20 active:scale-95"
-            >
-               Create Campaign →
-            </button>
-         </div>
-      </div>
-    );
+        </div>
+      );
   }
 
-  // 3. CAMPAIGN / EDITOR UI
+  if (view === 'DASHBOARD' && activeIdentity) {
+      return (
+          <div className="max-w-[1400px] mx-auto py-12 px-6 space-y-12 animate-in fade-in zoom-in-95 duration-700 bg-[#0b0c0f] min-h-screen">
+              <div className="text-center space-y-4">
+                  <span className="text-3xl">🧬</span>
+                  <h1 className="text-5xl font-serif text-[#e2e2e2] italic">Your Business DNA</h1>
+                  <p className="text-xs text-slate-500 font-medium uppercase tracking-[0.2em]">Snapshot of {activeEntity.businessName}</p>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Left Column: Identity Info */}
+                  <div className="lg:col-span-5 space-y-6">
+                      {/* Identity Card */}
+                      <div className="bg-[#1a1a1a] rounded-[32px] p-10 border border-slate-800 flex flex-col justify-between min-h-[300px] relative overflow-hidden">
+                          <div className="relative z-10">
+                              <h2 className="text-4xl font-serif text-white mb-2">{activeEntity.businessName}</h2>
+                              <a href={targetUrl} target="_blank" className="text-[10px] text-[#d4ff5f] font-mono hover:underline flex items-center gap-2">
+                                  🔗 {new URL(targetUrl || 'https://google.com').hostname}
+                              </a>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 mt-8">
+                              <div className="bg-[#222] p-6 rounded-[24px]">
+                                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4 block">COLORS</span>
+                                  <div className="flex -space-x-2">
+                                      {activeIdentity.colors.slice(0,4).map((c, i) => (
+                                          <div key={i} className="w-10 h-10 rounded-full border-2 border-[#222]" style={{ backgroundColor: c }}></div>
+                                      ))}
+                                  </div>
+                              </div>
+                              <div className="bg-[#e8e8e3] p-6 rounded-[24px] text-black flex flex-col justify-center items-center text-center">
+                                  <span className="text-[9px] font-black opacity-50 uppercase tracking-widest mb-1">FONT</span>
+                                  <span className="text-3xl font-serif">Aa</span>
+                                  <span className="text-[8px] font-bold mt-1 uppercase">{activeIdentity.fontPairing.split('/')[0]}</span>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="bg-[#1a1a1a] rounded-[32px] p-8 border border-slate-800">
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4 block">BRAND VOICE</span>
+                          <div className="flex flex-wrap gap-2">
+                              <span className="px-4 py-2 rounded-full border border-slate-700 text-slate-300 text-xs font-serif italic">{activeIdentity.visualTone}</span>
+                              <span className="px-4 py-2 rounded-full border border-slate-700 text-slate-300 text-xs font-serif italic">Luxury</span>
+                              <span className="px-4 py-2 rounded-full border border-slate-700 text-slate-300 text-xs font-serif italic">Timeless</span>
+                          </div>
+                      </div>
+                  </div>
+
+                  {/* Right Column: Visual Grid */}
+                  <div className="lg:col-span-7 bg-[#1a1a1a] rounded-[32px] p-8 border border-slate-800">
+                      <div className="flex justify-between items-center mb-6">
+                          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">DETECTED ASSETS</h3>
+                          <span className="text-[10px] text-slate-600">{activeIdentity.extractedImages?.length || 0} ITEMS</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                          {activeIdentity.extractedImages?.map((img, i) => (
+                              <div key={i} className="aspect-[3/4] bg-black rounded-2xl overflow-hidden relative group border border-slate-800 hover:border-[#d4ff5f] transition-all cursor-pointer">
+                                  <img src={img} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                  <div className="absolute top-2 right-2 w-5 h-5 bg-[#d4ff5f] text-black rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">
+                                      +
+                                  </div>
+                              </div>
+                          ))}
+                          {(!activeIdentity.extractedImages || activeIdentity.extractedImages.length === 0) && (
+                              <div className="col-span-3 py-20 text-center opacity-30">No assets found.</div>
+                          )}
+                      </div>
+                  </div>
+              </div>
+
+              <div className="flex justify-end pt-8">
+                  <button 
+                      onClick={generateConcepts}
+                      disabled={isGeneratingConcepts}
+                      className="bg-[#d4ff5f] hover:bg-[#b8e645] text-black px-12 py-5 rounded-full text-xs font-black uppercase tracking-[0.1em] transition-all shadow-[0_0_30px_rgba(212,255,95,0.2)] active:scale-95"
+                  >
+                      {isGeneratingConcepts ? 'Analyzing Strategy...' : 'Get Campaign Ideas →'}
+                  </button>
+              </div>
+          </div>
+      );
+  }
+
+  if (view === 'STRATEGY_SELECT') {
+      return (
+          <div className="max-w-6xl mx-auto py-16 px-6 animate-in fade-in slide-in-from-bottom-8 duration-700 bg-[#0b0c0f] min-h-screen">
+              <div className="text-center space-y-4 mb-16">
+                  <span className="text-3xl block mb-4">📢</span>
+                  <h1 className="text-5xl font-serif text-[#e2e2e2] italic">Select a Campaign Direction</h1>
+                  <p className="text-sm text-slate-500 font-medium uppercase tracking-[0.2em]">
+                      Based on your DNA, here are 3 recommended strategies.
+                  </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {concepts.map((concept, i) => (
+                      <div 
+                          key={concept.id} 
+                          onClick={() => handleSelectConcept(concept)}
+                          className="bg-[#1a1a1a] border border-slate-800 rounded-[32px] p-8 hover:border-[#d4ff5f] hover:shadow-[0_0_30px_rgba(212,255,95,0.1)] transition-all cursor-pointer group flex flex-col min-h-[400px]"
+                      >
+                          <div className="flex-1 space-y-6">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest border border-slate-800 px-3 py-1 rounded-full">CONCEPT 0{i+1}</span>
+                              <h3 className="text-3xl font-serif text-white italic leading-tight group-hover:text-[#d4ff5f] transition-colors">{concept.title}</h3>
+                              <p className="text-sm text-slate-400 leading-relaxed">{concept.hook}</p>
+                          </div>
+                          <div className="mt-8 pt-8 border-t border-slate-800">
+                              <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">VISUAL DIRECTION</p>
+                              <p className="text-xs text-slate-500 italic">{concept.visualDirection}</p>
+                              
+                              <div className="mt-6 w-full py-4 bg-slate-900 group-hover:bg-[#d4ff5f] rounded-2xl flex items-center justify-center transition-colors">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-black">Generate Assets</span>
+                              </div>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      );
+  }
+
+  // Final Campaign View (The 4 generated cards)
   if (view === 'CAMPAIGN' || view === 'EDITOR') {
-     const editingAsset = activeCampaign?.creatives.find(a => a.id === activeAssetId);
+      return (
+          <div className="h-screen bg-[#0b0c0f] flex flex-col overflow-hidden">
+              <header className="h-20 px-8 flex items-center justify-between border-b border-slate-800 shrink-0 bg-[#0b0c0f] z-20">
+                  <button onClick={() => setView('STRATEGY_SELECT')} className="text-slate-400 hover:text-white text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                      ← Back to Concepts
+                  </button>
+                  <h2 className="font-serif text-white italic text-xl">{activeCampaign?.name || 'New Campaign'}</h2>
+                  <div className="w-20"></div> {/* Spacer */}
+              </header>
 
-     return (
-       <div className="h-screen flex flex-col bg-[#0b1021] overflow-hidden">
-          
-          {/* Header */}
-          <div className="h-20 border-b border-slate-800 flex items-center justify-between px-8 bg-[#05091a]">
-             <div className="flex items-center gap-4">
-                <button onClick={() => { setView('DASHBOARD'); setActiveAssetId(null); }} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">←</button>
-                <h2 className="text-sm font-bold text-white uppercase tracking-widest">
-                   {view === 'EDITOR' ? 'Creative Editor' : 'Campaign Studio'}
-                </h2>
-             </div>
-             {view === 'EDITOR' && (
-                <div className="flex gap-3">
-                   <button 
-                     onClick={() => handleSaveAssetToVault(editingAsset!)}
-                     className="px-6 py-2 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-slate-200 transition-colors"
-                   >
-                      Save Asset
-                   </button>
-                </div>
-             )}
+              <div className="flex-1 overflow-y-auto p-12 bg-[#0b0c0f]">
+                  {isGeneratingCreatives ? (
+                      <div className="h-full flex flex-col items-center justify-center space-y-8">
+                          <div className="w-20 h-20 border-4 border-slate-800 border-t-[#d4ff5f] rounded-full animate-spin"></div>
+                          <p className="text-xs font-black text-[#d4ff5f] uppercase tracking-[0.3em] animate-pulse">Forging Visual Assets...</p>
+                      </div>
+                  ) : (
+                      <div className="max-w-[1600px] mx-auto">
+                          <div className="text-center mb-16 space-y-4">
+                              <span className="text-2xl">✨</span>
+                              <h2 className="text-4xl font-serif text-white italic">Campaign Assets</h2>
+                              <p className="text-xs text-slate-500 uppercase tracking-widest">Ready to deploy. Click to Edit or Animate.</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                              {activeCampaign?.creatives.map((asset) => (
+                                  <div key={asset.id} className="group relative aspect-[9/16] bg-[#1a1a1a] rounded-[24px] overflow-hidden shadow-2xl border border-slate-800 hover:border-[#d4ff5f] transition-all cursor-pointer">
+                                      {asset.type === 'motion' && asset.videoUrl ? (
+                                          <video src={asset.videoUrl} autoPlay loop muted className="w-full h-full object-cover" />
+                                      ) : (
+                                          <img src={asset.imageUrl} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-700 group-hover:scale-105" />
+                                      )}
+                                      
+                                      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/80 flex flex-col justify-end p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                          <span className="text-[8px] font-black text-[#d4ff5f] uppercase tracking-widest mb-2 border border-[#d4ff5f] px-2 py-1 rounded-full w-fit">{asset.angle}</span>
+                                          <h3 className="text-2xl font-serif text-white italic leading-none mb-2">{asset.headline}</h3>
+                                          <p className="text-[10px] text-slate-300 uppercase tracking-wide line-clamp-2">{asset.subhead}</p>
+                                          
+                                          <div className="flex gap-2 mt-4">
+                                              <button 
+                                                  onClick={() => handleSaveAssetToVault(asset)}
+                                                  className="flex-1 bg-white text-black py-3 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-[#d4ff5f] transition-colors"
+                                              >
+                                                  Save
+                                              </button>
+                                              <button 
+                                                  onClick={() => handleAnimateAsset(asset)}
+                                                  className="bg-black/50 backdrop-blur border border-white/20 text-white p-3 rounded-full hover:bg-black transition-colors"
+                                                  title="Animate with Veo"
+                                              >
+                                                  {animatingAssetId === asset.id ? '...' : '⚡'}
+                                              </button>
+                                          </div>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  )}
+              </div>
           </div>
-
-          <div className="flex-1 flex overflow-hidden">
-             
-             {/* EDITOR VIEW */}
-             {view === 'EDITOR' && editingAsset ? (
-                <div className="flex-1 flex">
-                   {/* Canvas */}
-                   <div className="flex-1 bg-[#020617] flex items-center justify-center p-12 relative">
-                      <div className="h-[80vh] aspect-[9/16] relative group overflow-hidden rounded-2xl shadow-2xl ring-1 ring-slate-800 bg-black">
-                         {editingAsset.type === 'motion' && editingAsset.videoUrl ? (
-                            <video src={editingAsset.videoUrl} autoPlay loop muted className="w-full h-full object-cover" />
-                         ) : (
-                            <img src={editingAsset.imageUrl} className="w-full h-full object-cover" />
-                         )}
-                         
-                         {/* Overlay Text Layer */}
-                         <div className="absolute inset-0 flex flex-col justify-between p-8 bg-gradient-to-b from-black/30 via-transparent to-black/80">
-                            <div className="text-center mt-12">
-                               <h2 className="text-4xl font-serif text-white italic drop-shadow-lg leading-tight">{editingAsset.headline}</h2>
-                            </div>
-                            <div className="text-center mb-8 space-y-4">
-                               <p className="text-sm text-white font-medium uppercase tracking-widest drop-shadow-md">{editingAsset.subhead}</p>
-                               <button className="bg-white text-black px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-full">
-                                  {editingAsset.cta}
-                               </button>
-                            </div>
-                         </div>
-                      </div>
-                   </div>
-
-                   {/* Editor Sidebar */}
-                   <div className="w-80 border-l border-slate-800 bg-[#0b1021] p-6 space-y-8 overflow-y-auto">
-                      <div>
-                         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Content Layers</h3>
-                         <div className="space-y-4">
-                            <div className="space-y-1">
-                               <label className="text-[9px] font-bold text-slate-400">Headline</label>
-                               <input 
-                                 value={editingAsset.headline}
-                                 onChange={(e) => setActiveCampaign(prev => prev ? ({ ...prev, creatives: prev.creatives.map(c => c.id === editingAsset.id ? {...c, headline: e.target.value} : c) }) : null)}
-                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white" 
-                               />
-                            </div>
-                            <div className="space-y-1">
-                               <label className="text-[9px] font-bold text-slate-400">Subhead</label>
-                               <input 
-                                 value={editingAsset.subhead}
-                                 onChange={(e) => setActiveCampaign(prev => prev ? ({ ...prev, creatives: prev.creatives.map(c => c.id === editingAsset.id ? {...c, subhead: e.target.value} : c) }) : null)}
-                                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white" 
-                               />
-                            </div>
-                         </div>
-                      </div>
-                      
-                      <div className="pt-6 border-t border-slate-800 space-y-4">
-                         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Motion</h3>
-                         <button 
-                           onClick={() => handleAnimateAsset(editingAsset)}
-                           disabled={animatingAssetId === editingAsset.id || editingAsset.type === 'motion'}
-                           className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 disabled:opacity-50"
-                         >
-                            {animatingAssetId === editingAsset.id ? 'SYNTHESIZING VEO...' : (editingAsset.type === 'motion' ? 'MOTION ACTIVE ✓' : '⚡ ANIMATE (5s)')}
-                         </button>
-                      </div>
-                   </div>
-                </div>
-             ) : (
-                
-                // CAMPAIGN VIEW (Carousel)
-                <div className="flex-1 flex flex-col p-12 overflow-y-auto">
-                   
-                   {/* Prompt Bar */}
-                   <div className="w-full max-w-2xl mx-auto mb-16 text-center space-y-6">
-                      <div className="space-y-2">
-                         <span className="text-4xl">📢</span>
-                         <h2 className="text-4xl font-serif text-white italic">Campaign Studio</h2>
-                      </div>
-                      <div className="relative">
-                         <input 
-                           value={campaignPrompt}
-                           onChange={(e) => setCampaignPrompt(e.target.value)}
-                           className="w-full bg-[#1a1a1a] border border-slate-700 rounded-full px-8 py-5 text-sm text-white focus:outline-none focus:border-emerald-500 shadow-xl"
-                           placeholder="Describe the campaign you want to create (e.g. 'Summer Collection Launch')..."
-                         />
-                         <button 
-                           onClick={handleGenerateCampaign}
-                           disabled={isGeneratingCampaign}
-                           className="absolute right-2 top-2 bottom-2 bg-[#d4ff5f] hover:bg-[#b8e645] text-black px-6 rounded-full text-[10px] font-black uppercase tracking-widest transition-all"
-                         >
-                            {isGeneratingCampaign ? 'Generating...' : 'Suggest Ideas'}
-                         </button>
-                      </div>
-                   </div>
-
-                   {/* Generated Assets */}
-                   {activeCampaign && (
-                      <div className="space-y-8 animate-in fade-in duration-700">
-                         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Suggestions based on Business DNA</h3>
-                         <div className="flex justify-center gap-8 flex-wrap">
-                            {activeCampaign.creatives.map((asset) => (
-                               <div 
-                                 key={asset.id} 
-                                 className="w-[280px] aspect-[9/16] bg-slate-900 rounded-2xl overflow-hidden relative group cursor-pointer hover:ring-2 hover:ring-emerald-500 transition-all shadow-2xl"
-                               >
-                                  {asset.type === 'motion' && asset.videoUrl ? (
-                                     <video src={asset.videoUrl} autoPlay loop muted className="w-full h-full object-cover" />
-                                  ) : (
-                                     <img src={asset.imageUrl} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                                  )}
-                                  
-                                  {/* Badge */}
-                                  <div className="absolute top-4 left-4 bg-black/50 backdrop-blur px-2 py-1 rounded text-[7px] font-black text-white uppercase tracking-widest border border-white/10">
-                                     {asset.angle}
-                                  </div>
-
-                                  <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6 bg-black/20 group-hover:bg-black/40 transition-colors">
-                                     <h4 className="text-2xl font-serif text-white italic leading-tight mb-2 drop-shadow-md">{asset.headline}</h4>
-                                     <p className="text-[10px] text-white uppercase tracking-widest opacity-80 drop-shadow-sm">{asset.subhead}</p>
-                                  </div>
-                                  
-                                  {/* Hover Actions */}
-                                  <div className="absolute bottom-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0">
-                                     <button 
-                                       onClick={(e) => { e.stopPropagation(); setActiveAssetId(asset.id); setView('EDITOR'); }}
-                                       className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center shadow-lg hover:bg-emerald-400 transition-colors"
-                                     >
-                                        ✎
-                                     </button>
-                                     <button 
-                                       onClick={(e) => { e.stopPropagation(); handleSaveAssetToVault(asset); }}
-                                       className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center shadow-lg hover:bg-emerald-400 transition-colors"
-                                     >
-                                        ⬇
-                                     </button>
-                                  </div>
-                               </div>
-                            ))}
-                            
-                            {/* Add Creative Placeholder */}
-                            <div className="w-[280px] aspect-[9/16] bg-slate-900/50 border-2 border-dashed border-slate-700 rounded-2xl flex flex-col items-center justify-center gap-4 text-slate-500 hover:border-emerald-500 hover:text-emerald-500 transition-all cursor-pointer">
-                               <span className="text-4xl">+</span>
-                               <span className="text-[10px] font-black uppercase tracking-widest">Add Creative</span>
-                            </div>
-                         </div>
-                      </div>
-                   )}
-
-                </div>
-             )}
-          </div>
-       </div>
-     );
+      );
   }
 
-  // DEFAULT VIEW
-  return (
-    <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-[#020617]">
-       <div className="max-w-xl space-y-8 animate-in fade-in zoom-in-95 duration-700">
-          <div className="w-24 h-24 bg-[#1a1a1a] border border-slate-800 rounded-[32px] flex items-center justify-center mx-auto shadow-2xl">
-             <span className="text-5xl grayscale opacity-50">🧬</span>
-          </div>
-          <div className="space-y-4">
-             <h1 className="text-5xl font-serif text-white italic">Brand DNA Studio</h1>
-             <p className="text-sm text-slate-400 font-medium leading-relaxed">
-                Enter your website URL to extract your visual identity, typography, and voice. 
-                We will use this DNA to generate high-fidelity campaign assets automatically.
-             </p>
-          </div>
-          <div className="relative group">
-             <input 
-               value={targetUrl}
-               onChange={(e) => setTargetUrl(e.target.value)}
-               placeholder="https://yourbusiness.com"
-               className="w-full bg-[#0b1021] border border-slate-700 text-white px-8 py-5 rounded-full text-sm font-bold focus:outline-none focus:border-emerald-500 transition-all shadow-xl group-hover:shadow-emerald-500/10"
-             />
-             <button onClick={handleExtract} className="absolute right-2 top-2 bottom-2 bg-emerald-600 hover:bg-emerald-500 text-white px-8 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg">EXTRACT</button>
-          </div>
-       </div>
-    </div>
-  );
+  return <div>Error State</div>;
 };
