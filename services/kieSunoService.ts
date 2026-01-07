@@ -57,8 +57,8 @@ export const kieSunoService = {
       ...(webhookUrl ? { webhook_url: webhookUrl } : {})
     };
 
-    // Call local proxy
-    const submitUrl = `${BASE_URL}/submit`;
+    // Call local proxy with the CORRECTED endpoint
+    const submitUrl = `${BASE_URL}/suno_submit`;
     log(`Posting to Proxy: ${submitUrl}`);
 
     try {

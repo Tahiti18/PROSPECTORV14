@@ -33,7 +33,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
     // In production, this pulls from process.env. In dev, it falls back or uses .env
     const KIE_KEY = process.env.KIE_KEY || env.KIE_KEY || '302d700cb3e9e3dcc2ad9d94d5059279';
     
-    // FIXED: Removed extra '/api' segment to match standard KIE endpoints
+    // FIXED: Upstream KIE API path base
     const KIE_BASE = 'https://api.kie.ai/v1/suno';
 
     // Helper to read request body
@@ -46,10 +46,10 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
     };
 
     try {
-      // 2. ROUTE: POST /api/kie/suno/submit
-      if (req.method === 'POST' && urlObj.pathname.endsWith('/submit')) {
+      // 2. ROUTE: POST /api/kie/suno/suno_submit (Updated to match backend requirement)
+      if (req.method === 'POST' && urlObj.pathname.endsWith('/suno_submit')) {
         const bodyStr = await readBody();
-        const upstreamRes = await fetch(`${KIE_BASE}/submit`, {
+        const upstreamRes = await fetch(`${KIE_BASE}/suno_submit`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
