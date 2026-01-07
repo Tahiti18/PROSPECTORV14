@@ -29,27 +29,38 @@ const log = (msg: string, data?: any) => {
 };
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
 const unwrap = (v: any) => (v && typeof v === 'object' && 'data' in v ? v.data : v);
 
 export const kieSunoService = {
   /**
    * Submit generation (via proxy)
+   *
+   * IMPORTANT: Signature is backward-compatible to avoid TS2554 in SonicStudio.tsx.
    */
-  generateMusic: async (prompt: string, instrumental: boolean): Promise<SunoJob> => {
+  generateMusic: async (
+    prompt: string,
+    instrumental: boolean,
+    duration?: number,
+    webhookUrl?: string
+  ): Promise<SunoJob> => {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
-    // KIE requires callBackUrl to be a valid URI and expects these fields.  [oai_citation:2‡KIE API](https://docs.kie.ai/suno-api/generate-music)
-    const callBackUrl = `${window.location.origin}/api/kie/callback`;
+    // KIE requires callBackUrl to be a valid URI.
+    // If caller provided webhookUrl, use it; otherwise use our Railway origin callback endpoint.
+    const callBackUrl = webhookUrl || `${window.location.origin}/api/kie/callback`;
 
-    const payload = {
+    // Minimal required fields per KIE docs: prompt/customMode/instrumental/model/callBackUrl
+    const payload: any = {
       prompt,
       customMode: false,
       instrumental,
       model: 'V4_5',
       callBackUrl
     };
+
+    // If your UI passes duration, include it only when defined (harmless if upstream ignores it)
+    if (typeof duration === 'number') payload.duration = duration;
 
     const submitUrl = `${BASE_URL}/submit`;
     log(`Posting to Proxy: ${submitUrl}`, payload);
@@ -64,10 +75,12 @@ export const kieSunoService = {
 
     if (!res.ok) {
       log('Submit error body:', data);
-      throw new Error(`Proxy Error (${res.status}): ${data?.msg || data?.error || 'Unknown Proxy Error'}`);
+      throw new Error(
+        `Proxy Error (${res.status}): ${data?.msg || data?.error || 'Unknown Proxy Error'}`
+      );
     }
 
-    // KIE typically returns { code, msg, data: { taskId } }
+    // Typical shape: { code, msg, data: { taskId } }
     const d = unwrap(data);
     const taskId = d?.taskId || data?.taskId;
 
@@ -94,22 +107,22 @@ export const kieSunoService = {
     const MAX_TIMEOUT = 180000;
     const startTime = Date.now();
 
-    while ((Date.now() - startTime) < MAX_TIMEOUT) {
+    while (Date.now() - startTime < MAX_TIMEOUT) {
       attempts++;
       await sleep(Math.min(2000 * Math.pow(1.5, attempts), 10000));
 
       const statusUrl = `${BASE_URL}/record-info?taskId=${encodeURIComponent(taskId)}`;
       const res = await fetch(statusUrl);
-
       const data = await res.json().catch(() => ({}));
       const d = unwrap(data);
 
       if (!res.ok) {
-        throw new Error(`Status Check Failed (${res.status}): ${data?.msg || data?.error || 'Unknown Error'}`);
+        throw new Error(
+          `Status Check Failed (${res.status}): ${data?.msg || data?.error || 'Unknown Error'}`
+        );
       }
 
-      // Per docs, statuses include PENDING, TEXT_SUCCESS, FIRST_SUCCESS, SUCCESS, etc.  [oai_citation:3‡KIE API](https://docs.kie.ai/suno-api/get-music-details)
-      const status = String(d?.status || d?.state || '').toUpperCase();
+      const status = String(d?.status || d?.state || data?.status || data?.state || '').toUpperCase();
       log(`Poll ${taskId} [${attempts}]: ${status}`, data);
 
       if (['SUCCESS', 'SUCCEEDED', 'COMPLETED'].includes(status)) {
@@ -117,7 +130,7 @@ export const kieSunoService = {
       }
 
       if (status.includes('FAILED') || status.includes('ERROR')) {
-        throw new Error(d?.error || data?.msg || 'Generation Task Failed');
+        throw new Error(d?.error || data?.msg || data?.error || 'Generation Task Failed');
       }
     }
 
@@ -125,7 +138,6 @@ export const kieSunoService = {
   },
 
   parseClips: (d: any): SunoClip[] => {
-    // KIE responses typically include URLs in the task detail payload.  [oai_citation:4‡KIE API](https://docs.kie.ai/suno-api/get-music-details)
     const raw = d?.clips || d?.audioList || d?.audios || d?.output || [];
 
     let clips: SunoClip[] = [];
@@ -141,20 +153,32 @@ export const kieSunoService = {
         }))
         .filter((c: any) => c.url);
     } else if (d?.audio_url || d?.audioUrl || d?.url) {
-      clips = [{
-        id: d?.id,
-        url: d.audio_url || d.audioUrl || d.url,
-        image_url: d.image_url || d.imageUrl,
-        duration: d.duration
-      }];
+      clips = [
+        {
+          id: d?.id,
+          url: d.audio_url || d.audioUrl || d.url,
+          image_url: d.image_url || d.imageUrl,
+          duration: d.duration
+        }
+      ];
     }
 
     if (!clips.length) throw new Error('Task Completed but no Audio URLs found.');
     return clips;
   },
 
-  runFullCycle: async (prompt: string, instrumental: boolean, leadId?: string, customCoverUrl?: string): Promise<string[]> => {
-    const job = await kieSunoService.generateMusic(prompt, instrumental);
+  /**
+   * Orchestrator (backward-compatible signature)
+   */
+  runFullCycle: async (
+    prompt: string,
+    instrumental: boolean,
+    leadId?: string,
+    customCoverUrl?: string,
+    duration?: number,
+    webhookUrl?: string
+  ): Promise<string[]> => {
+    const job = await kieSunoService.generateMusic(prompt, instrumental, duration, webhookUrl);
     const clips = await kieSunoService.pollTask(job.taskId!);
 
     const signature = prompt.split(',')[0].trim().slice(0, 30);
