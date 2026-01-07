@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
-import { generateAudioPitch, SESSION_ASSETS, subscribeToAssets } from '../../services/geminiService';
+import { generateAudioPitch, SESSION_ASSETS, subscribeToAssets, generateVisual } from '../../services/geminiService';
 import { kieSunoService } from '../../services/kieSunoService';
 import { SonicPromptGuide } from './SonicPromptGuide';
 import { SonicStudioPlayer } from './SonicStudioPlayer';
@@ -10,7 +10,7 @@ interface SonicStudioProps {
   lead?: Lead;
 }
 
-type StudioMode = 'VOICE' | 'MUSIC';
+type StudioMode = 'MUSIC' | 'VOICE';
 
 const MUSIC_GENRES = [
   { value: 'electronic', label: 'Electronic / Synth' },
@@ -34,7 +34,7 @@ const MUSIC_VIBES = [
 ];
 
 export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
-  const [mode, setMode] = useState<StudioMode>('VOICE');
+  const [mode, setMode] = useState<StudioMode>('MUSIC'); // Default to MUSIC
   
   // Voice State
   const defaultScript = lead 
@@ -47,6 +47,11 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   const [selectedGenre, setSelectedGenre] = useState(MUSIC_GENRES[0]);
   const [selectedVibe, setSelectedVibe] = useState(MUSIC_VIBES[0]);
   const [isInstrumental, setIsInstrumental] = useState(true);
+  
+  // Cover Art State
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [isGeneratingCover, setIsGeneratingCover] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Common State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -56,7 +61,6 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
 
   // Asset Subscription
   useEffect(() => {
-    // Load initial assets filtered by AUDIO type
     const initialAudio = SESSION_ASSETS.filter(a => a.type === 'AUDIO');
     setGeneratedAssets(initialAudio);
 
@@ -72,7 +76,6 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     if (lead) {
         setVoiceText(lead.personalizedHook || `Hello ${lead.businessName}, I see a huge opportunity to dominate the ${lead.city} market with AI video automation. Let's chat.`);
         setMusicPrompt(`Suitable for ${lead.niche} brand campaign.`);
-        // Smart default for corporate clients
         if (lead.niche.toLowerCase().includes('tech') || lead.niche.toLowerCase().includes('saas')) {
             setSelectedGenre(MUSIC_GENRES.find(g => g.value === 'electronic') || MUSIC_GENRES[0]);
             setSelectedVibe(MUSIC_VIBES.find(v => v.value === 'tech') || MUSIC_VIBES[0]);
@@ -107,12 +110,12 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     setIsGenerating(true);
     addLog("Contacting Suno Music Engine...");
 
-    // Construct the composite prompt
     const finalPrompt = `${selectedVibe.label} ${selectedGenre.label} music, ${musicPrompt}`;
     addLog(`Prompt: ${finalPrompt.slice(0, 40)}...`);
 
     try {
-      const urls = await kieSunoService.runFullCycle(finalPrompt, isInstrumental, lead?.id);
+      // Pass coverImage if available
+      const urls = await kieSunoService.runFullCycle(finalPrompt, isInstrumental, lead?.id, coverImage || undefined);
       if (urls.length > 0) {
         addLog(`Success: ${urls.length} tracks generated.`);
       } else {
@@ -126,8 +129,38 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     }
   };
 
+  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setCoverImage(ev.target?.result as string);
+            addLog("Custom cover art uploaded.");
+        };
+        reader.readAsDataURL(file);
+    }
+  };
+
+  const handleGenerateCover = async () => {
+    setIsGeneratingCover(true);
+    addLog("Generating Album Art...");
+    try {
+        const prompt = `Album cover art for ${selectedGenre.label} music, ${selectedVibe.label} vibe. ${musicPrompt}. High quality, 4k, digital art.`;
+        const url = await generateVisual(prompt, lead);
+        if (url) {
+            setCoverImage(url);
+            addLog("Album art generated.");
+        }
+    } catch (e) {
+        console.error(e);
+        addLog("Failed to generate cover art.");
+    } finally {
+        setIsGeneratingCover(false);
+    }
+  };
+
   return (
-    <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500 relative">
+    <div className="max-w-[1600px] mx-auto py-8 space-y-12 animate-in fade-in duration-500 relative">
       
       {showGuide && (
         <SonicPromptGuide 
@@ -148,23 +181,24 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
         </div>
         <div className="flex gap-2 bg-[#0b1021] border border-slate-800 rounded-lg p-1">
            <button 
-             onClick={() => setMode('VOICE')}
-             className={`px-6 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'VOICE' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-white'}`}
-           >
-             VOICE PITCH
-           </button>
-           <button 
              onClick={() => setMode('MUSIC')}
-             className={`px-6 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'MUSIC' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:text-white'}`}
+             className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'MUSIC' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
            >
              SUNO MUSIC
+           </button>
+           <button 
+             onClick={() => setMode('VOICE')}
+             className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${mode === 'VOICE' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+           >
+             VOICE PITCH
            </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* LEFT CONTROL PANEL */}
         <div className="lg:col-span-4 space-y-6">
-           <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-10 shadow-2xl space-y-8">
+           <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 shadow-2xl space-y-8">
               
               {/* VOICE CONTROLS */}
               {mode === 'VOICE' && (
@@ -192,6 +226,46 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
               {mode === 'MUSIC' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4">
                    
+                   {/* ALBUM ART GENERATOR */}
+                   <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Cover Art (Optional)</label>
+                      <div className="flex gap-4 items-center">
+                          <div 
+                            onClick={() => coverInputRef.current?.click()}
+                            className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-700 bg-slate-900/50 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 hover:bg-slate-900 transition-all overflow-hidden relative group"
+                          >
+                             {coverImage ? (
+                               <img src={coverImage} className="w-full h-full object-cover" />
+                             ) : (
+                               <span className="text-2xl opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all">🖼️</span>
+                             )}
+                             {isGeneratingCover && (
+                               <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                               </div>
+                             )}
+                             <input type="file" ref={coverInputRef} onChange={handleCoverUpload} className="hidden" accept="image/*" />
+                          </div>
+                          <div className="flex-1 flex flex-col gap-2">
+                             <button 
+                               onClick={handleGenerateCover}
+                               disabled={isGeneratingCover}
+                               className="w-full py-3 bg-slate-900 border border-slate-700 hover:border-emerald-500 text-slate-300 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                             >
+                               {isGeneratingCover ? 'GENERATING...' : '✨ GENERATE AI COVER'}
+                             </button>
+                             <button 
+                               onClick={() => coverInputRef.current?.click()}
+                               className="w-full py-3 bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                             >
+                               ⬆️ UPLOAD IMAGE
+                             </button>
+                          </div>
+                      </div>
+                   </div>
+
+                   <hr className="border-slate-800" />
+
                    {/* GENRE & VIBE SELECTORS */}
                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -218,7 +292,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
 
                    <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Context & Details</label>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Prompt Context</label>
                         <button onClick={() => setShowGuide(true)} className="text-[9px] font-black text-emerald-400 hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1">
                            <span>ⓘ</span> GUIDE
                         </button>
@@ -226,7 +300,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                       <textarea 
                         value={musicPrompt}
                         onChange={(e) => setMusicPrompt(e.target.value)}
-                        className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-5 text-[11px] font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-28 resize-none shadow-xl italic"
+                        className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-5 text-[11px] font-bold text-slate-300 focus:outline-none focus:border-emerald-500 h-24 resize-none shadow-xl italic"
                         placeholder="Additional details (instruments, tempo, use case)..."
                       />
                    </div>
@@ -261,7 +335,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
            </div>
         </div>
 
-        {/* OUTPUT AREA - NOW WITH DEDICATED PLAYER */}
+        {/* RIGHT: OUTPUT AREA */}
         <div className="lg:col-span-8 h-full min-h-[600px] relative">
            <SonicStudioPlayer assets={generatedAssets} />
            

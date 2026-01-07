@@ -13,15 +13,13 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets }) 
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
-  const [isMuted, setIsMuted] = useState(false);
 
   // Refs
   const audioRef = useRef<HTMLAudioElement>(null);
-  const progressBarRef = useRef<HTMLInputElement>(null);
 
   const currentTrack = assets[currentTrackIndex];
 
-  // Auto-play new tracks when added (if it's the first one or user is idle)
+  // Auto-play new tracks when added
   useEffect(() => {
     if (assets.length > 0 && !currentTrack) {
         setCurrentTrackIndex(0);
@@ -75,15 +73,6 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets }) 
     }
   };
 
-  const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const vol = parseFloat(e.target.value);
-    setVolume(vol);
-    if (audioRef.current) {
-        audioRef.current.volume = vol;
-        setIsMuted(vol === 0);
-    }
-  };
-
   const formatTime = (time: number) => {
     if (isNaN(time)) return "0:00";
     const minutes = Math.floor(time / 60);
@@ -110,37 +99,45 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets }) 
       />
 
       {/* --- TOP: THE DECK (Visualizer & Controls) --- */}
-      <div className="bg-[#0b1021] p-8 border-b border-slate-800 relative overflow-hidden">
+      <div className="bg-[#0b1021] p-8 border-b border-slate-800 relative overflow-hidden flex-none">
          {/* Background Glow */}
          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-emerald-500/10 blur-[60px] rounded-full pointer-events-none"></div>
 
          <div className="relative z-10 flex flex-col items-center space-y-6">
-            {/* Metadata */}
-            <div className="text-center space-y-2 max-w-lg">
-               <h3 className="text-lg font-black text-white uppercase tracking-tight truncate">
-                 {currentTrack?.title || "Unknown Track"}
-               </h3>
-               <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-[0.3em] bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-500/20">
-                 {currentTrack?.module?.replace('_', ' ') || 'SYSTEM AUDIO'}
-               </span>
-            </div>
+            {/* Metadata & Cover */}
+            <div className="text-center space-y-4 max-w-lg">
+               <div className="w-32 h-32 mx-auto rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl relative group">
+                  {currentTrack?.metadata?.coverUrl ? (
+                     <img src={currentTrack.metadata.coverUrl} className="w-full h-full object-cover" />
+                  ) : (
+                     <div className="w-full h-full bg-slate-900 flex items-center justify-center text-4xl">🎵</div>
+                  )}
+                  {isPlaying && (
+                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center gap-1">
+                        {[1,2,3].map(i => <div key={i} className="w-1 bg-emerald-500 animate-[bounce_1s_infinite]" style={{ height: '40%', animationDelay: `${i*0.2}s`}}></div>)}
+                     </div>
+                  )}
+               </div>
 
-            {/* Visualizer */}
-            <div className="flex items-end gap-1 h-12 w-full max-w-xs justify-center opacity-80">
-               {[...Array(20)].map((_, i) => (
-                 <div 
-                   key={i} 
-                   className={`w-1.5 rounded-t-sm transition-all duration-100 ${isPlaying ? 'bg-emerald-500 animate-[bounce_1s_infinite]' : 'bg-slate-800 h-2'}`}
-                   style={{ 
-                     height: isPlaying ? `${Math.random() * 100}%` : '20%',
-                     animationDelay: `${i * 0.05}s`
-                   }}
-                 ></div>
-               ))}
+               <div>
+                   <h3 className="text-xl font-black text-white uppercase tracking-tight truncate px-4">
+                     {currentTrack?.title || "Unknown Track"}
+                   </h3>
+                   <div className="flex gap-2 justify-center mt-2">
+                      <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-[0.3em] bg-emerald-900/20 px-3 py-1 rounded-full border border-emerald-500/20">
+                        {currentTrack?.module?.replace('_', ' ') || 'SYSTEM AUDIO'}
+                      </span>
+                      {currentTrack?.metadata?.isInstrumental && (
+                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                            INST
+                         </span>
+                      )}
+                   </div>
+               </div>
             </div>
 
             {/* Transport Controls */}
-            <div className="w-full space-y-4">
+            <div className="w-full max-w-lg space-y-4">
                {/* Progress Bar */}
                <div className="flex items-center gap-3 w-full">
                   <span className="text-[9px] font-mono text-slate-500 w-8 text-right">{formatTime(progress)}</span>
@@ -152,7 +149,7 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets }) 
                     onChange={handleSeek}
                     className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 hover:accent-emerald-400"
                   />
-                  <span className="text-[9px] font-mono text-slate-500 w-8">{formatTime(duration)}</span>
+                  <span className="text-[9px] font-mono text-slate-500 w-8">{formatTime(duration || currentTrack?.metadata?.duration || 0)}</span>
                </div>
 
                {/* Buttons */}
@@ -188,41 +185,48 @@ export const SonicStudioPlayer: React.FC<SonicStudioPlayerProps> = ({ assets }) 
          </div>
       </div>
 
-      {/* --- BOTTOM: THE CRATE (Playlist) --- */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#05091a]">
-         <div className="p-2 space-y-1">
+      {/* --- BOTTOM: THE GALLERY (Grid) --- */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#020617] p-6">
+         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">TRACK GALLERY</h4>
+         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {assets.map((asset, i) => {
                const active = i === currentTrackIndex;
                return (
                  <div 
                    key={asset.id} 
                    onClick={() => playTrack(i)}
-                   className={`group flex items-center gap-4 p-3 rounded-xl cursor-pointer transition-all border ${active ? 'bg-slate-900 border-emerald-500/30' : 'border-transparent hover:bg-slate-900 hover:border-slate-800'}`}
+                   className={`group relative aspect-square rounded-2xl overflow-hidden cursor-pointer transition-all border-2 ${active ? 'border-emerald-500 ring-4 ring-emerald-500/20' : 'border-slate-800 hover:border-slate-600'}`}
                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${active ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-500 group-hover:text-white'}`}>
-                       {active && isPlaying ? (
-                          <div className="flex gap-0.5 h-3 items-end">
-                             <div className="w-0.5 bg-black animate-[bounce_0.5s_infinite]"></div>
-                             <div className="w-0.5 bg-black animate-[bounce_0.7s_infinite]"></div>
-                             <div className="w-0.5 bg-black animate-[bounce_0.6s_infinite]"></div>
-                          </div>
-                       ) : (i + 1)}
+                    {/* Background Image */}
+                    {asset.metadata?.coverUrl ? (
+                        <img src={asset.metadata.coverUrl} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                    ) : (
+                        <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                            <span className="text-4xl opacity-50">🎵</span>
+                        </div>
+                    )}
+
+                    {/* Overlay */}
+                    <div className={`absolute inset-0 bg-black/60 flex flex-col justify-end p-4 transition-opacity ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                        <div className="flex justify-between items-end">
+                            <div className="min-w-0 flex-1 mr-2">
+                                <p className="text-[10px] font-black text-white uppercase truncate">{asset.title}</p>
+                                <p className="text-[8px] font-bold text-emerald-400 uppercase tracking-widest truncate">{asset.metadata?.promptSignature || 'Generated'}</p>
+                            </div>
+                            {active && isPlaying && (
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shrink-0"></div>
+                            )}
+                        </div>
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                       <h4 className={`text-[10px] font-bold uppercase truncate ${active ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                          {asset.title}
-                       </h4>
-                       <p className="text-[8px] font-mono text-slate-600 truncate">{new Date(asset.timestamp).toLocaleTimeString()}</p>
-                    </div>
-
+                    {/* Download Button (Hover only) */}
                     <a 
                       href={asset.data} 
                       download={`TRACK_${i+1}.mp3`}
                       onClick={(e) => e.stopPropagation()}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-600 hover:text-emerald-400 transition-colors"
+                      className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-emerald-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
                     >
-                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                     </a>
                  </div>
                );
