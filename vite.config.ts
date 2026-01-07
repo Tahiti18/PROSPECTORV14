@@ -28,7 +28,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
     }
 
     // Secure Key Management (Server-Side Only)
-    // RESTORED FALLBACK FOR PREVIEW ENVIRONMENTS TO FIX 500 ERROR
+    // FIX: Hardcoded fallback to prevent 500 Error when env var is missing in preview
     const KIE_KEY = process.env.KIE_KEY || env.KIE_KEY || '302d700cb3e9e3dcc2ad9d94d5059279';
     
     if (!KIE_KEY) {
@@ -117,3 +117,45 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return;
       }
 
+      // 404 for unknown API routes within this namespace
+      res.statusCode = 404;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: 'Route not found in KIE Proxy', path: urlObj.pathname }));
+
+    } catch (e: any) {
+      console.error('[KIE Proxy Error]', e);
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: e.message || 'Internal Proxy Error' }));
+    }
+  };
+};
+
+export default defineConfig(({ mode }) => {
+  const env = process.env;
+
+  return {
+    plugins: [
+      react(),
+      {
+        name: 'kie-proxy-server',
+        configureServer(server) {
+          server.middlewares.use(createKieProxyMiddleware(env as Record<string, string>));
+        },
+        configurePreviewServer(server) {
+          server.middlewares.use(createKieProxyMiddleware(env as Record<string, string>));
+        }
+      }
+    ],
+    server: {
+      host: '0.0.0.0',
+      port: Number(process.env.PORT) || 5173,
+      allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost']
+    },
+    preview: {
+        host: '0.0.0.0',
+        port: Number(process.env.PORT) || 4173,
+        allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost']
+    }
+  };
+});
