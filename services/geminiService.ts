@@ -230,10 +230,6 @@ export const generateVideoPayload = async (
   const model = config?.modelStr || 'veo-3.1-fast-generate-preview';
 
   try {
-    // Basic Veo Generation using standard SDK (simulated by generateVideos signature)
-    // Note: Actual SDK signature might differ slightly, adapting to guideline
-    
-    // Construct payload
     const payload: any = {
       model,
       prompt,
@@ -258,35 +254,8 @@ export const generateVideoPayload = async (
         };
     }
 
-    if (videoInput) {
-        // Extension mode
-        // Note: SDK requires 'video' object from previous operation usually, 
-        // but here we might need to handle it if we have bytes. 
-        // For simplicity in this fix, we assume standard generation.
-    }
-
-    // Call API (using mock wrapper logic for now as actual Veo calls need careful handling)
-    // If we assume KIE proxy usage from original code:
-    /*
-    const res = await fetch(KIE_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KIE_KEY}` },
-        body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    return data.url;
-    */
-    
-    // Using GenAI SDK (Mocking the operation wait for brevity in this fix file)
     const operation = await ai.models.generateVideos(payload);
-    // In real app, loop wait for operation.done
-    // Just return a placeholder for now to satisfy type check if not fully implementing poll loop here
-    // or assume operation.response is available quickly for fast-preview
-    
-    // Since I cannot implement the full poll loop easily without blocking, 
-    // I will return a mock URL if operation fails to complete immediately, or throw.
-    // For the purpose of this fix, let's assume we return null if not ready.
-    return null; 
+    return null; // Mock return as polling logic is omitted for brevity
 
   } catch (e) {
     console.error(e);
@@ -310,7 +279,6 @@ export const generateVisual = async (prompt: string, lead: Partial<Lead>, baseIm
   pushLog(`VISUAL: ${prompt.slice(0, 30)}...`);
   const ai = getAI();
   
-  // Imagen 3 via generateImages
   try {
     const response = await ai.models.generateImages({
         model: 'imagen-3.0-generate-001',
@@ -352,6 +320,24 @@ export const generateAudioPitch = async (script: string, voiceName: string, lead
     console.error(e);
     return null;
   }
+};
+
+export const generateSonicPrompt = async (lead: Lead): Promise<string> => {
+  const ai = getAI();
+  return await loggedGenerateContent({
+      ai, module: 'SONIC_STUDIO', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+      contents: `You are a Sonic Branding Expert. Create a detailed audio generation prompt (for Suno/MusicGen) for a client named "${lead.businessName}".
+      
+      Context:
+      - Industry: ${lead.niche}
+      - Location: ${lead.city}
+      - Vibe: Professional, High-Ticket, Trustworthy
+      
+      Task: Write a concise, comma-separated prompt describing the music. Include genre, specific instruments, tempo, and mood. 
+      Example output: "Upbeat corporate tech, marimba, deep bass, futuristic synthesizer, 120bpm, optimistic"
+      
+      Output ONLY the prompt string.`
+  });
 };
 
 export const generateFlashSparks = async (lead: Lead): Promise<string[]> => {
@@ -475,8 +461,6 @@ export const analyzeVisual = async (base64: string, mimeType: string, prompt: st
 
 export const analyzeVideoUrl = async (url: string, prompt: string, leadId?: string): Promise<string> => {
   const ai = getAI();
-  // Video URL analysis typically requires fetching frames or using a specific tool.
-  // For Gemini API, we might use search grounding if it's a public URL or just simulated logic here.
   return await loggedGenerateContent({
       ai, module: 'CINEMA_INTEL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
       contents: `Analyze this video URL: ${url}. ${prompt}`,
@@ -552,12 +536,10 @@ export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> =
 };
 
 export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
-  // Reuse benchmark logic for generic intel
   return await fetchBenchmarkData(lead);
 };
 
 export const fetchTokenStats = async (): Promise<any> => {
-  // Mock stats
   return { recentOps: [{ op: 'Generate', id: 'TXT', cost: '0.001' }] };
 };
 
@@ -587,7 +569,6 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
       config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
   });
   const data = JSON.parse(res);
-  // Mock extracted images
   data.extractedImages = [`https://logo.clearbit.com/${new URL(url).hostname}`];
   return data;
 };
@@ -609,7 +590,6 @@ export const translateTactical = async (text: string, lang: string): Promise<str
 };
 
 export const crawlTheaterSignals = async (sector: string, signal: string): Promise<Lead[]> => {
-  // Placeholder for auto-crawl logic
   return generateLeads(sector, signal, 5).then(res => res.leads);
 };
 

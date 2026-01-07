@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
-import { generateAudioPitch, generateLyrics, SESSION_ASSETS, subscribeToAssets, generateVisual, AssetRecord } from '../../services/geminiService';
+import { generateAudioPitch, generateLyrics, SESSION_ASSETS, subscribeToAssets, generateVisual, AssetRecord, generateSonicPrompt } from '../../services/geminiService';
 import { kieSunoService } from '../../services/kieSunoService';
 import { SonicStudioPlayer } from './SonicStudioPlayer';
 import { toast } from '../../services/toastManager';
@@ -59,6 +59,9 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   const [isGeneratingVoice, setIsGeneratingVoice] = useState(false);
   const [isWritingLyrics, setIsWritingLyrics] = useState(false);
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
+  
+  // Auto-Prompt
+  const [isAutoPrompting, setIsAutoPrompting] = useState(false);
 
   // Refs
   const musicAudioRef = useRef<HTMLAudioElement>(null);
@@ -83,10 +86,22 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
         setGeneratedAssets(filterAssets(all));
     });
     
-    // Default Prompts
+    // Auto-Prompt Generation Logic
     if (lead) {
-        setMusicPrompt(`Background music for ${lead.businessName} (${lead.niche}). Professional and engaging.`);
-        setVoiceText(`Hey, this is ${lead.businessName}. We specialize in high-ticket transformation. Call us today.`);
+        setIsAutoPrompting(true);
+        // Instant feedback
+        setMusicPrompt(`[AI DIRECTOR] Analyzing ${lead.businessName} brand DNA for sonic architecture...`);
+        
+        generateSonicPrompt(lead)
+            .then(prompt => {
+                setMusicPrompt(prompt);
+                setVoiceText(`Welcome to ${lead.businessName}. We are the premier choice for ${lead.niche} in ${lead.city}. Contact us today to transform your future.`);
+            })
+            .catch(() => {
+                // Fallback if AI fails
+                setMusicPrompt(`Background music for ${lead.businessName} (${lead.niche}). Professional, high-quality, engaging, suitable for commercial use.`);
+            })
+            .finally(() => setIsAutoPrompting(false));
     }
 
     return () => unsub();
@@ -377,15 +392,19 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                     <div className="space-y-3">
                        <div className="flex justify-between items-center">
                           <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">SONIC PROMPT</label>
-                          <button onClick={handleMagicEnhance} className="text-[9px] font-bold text-indigo-400 hover:text-white uppercase tracking-widest flex items-center gap-1">
-                             ⚡ MAGIC WAND
-                          </button>
+                          <div className="flex gap-1">
+                             {isAutoPrompting && <span className="text-[8px] font-bold text-emerald-500 animate-pulse bg-emerald-500/10 px-2 rounded">AI DIRECTING...</span>}
+                             <button onClick={handleMagicEnhance} className="text-[9px] font-bold text-indigo-400 hover:text-white uppercase tracking-widest flex items-center gap-1">
+                                ⚡ MAGIC WAND
+                             </button>
+                          </div>
                        </div>
                        <textarea 
                          value={musicPrompt}
                          onChange={(e) => setMusicPrompt(e.target.value)}
                          className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-4 text-xs font-medium text-slate-300 focus:outline-none focus:border-emerald-500 h-40 resize-none shadow-inner custom-scrollbar"
-                         placeholder="Describe the sound..."
+                         placeholder={isAutoPrompting ? "AI is crafting your strategy..." : "Describe the sound..."}
+                         disabled={isAutoPrompting}
                        />
                     </div>
 
