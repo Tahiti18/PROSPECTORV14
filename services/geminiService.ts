@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { Lead, BrandIdentity } from '../types';
 import { logAiOperation, uuidLike } from './usageLogger';
@@ -207,8 +208,6 @@ export const queryRealtimeAgent = async (query: string) => {
       contents: query,
       config: {
         tools: [{ googleSearch: {} }],
-        // responseMimeType must NOT be set when using tools in some contexts, but usually okay. 
-        // We leave it undefined to get natural text.
       }
     });
 
@@ -230,7 +229,6 @@ export const fetchViralPulseData = async (niche: string) => {
   pushLog(`VIRAL PULSE: SCANNING TRENDS FOR ${niche}...`);
   const ai = getAI();
   
-  // Flash model for trend scanning (Economy)
   const prompt = `
     You are a trend spotter. Search Google for the very latest news, viral topics, and discussions related to: "${niche}".
     Focus on what happened in the last 24-48 hours.
@@ -268,25 +266,25 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
   let hostname = '';
   try { hostname = new URL(url).hostname; } catch { hostname = url; }
 
-  const deterministicLogo = `https://logo.clearbit.com/${hostname}`;
-  const deterministicIcon = `https://www.google.com/s2/favicons?domain=${hostname}&sz=256`;
-
+  // 1. Get Text & Color Data
   const prompt = `
     You are a forensic brand design auditor.
-    Analyze the website: ${url} (Business: ${lead.businessName}).
-    Return strictly valid JSON (do not add markdown blocks):
+    Analyze the business at: ${url} (Name: ${lead.businessName}).
+    
+    Task 1: Extract 5 hex colors that represent their brand.
+    Task 2: Identify their primary font style (Serif, Sans, etc).
+    Task 3: Write a 1-sentence tagline that captures their essence.
+    Task 4: Find 4-6 high-quality image URLs that represent their products, services, or vibe. 
+    Use Google Search to find real images associated with this domain or brand.
+    
+    Return strictly valid JSON:
     {
-      "colors": ["#hex", "#hex", "#hex", "#hex", "#hex"],
-      "fontPairing": "HeaderFont / BodyFont",
+      "colors": ["#hex", ...],
+      "fontPairing": "Serif / Sans-Serif",
       "archetype": "string",
-      "visualTone": "string",
+      "visualTone": "Luxury | Minimal | Bold",
       "tagline": "string",
-      "brandValues": ["string", "string", "string", "string"],
-      "aestheticTags": ["string", "string", "string", "string"],
-      "voiceTags": ["string", "string", "string"],
-      "mission": "string",
-      "businessOverview": "string",
-      "extractedImages": ["url1", "url2"]
+      "extractedImages": ["url1", "url2", "url3", "url4"]
     }
   `;
   
@@ -300,13 +298,25 @@ export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIde
     let data = safeJsonParse(res);
     if (!data) data = { colors: [], extractedImages: [] };
     
-    const rawImages = data.extractedImages || [];
-    const cleanImages = rawImages.filter((img: string) => img && img.startsWith('http'));
-    data.extractedImages = [deterministicLogo, deterministicIcon, ...cleanImages];
+    // Fallback images if search fails (Simulated for robustness in demo)
+    const fallbackImages = [
+       `https://source.unsplash.com/800x1000/?${encodeURIComponent(lead.niche)}`,
+       `https://source.unsplash.com/800x1000/?${encodeURIComponent(lead.niche + ' luxury')}`,
+       `https://source.unsplash.com/800x1000/?${encodeURIComponent(lead.niche + ' minimal')}`,
+       `https://source.unsplash.com/800x1000/?${encodeURIComponent(lead.niche + ' detail')}`
+    ];
+
+    if (!data.extractedImages || data.extractedImages.length < 2) {
+       data.extractedImages = fallbackImages;
+    }
+    
+    // Add Clearbit Logo as a safety asset
+    data.extractedImages.unshift(`https://logo.clearbit.com/${hostname}`);
     
     return data;
   } catch (e) {
-    return { colors: [], extractedImages: [deterministicLogo] } as any;
+    console.error("DNA Extraction Failed", e);
+    return { colors: ['#000000'], extractedImages: [] } as any;
   }
 };
 
@@ -340,7 +350,7 @@ export const generateVisual = async (prompt: string, lead?: Lead, inputImageBase
       model: 'gemini-2.5-flash-image',
       contents: { parts },
       config: {
-        imageConfig: { aspectRatio: "1:1" }
+        imageConfig: { aspectRatio: "9:16" } // Default to vertical for campaign
       }
     });
 
@@ -404,7 +414,7 @@ export const generateVideoPayload = async (
   leadId?: string,
   startImageBase64?: string,
   endImageBase64?: string, 
-  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p', modelStr: 'veo-3.1-fast-generate-preview' },
+  config: VeoConfig = { aspectRatio: '9:16', resolution: '720p', modelStr: 'veo-3.1-fast-generate-preview' },
   referenceImages?: string[], 
   inputVideoBase64?: string 
 ): Promise<string | null> => {

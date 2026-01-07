@@ -61,7 +61,26 @@ export interface BrandIdentity {
   voiceTags?: string[];
   mission?: string;
   logoUrl?: string;
-  extractedImages?: string[]; // New field for real extracted site images
+  extractedImages?: string[]; // Array of image URLs found on site
+}
+
+export interface CreativeAsset {
+  id: string;
+  type: 'static' | 'motion';
+  angle: 'PURIST' | 'STORY' | 'VALUE' | 'ABSTRACT';
+  imageUrl: string;
+  videoUrl?: string;
+  headline: string;
+  subhead: string;
+  cta: string;
+  status: 'draft' | 'animating' | 'ready';
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  timestamp: number;
+  creatives: CreativeAsset[];
 }
 
 export interface Lead {
@@ -82,6 +101,7 @@ export interface Lead {
   
   // Brand DNA (Pomelli Engine)
   brandIdentity?: BrandIdentity;
+  campaigns?: Campaign[];
 
   // CRM Status Contract
   status?: OutreachStatus; // Legacy support (Optional)
