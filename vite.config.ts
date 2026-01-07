@@ -19,17 +19,15 @@ if (typeof (globalThis as any).localStorage === 'undefined') {
 const createKieProxyMiddleware = (env: Record<string, string>) => {
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     try {
-      const protocol = (req.headers['x-forwarded-proto'] as string) || 'http';
-      const host = req.headers.host || 'localhost';
-      const urlObj = new URL(req.url || '', `${protocol}://${host}`);
+      const url = req.url || '';
       
-      // 1. ROUTER MATCHING - STRICTER PREFIX CHECK
-      if (!urlObj.pathname.startsWith('/api/kie/suno')) {
+      // 1. ROUTER MATCHING
+      if (!url.startsWith('/api/kie/suno')) {
         return next();
       }
 
       // Secure Key Management (Server-Side Only)
-      // FIX: Hardcoded fallback to prevent 500 Error when env var is missing in preview
+      // We check process.env first, then the passed env object, then a hardcoded fallback if specific to this project context
       const KIE_KEY = process.env.KIE_KEY || env.KIE_KEY || '302d700cb3e9e3dcc2ad9d94d5059279';
       
       if (!KIE_KEY) {
@@ -53,8 +51,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
       };
 
       // 2. ROUTE: POST /api/kie/suno/suno_submit
-      // Changed to 'includes' to be safer against trailing slashes
-      if (req.method === 'POST' && urlObj.pathname.includes('suno_submit')) {
+      if (req.method === 'POST' && url.includes('suno_submit')) {
         const bodyStr = await readBody();
         const upstreamUrl = `${KIE_BASE}/suno_submit`;
         
@@ -70,8 +67,6 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         });
 
         const rawText = await upstreamRes.text();
-        console.log(`[KIE PROXY] Upstream Status: ${upstreamRes.status}`);
-
         let data;
         try {
             data = JSON.parse(rawText);
@@ -87,8 +82,8 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
       }
 
       // 3. ROUTE: GET /api/kie/suno/status/:id
-      if (req.method === 'GET' && urlObj.pathname.includes('/status/')) {
-        const parts = urlObj.pathname.split('/');
+      if (req.method === 'GET' && url.includes('/status/')) {
+        const parts = url.split('/');
         const taskId = parts[parts.length - 1]; // Extract ID from URL path
         const upstreamUrl = `${KIE_BASE}/status/${taskId}`;
 
@@ -102,8 +97,6 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         });
 
         const rawText = await upstreamRes.text();
-        console.log(`[KIE PROXY] Upstream Status: ${upstreamRes.status}`);
-
         let data;
         try {
             data = JSON.parse(rawText);
@@ -119,10 +112,9 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
       }
 
       // 404 for unknown API routes within this namespace
-      console.warn(`[KIE PROXY] 404 Not Found: ${urlObj.pathname}`);
       res.statusCode = 404;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: 'Route not found in KIE Proxy', path: urlObj.pathname }));
+      res.end(JSON.stringify({ error: 'Route not found in KIE Proxy', path: url }));
 
     } catch (e: any) {
       console.error('[KIE Proxy Error]', e);
