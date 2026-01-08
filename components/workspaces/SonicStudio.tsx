@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
-import { generateAudioPitch, generateLyrics, SESSION_ASSETS, subscribeToAssets, generateVisual, AssetRecord, generateSonicPrompt } from '../../services/geminiService';
+import { generateAudioPitch, generateLyrics, SESSION_ASSETS, subscribeToAssets, generateVisual, AssetRecord, generateSonicPrompt, importVault } from '../../services/geminiService';
 import { kieSunoService } from '../../services/kieSunoService';
 import { SonicStudioPlayer } from './SonicStudioPlayer';
 import { toast } from '../../services/toastManager';
@@ -93,6 +92,9 @@ const DURATIONS = [
 
 const VOICES = ['Kore', 'Fenrir', 'Puck', 'Charon', 'Zephyr'];
 
+// Manual persistence (workaround until a real DB-backed vault exists)
+const VAULT_CACHE_KEY = 'PROSPECTOR_VAULT_V1';
+
 export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   // --- STATE ---
   
@@ -129,10 +131,25 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   const musicAudioRef = useRef<HTMLAudioElement>(null);
   const voiceAudioRef = useRef<HTMLAudioElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   // --- INITIALIZATION ---
 
   useEffect(() => {
+    // Restore Vault from localStorage (prevents assets vanishing after refresh)
+    try {
+      const raw = window.localStorage.getItem(VAULT_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length && SESSION_ASSETS.length === 0) {
+          importVault(parsed as any);
+          toast.neural('VAULT RESTORED FROM LOCAL CACHE');
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     // Filter for Audio AND Images relevant to this lead (or global if no lead)
     const filterAssets = (all: AssetRecord[]) => {
         return all.filter(a => {
@@ -168,6 +185,79 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
 
     return () => unsub();
   }, [lead]);
+
+  // --- MANUAL PERSISTENCE ACTIONS ---
+  const handleSaveAll = () => {
+    try {
+      window.localStorage.setItem(VAULT_CACHE_KEY, JSON.stringify(SESSION_ASSETS));
+      toast.success('Saved: Vault cached locally');
+    } catch (e: any) {
+      toast.error(`Save failed: ${e?.message || 'localStorage unavailable'}`);
+    }
+  };
+
+  const handleExportAll = () => {
+    try {
+      const payload = {
+        schema: 'PROSPECTOR_EXPORT_V1',
+        exportedAt: new Date().toISOString(),
+        vault: SESSION_ASSETS,
+        sunoGallery: kieSunoService.getPersistedGallery?.() || []
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `prospector_sonicstudio_export_${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Export ready');
+    } catch (e: any) {
+      toast.error(`Export failed: ${e?.message || 'Unknown error'}`);
+    }
+  };
+
+  const handleImportAllClick = () => {
+    importFileRef.current?.click();
+  };
+
+  const handleImportAllFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+
+      const importedVault = Array.isArray(parsed?.vault) ? parsed.vault : Array.isArray(parsed) ? parsed : [];
+      if (importedVault.length) {
+        // avoid obvious duplicates by id
+        const existingIds = new Set(SESSION_ASSETS.map(a => a.id));
+        const toAdd = importedVault.filter((a: any) => a && typeof a.id === 'string' && !existingIds.has(a.id));
+        if (toAdd.length) importVault(toAdd as any);
+      }
+
+      const importedGallery = Array.isArray(parsed?.sunoGallery) ? parsed.sunoGallery : [];
+      if (importedGallery.length && typeof (kieSunoService as any).setPersistedGallery === 'function') {
+        (kieSunoService as any).setPersistedGallery(importedGallery);
+      }
+
+      // persist vault cache immediately
+      try {
+        window.localStorage.setItem(VAULT_CACHE_KEY, JSON.stringify(SESSION_ASSETS));
+      } catch {
+        // ignore
+      }
+
+      toast.success('Import complete');
+    } catch (err: any) {
+      toast.error(`Import failed: ${err?.message || 'Invalid JSON'}`);
+    } finally {
+      // allow re-importing the same file
+      e.target.value = '';
+    }
+  };
 
   // --- MIXER LOGIC ---
   useEffect(() => {
@@ -218,10 +308,10 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
         setVoiceText(text); // Auto-copy to voice input
         setIsInstrumental(false); // Assume vocal track needed
         setActiveTab('VOICE'); // Switch to see lyrics
-        toast.success("Lyricsmith: Script Generated & Copied to Voice Engine");
-    } catch (e) {
-        console.error(e);
-        toast.error("Failed to generate lyrics.");
+        toast.success("Lyrics Written & Loaded into Voice Studio");
+    } catch (e: any) {
+        console.error("Lyric Gen Error:", e);
+        toast.error(`Lyric Writing Failed: ${e.message || "Unknown Error"}`);
     } finally {
         setIsWritingLyrics(false);
     }
@@ -229,7 +319,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
 
   const handleGenerateVoice = async () => {
     if (!voiceText) {
-        toast.error("Please enter text for speech generation");
+        toast.error("Voice Script cannot be empty");
         return;
     }
     setIsGeneratingVoice(true);
@@ -273,6 +363,13 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
             return isTypeMatch && isLeadMatch;
         });
         setGeneratedAssets([...filtered]); // Force new array reference
+
+        // Auto-cache vault locally so music doesn't disappear on refresh
+        try {
+          window.localStorage.setItem(VAULT_CACHE_KEY, JSON.stringify(SESSION_ASSETS));
+        } catch {
+          // ignore
+        }
 
         toast.success("Music Generation Complete & Saved");
     } catch (e: any) {
@@ -342,6 +439,38 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
              </button>
            ))}
         </div>
+      </div>
+
+      {/* --- MANUAL SAVE / EXPORT / IMPORT BAR --- */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportAll}
+            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-slate-800 transition-all"
+          >
+            Export
+          </button>
+          <button
+            onClick={handleImportAllClick}
+            className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-slate-800 transition-all"
+          >
+            Import
+          </button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleImportAllFile}
+            className="hidden"
+          />
+        </div>
+
+        <button
+          onClick={handleSaveAll}
+          className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg"
+        >
+          Save All
+        </button>
       </div>
 
       <div className="grid grid-cols-12 gap-6 items-stretch min-h-[700px]">
@@ -518,60 +647,99 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                       <div className="space-y-4">
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">CONFIGURATION</label>
                         
-                        <div className="flex bg-slate-950 rounded-lg p-1 border border-slate-800">
-                            {DURATIONS.map(d => (
-                              <button
-                                key={d.val}
-                                onClick={() => setTargetDuration(d)}
-                                className={`flex-1 py-2 text-[8px] font-black rounded transition-all ${targetDuration.val === d.val ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-                              >
-                                {d.label.split(' ')[0]}
-                              </button>
-                            ))}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">DURATION</label>
+                            <select 
+                              value={targetDuration.val}
+                              onChange={(e) => setTargetDuration(DURATIONS.find(d => d.val === Number(e.target.value)) || DURATIONS[1])}
+                              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest focus:outline-none focus:border-emerald-500"
+                            >
+                              {DURATIONS.map(d => <option key={d.val} value={d.val}>{d.label}</option>)}
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">MODE</label>
+                            <button
+                              onClick={() => setIsInstrumental(!isInstrumental)}
+                              className={`w-full px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                                isInstrumental 
+                                  ? 'bg-emerald-600 border-emerald-500 text-white' 
+                                  : 'bg-rose-600 border-rose-500 text-white'
+                              }`}
+                            >
+                              {isInstrumental ? 'INSTRUMENTAL' : 'VOCAL'}
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="flex bg-slate-900/50 rounded-lg p-1 border border-slate-800">
-                            {['MP3', 'WAV'].map((fmt) => (
+                        <div className="space-y-2">
+                          <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">EXPORT FORMAT</label>
+                          <div className="flex gap-2">
+                            {(['MP3', 'WAV'] as const).map(fmt => (
                               <button
                                 key={fmt}
-                                onClick={() => setExportFormat(fmt as any)}
-                                className={`flex-1 py-2 text-[8px] font-black rounded transition-all ${exportFormat === fmt ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                                onClick={() => setExportFormat(fmt)}
+                                className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                                  exportFormat === fmt
+                                    ? 'bg-indigo-600 border-indigo-500 text-white'
+                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-white'
+                                }`}
                               >
                                 {fmt}
                               </button>
                             ))}
+                          </div>
                         </div>
                       </div>
 
-                      <div 
-                        onClick={() => coverInputRef.current?.click()}
-                        className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex items-center gap-4 cursor-pointer group hover:border-emerald-500/50 transition-all"
-                      >
-                        <div className="w-12 h-12 bg-black rounded-lg overflow-hidden border border-slate-800 relative">
-                            {coverImage ? <img src={coverImage} className="w-full h-full object-cover" /> : <span className="absolute inset-0 flex items-center justify-center text-lg grayscale opacity-50">💿</span>}
+                      <div className="space-y-4">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">COVER ART</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={handleGenerateCover}
+                            disabled={isGeneratingCover}
+                            className="bg-slate-950 border border-slate-800 rounded-2xl p-4 hover:bg-slate-900 hover:border-indigo-500/50 transition-all disabled:opacity-50"
+                          >
+                            <div className="text-[10px] font-black uppercase tracking-widest text-indigo-400">AI COVER</div>
+                            <div className="text-[8px] font-bold text-slate-500 mt-1">{isGeneratingCover ? 'Generating...' : 'Create Art'}</div>
+                          </button>
+                          <button
+                            onClick={() => coverInputRef.current?.click()}
+                            className="bg-slate-950 border border-slate-800 rounded-2xl p-4 hover:bg-slate-900 hover:border-emerald-500/50 transition-all"
+                          >
+                            <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400">UPLOAD</div>
+                            <div className="text-[8px] font-bold text-slate-500 mt-1">Custom</div>
+                          </button>
+                          <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
                         </div>
-                        <div className="flex-1">
-                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest group-hover:text-emerald-400">COVER ART</p>
-                            <p className="text-[8px] text-slate-600 font-medium">CLICK TO CHANGE</p>
-                        </div>
-                        <button onClick={(e) => { e.stopPropagation(); handleGenerateCover(); }} className="text-[10px] p-2 hover:bg-slate-800 rounded-lg">🎨</button>
-                        <input type="file" ref={coverInputRef} onChange={handleCoverUpload} className="hidden" />
+                        {coverImage && (
+                          <div className="relative mt-3">
+                            <img src={coverImage} alt="Cover Art" className="w-full h-32 object-cover rounded-2xl border border-slate-800" />
+                            <button
+                              onClick={() => setCoverImage(null)}
+                              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-all"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="mt-auto space-y-3 pt-6 border-t border-slate-800">
-                        <button 
+                      <div className="mt-auto pt-4 border-t border-slate-800/50 space-y-3">
+                        <button
                           onClick={handleGenerateMusic}
-                          disabled={isGeneratingMusic}
-                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
+                          disabled={isGeneratingMusic || isAutoPrompting}
+                          className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-indigo-600 text-white text-[11px] font-black uppercase tracking-widest hover:from-emerald-500 hover:to-indigo-500 transition-all disabled:opacity-50 shadow-2xl"
                         >
-                          {isGeneratingMusic ? 'COMPOSING...' : 'GENERATE TRACK'}
+                          {isGeneratingMusic ? 'GENERATING...' : 'GENERATE MUSIC'}
                         </button>
-                        <button 
-                          onClick={handleWriteLyrics} 
-                          disabled={isWritingLyrics}
-                          className="w-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all hover:bg-slate-800"
+                        <button
+                          onClick={handleWriteLyrics}
+                          disabled={isWritingLyrics || !lead}
+                          className="w-full py-3 rounded-2xl bg-slate-950 border border-slate-800 text-slate-300 text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all disabled:opacity-50"
                         >
-                          {isWritingLyrics ? 'WRITING...' : 'LYRICSMITH AI'}
+                          {isWritingLyrics ? 'WRITING...' : 'WRITE LYRICS'}
                         </button>
                       </div>
                   </div>
@@ -579,30 +747,30 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
 
               {activeTab === 'VOICE' && (
                   <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-6 shadow-xl h-full flex flex-col gap-6">
-                    <div className="flex-1 space-y-4 flex flex-col">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">SCRIPT</label>
+                      <div className="space-y-3">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">VOICE SCRIPT / LYRICS</label>
                         <textarea 
                           value={voiceText}
                           onChange={(e) => setVoiceText(e.target.value)}
-                          className="flex-1 w-full bg-[#020617] border border-slate-800 rounded-2xl p-4 text-xs font-medium text-slate-300 focus:outline-none focus:border-indigo-500 resize-none shadow-inner leading-relaxed custom-scrollbar"
-                          placeholder="Enter text to speak..."
+                          className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-4 text-xs font-medium text-slate-300 focus:outline-none focus:border-indigo-500 h-64 resize-none shadow-inner custom-scrollbar"
+                          placeholder="Enter script or lyrics..."
                         />
-                    </div>
-                    <button 
+                      </div>
+                      <button
                         onClick={handleGenerateVoice}
                         disabled={isGeneratingVoice}
-                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-indigo-600/20 active:scale-95 transition-all border-b-4 border-indigo-800"
-                    >
+                        className="mt-auto w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-rose-600 text-white text-[11px] font-black uppercase tracking-widest hover:from-indigo-500 hover:to-rose-500 transition-all disabled:opacity-50 shadow-2xl"
+                      >
                         {isGeneratingVoice ? 'SYNTHESIZING...' : 'GENERATE VOICE'}
-                    </button>
+                      </button>
                   </div>
               )}
 
               {activeTab === 'MIXER' && (
-                  <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-6 shadow-xl h-full flex flex-col gap-4">
+                  <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-6 shadow-xl h-full flex flex-col gap-6">
                     <div className="flex items-center gap-2 mb-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                        <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">DECK B: VOICE</span>
+                        <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                        <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">DECK B: VOICE</span>
                     </div>
                     <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-4">
                         <select 
@@ -621,11 +789,17 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                           <input type="range" min="0" max="1" step="0.01" value={voiceVol} onChange={(e) => setVoiceVol(parseFloat(e.target.value))} className="w-full accent-indigo-500 h-1 bg-slate-800 rounded-full appearance-none" />
                         </div>
                     </div>
+                    <div className="mt-auto pt-4 border-t border-slate-800/50">
+                      <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">MIXDOWN CONTROLS</div>
+                      <button className="w-full py-4 rounded-2xl bg-white text-black font-black uppercase tracking-widest text-[11px] hover:bg-slate-200 transition-all">
+                        EXPORT MIX
+                      </button>
+                    </div>
                   </div>
               )}
           </div>
         )}
-
+        
       </div>
     </div>
   );
