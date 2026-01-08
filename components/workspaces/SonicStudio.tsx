@@ -272,7 +272,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
             const isLeadMatch = lead ? a.leadId === lead.id : true;
             return isTypeMatch && isLeadMatch;
         });
-        setGeneratedAssets(filtered);
+        setGeneratedAssets([...filtered]); // Force new array reference
 
         toast.success("Music Generation Complete & Saved");
     } catch (e: any) {

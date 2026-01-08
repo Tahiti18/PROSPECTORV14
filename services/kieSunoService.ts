@@ -74,6 +74,9 @@ export const kieSunoService = {
 
     const data = await res.json().catch(() => ({}));
 
+    // LOGGING: KIE Submit Response
+    log(`Submit Response (${res.status})`, data);
+
     if (!res.ok) {
       log('Submit error body:', data);
       throw new Error(
@@ -124,9 +127,11 @@ export const kieSunoService = {
       }
 
       const status = String(d?.status || d?.state || data?.status || data?.state || '').toUpperCase();
-      log(`Poll ${taskId} [${attempts}]: ${status}`, data);
+      log(`Poll ${taskId} [${attempts}]: ${status}`);
 
       if (['SUCCESS', 'SUCCEEDED', 'COMPLETED'].includes(status)) {
+        // LOGGING: Poll Completion Payload
+        log('Poll Completion Payload:', d);
         return kieSunoService.parseClips(d);
       }
 
@@ -183,19 +188,28 @@ export const kieSunoService = {
     const clips = await kieSunoService.pollTask(job.taskId!);
 
     const signature = prompt.split(',')[0].trim().slice(0, 30);
+    const urls: string[] = [];
 
     clips.forEach((clip, i) => {
       const displayTitle = clip.title || `SUNO_TRACK_${i + 1}`;
-      saveAsset('AUDIO', displayTitle, clip.url, 'SONIC_STUDIO', leadId, {
-        sunoJobId: clip.id || job.taskId,
-        promptSignature: signature,
-        duration: clip.duration || 120,
-        isInstrumental: instrumental,
-        coverUrl: customCoverUrl || clip.image_url
-      });
+      try {
+        saveAsset('AUDIO', displayTitle, clip.url, 'SONIC_STUDIO', leadId, {
+          sunoJobId: clip.id || job.taskId,
+          promptSignature: signature,
+          duration: clip.duration || 120,
+          isInstrumental: instrumental,
+          coverUrl: customCoverUrl || clip.image_url
+        });
+        urls.push(clip.url);
+      } catch (err: any) {
+        console.error("Failed to save asset for clip", clip, err);
+      }
     });
 
+    // LOGGING: Final URLs
+    log('Final URLs Saved:', urls);
+
     toast.success(`Generated ${clips.length} Music Tracks.`);
-    return clips.map(c => c.url);
+    return urls;
   }
 };
