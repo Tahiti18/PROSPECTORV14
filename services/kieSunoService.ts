@@ -57,7 +57,6 @@ export const kieSunoService = {
       callBackUrl: webhookUrl || `${window.location.origin}/api/kie/callback`
     };
 
-    // Keep duration only if you use it; harmless if ignored upstream
     if (typeof duration === 'number') payload.duration = duration;
 
     // Proxy route (alias): /api/kie/suno/suno_submit  (proxy will forward to /generate)
@@ -85,7 +84,6 @@ export const kieSunoService = {
       data?.task_id;
 
     if (!taskId) {
-      // Show full upstream debug payload in the UI (you’re on iPad, no console)
       throw new Error(`KIE response missing 'taskId'. Debug: ${toDebugString(data)}`);
     }
 
@@ -154,31 +152,59 @@ export const kieSunoService = {
     throw new Error('Polling Timed Out (Exceeded 3 minutes)');
   },
 
+  /**
+   * ✅ Robust clip parsing for KIE responses
+   * Supports: audioUrl, streamAudioUrl, audio_url, url, plus many container shapes.
+   */
   parseClips: (data: any): SunoClip[] => {
-    let clips: SunoClip[] = [];
+    const root = data?.data ?? data;
 
-    const rawClips = data?.clips || data?.output || data?.audios || data?.audioList || [];
+    // Collect any array-like containers we might have
+    const containers: any[] = [
+      root?.clips,
+      root?.output,
+      root?.audios,
+      root?.audioList,
+      root?.records,
+      root?.list,
+      root
+    ].filter(Boolean);
 
-    if (Array.isArray(rawClips)) {
-      clips = rawClips
-        .map((c: any) => ({
-          id: c.id,
-          url: c.audio_url || c.audioUrl || c.url || c.video_url,
-          image_url: c.image_url || c.imageUrl || c.image_large_url,
-          duration: c.duration,
-          title: c.title
-        }))
-        .filter((c: any) => c.url);
-    } else if (data?.audio_url || data?.audioUrl || data?.url) {
-      clips = [{
-        id: data?.id,
-        url: data?.audio_url || data?.audioUrl || data?.url,
-        image_url: data?.image_url || data?.imageUrl,
-        duration: data?.duration
-      }];
+    // Flatten arrays
+    const items: any[] = [];
+    for (const c of containers) {
+      if (Array.isArray(c)) items.push(...c);
     }
 
-    if (!clips.length) throw new Error(`Task Completed but no Audio URLs found. Debug: ${toDebugString(data)}`);
+    // If we still have no array items but root looks like a single record, use it
+    if (items.length === 0 && root && typeof root === 'object') {
+      items.push(root);
+    }
+
+    const clips: SunoClip[] = items
+      .map((c: any) => {
+        const url =
+          c?.audio_url ||
+          c?.audioUrl ||
+          c?.streamAudioUrl ||
+          c?.url ||
+          c?.video_url ||
+          c?.videoUrl;
+
+        return {
+          id: c?.id || c?.taskId,
+          url,
+          image_url: c?.image_url || c?.imageUrl || c?.image_large_url,
+          duration: c?.duration,
+          title: c?.title
+        };
+      })
+      .filter((c: any) => !!c.url);
+
+    if (!clips.length) {
+      throw new Error(`Task Completed but no Audio URLs found. Debug: ${toDebugString(data)}`);
+    }
+
     return clips;
   },
 
