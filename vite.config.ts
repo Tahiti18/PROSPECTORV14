@@ -79,7 +79,13 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         });
 
         const rawText = await upstreamRes.text();
-        return sendJson(upstreamRes.status, safeJson(rawText));
+        const parsed = safeJson(rawText);
+return sendJson(upstreamRes.status, {
+  _debug_upstreamStatus: upstreamRes.status,
+  _debug_upstreamUrl: upstreamUrl,
+  _debug_raw: rawText,
+  ...parsed
+});
       }
 
       // ✅ Status aliases:
