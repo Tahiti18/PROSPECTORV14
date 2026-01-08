@@ -1,4 +1,3 @@
-
 import { saveAsset } from './geminiService';
 import { toast } from './toastManager';
 
@@ -35,6 +34,8 @@ const unwrap = (v: any) => (v && typeof v === 'object' && 'data' in v ? v.data :
 export const kieSunoService = {
   /**
    * Submit generation (via proxy)
+   *
+   * IMPORTANT: Signature is backward-compatible to avoid TS2554 in SonicStudio.tsx.
    */
   generateMusic: async (
     prompt: string,
@@ -45,8 +46,11 @@ export const kieSunoService = {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
+    // KIE requires callBackUrl to be a valid URI.
+    // If caller provided webhookUrl, use it; otherwise use our Railway origin callback endpoint.
     const callBackUrl = webhookUrl || `${window.location.origin}/api/kie/callback`;
 
+    // Minimal required fields per KIE docs: prompt/customMode/instrumental/model/callBackUrl
     const payload: any = {
       prompt,
       customMode: false,
@@ -55,61 +59,44 @@ export const kieSunoService = {
       callBackUrl
     };
 
+    // If your UI passes duration, include it only when defined (harmless if upstream ignores it)
     if (typeof duration === 'number') payload.duration = duration;
 
     const submitUrl = `${BASE_URL}/submit`;
     log(`Posting to Proxy: ${submitUrl}`, payload);
 
-    // Timeout controller to prevent infinite hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for initial handshake
+    const res = await fetch(submitUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-    try {
-        const res = await fetch(submitUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: controller.signal
-        });
+    const data = await res.json().catch(() => ({}));
 
-        const text = await res.text();
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            log('Failed to parse JSON response', text);
-            throw new Error(`Invalid JSON from Proxy: ${text.slice(0, 100)}`);
-        }
-
-        if (!res.ok) {
-          log('Submit error body:', data);
-          throw new Error(
-            `Proxy Error (${res.status}): ${data?.msg || data?.error || 'Unknown Proxy Error'}`
-          );
-        }
-
-        const d = unwrap(data);
-        const taskId = d?.taskId || data?.taskId;
-
-        if (!taskId) {
-          log('Missing taskId in response:', data);
-          throw new Error("KIE response missing 'taskId'");
-        }
-
-        return {
-          id: jobId,
-          taskId,
-          status: 'QUEUED',
-          prompt,
-          instrumental,
-          createdAt: Date.now()
-        };
-    } catch (e: any) {
-        log('Fetch failed', e);
-        throw e;
-    } finally {
-        clearTimeout(timeoutId);
+    if (!res.ok) {
+      log('Submit error body:', data);
+      throw new Error(
+        `Proxy Error (${res.status}): ${data?.msg || data?.error || 'Unknown Proxy Error'}`
+      );
     }
+
+    // Typical shape: { code, msg, data: { taskId } }
+    const d = unwrap(data);
+    const taskId = d?.taskId || data?.taskId;
+
+    if (!taskId) {
+      log('Missing taskId in response:', data);
+      throw new Error("KIE response missing 'taskId'");
+    }
+
+    return {
+      id: jobId,
+      taskId,
+      status: 'QUEUED',
+      prompt,
+      instrumental,
+      createdAt: Date.now()
+    };
   },
 
   /**
@@ -125,32 +112,25 @@ export const kieSunoService = {
       await sleep(Math.min(2000 * Math.pow(1.5, attempts), 10000));
 
       const statusUrl = `${BASE_URL}/record-info?taskId=${encodeURIComponent(taskId)}`;
-      
-      try {
-          const res = await fetch(statusUrl);
-          const data = await res.json().catch(() => ({}));
-          const d = unwrap(data);
+      const res = await fetch(statusUrl);
+      const data = await res.json().catch(() => ({}));
+      const d = unwrap(data);
 
-          if (!res.ok) {
-            throw new Error(
-              `Status Check Failed (${res.status}): ${data?.msg || data?.error || 'Unknown Error'}`
-            );
-          }
+      if (!res.ok) {
+        throw new Error(
+          `Status Check Failed (${res.status}): ${data?.msg || data?.error || 'Unknown Error'}`
+        );
+      }
 
-          const status = String(d?.status || d?.state || data?.status || data?.state || '').toUpperCase();
-          log(`Poll ${taskId} [${attempts}]: ${status}`, data);
+      const status = String(d?.status || d?.state || data?.status || data?.state || '').toUpperCase();
+      log(`Poll ${taskId} [${attempts}]: ${status}`, data);
 
-          if (['SUCCESS', 'SUCCEEDED', 'COMPLETED'].includes(status)) {
-            return kieSunoService.parseClips(d);
-          }
+      if (['SUCCESS', 'SUCCEEDED', 'COMPLETED'].includes(status)) {
+        return kieSunoService.parseClips(d);
+      }
 
-          if (status.includes('FAILED') || status.includes('ERROR')) {
-            throw new Error(d?.error || data?.msg || data?.error || 'Generation Task Failed');
-          }
-      } catch (e) {
-          log(`Poll attempt ${attempts} failed (network/parse error), retrying...`, e);
-          // Don't throw immediately on poll network error, retry a few times
-          if (attempts > 20) throw e; 
+      if (status.includes('FAILED') || status.includes('ERROR')) {
+        throw new Error(d?.error || data?.msg || data?.error || 'Generation Task Failed');
       }
     }
 
@@ -188,7 +168,7 @@ export const kieSunoService = {
   },
 
   /**
-   * Orchestrator
+   * Orchestrator (backward-compatible signature)
    */
   runFullCycle: async (
     prompt: string,
