@@ -4,6 +4,9 @@ import { toast } from './toastManager';
 // Must match vite.config.ts proxy matcher: url.startsWith('/api/kie/suno')
 const BASE_URL = '/api/kie/suno';
 
+// Local persistence key (so tracks don't vanish on navigation)
+const SUNO_GALLERY_CACHE_KEY = 'SONIC_STUDIO_SUNO_GALLERY_V1';
+
 export interface SunoJob {
   id: string;
   taskId?: string;
@@ -23,6 +26,17 @@ export interface SunoClip {
   title?: string;
 }
 
+type PersistedSunoTrack = {
+  id: string;
+  url: string;
+  title: string;
+  image_url?: string;
+  duration?: number;
+  createdAt: number;
+  promptSignature?: string;
+  instrumental?: boolean;
+};
+
 const log = (msg: string, data?: any) => {
   if (data) console.log(`[KIE_SUNO] ${msg}`, data);
   else console.log(`[KIE_SUNO] ${msg}`);
@@ -34,7 +48,68 @@ const toDebugString = (v: any) => {
   try { return JSON.stringify(v); } catch { return String(v); }
 };
 
+const safeLocalStorageGet = (key: string): string | null => {
+  try {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const safeLocalStorageSet = (key: string, value: string) => {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage?.setItem(key, value);
+  } catch {
+    // ignore
+  }
+};
+
+const loadGalleryCache = (): PersistedSunoTrack[] => {
+  const raw = safeLocalStorageGet(SUNO_GALLERY_CACHE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeGalleryCache = (tracks: PersistedSunoTrack[]) => {
+  safeLocalStorageSet(SUNO_GALLERY_CACHE_KEY, JSON.stringify(tracks));
+};
+
+const upsertGalleryTracks = (newTracks: PersistedSunoTrack[]) => {
+  const existing = loadGalleryCache();
+  const byUrl = new Map<string, PersistedSunoTrack>();
+
+  for (const t of existing) {
+    if (t?.url) byUrl.set(t.url, t);
+  }
+  for (const t of newTracks) {
+    if (t?.url) byUrl.set(t.url, t);
+  }
+
+  // newest first
+  const merged = Array.from(byUrl.values()).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  writeGalleryCache(merged);
+
+  // notify UI (optional hook)
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('suno:gallery_updated', { detail: { tracks: merged } }));
+    }
+  } catch {
+    // ignore
+  }
+};
+
 export const kieSunoService = {
+  // Optional helper for UI later (not required, but useful)
+  getPersistedGallery: (): PersistedSunoTrack[] => loadGalleryCache(),
+
   /**
    * Submit generation (via proxy)
    * Keep signature backward-compatible with SonicStudio.tsx
@@ -113,11 +188,9 @@ export const kieSunoService = {
       const delay = Math.min(INITIAL_DELAY * Math.pow(GROWTH_FACTOR, attempts), MAX_DELAY);
       await sleep(delay);
 
-      // Try record-info first
       let res = await fetch(`${BASE_URL}/record-info?taskId=${encodeURIComponent(taskId)}`);
       let raw = await res.json().catch(() => ({}));
 
-      // Fallback to /status/:id if record-info isn't wired
       if (res.status === 404) {
         res = await fetch(`${BASE_URL}/status/${encodeURIComponent(taskId)}`);
         raw = await res.json().catch(() => ({}));
@@ -139,7 +212,7 @@ export const kieSunoService = {
       log(`Poll ${taskId} [${attempts}]: ${status}`, unwrapped);
 
       if (['COMPLETED', 'SUCCESS', 'SUCCEEDED'].includes(status)) {
-        // IMPORTANT: pass RAW to preserve wrappers like records/data/result
+        // IMPORTANT: parse RAW (preserves wrappers like records/result)
         return kieSunoService.parseClips(raw);
       }
 
@@ -152,32 +225,29 @@ export const kieSunoService = {
   },
 
   /**
-   * FINAL ROBUST PARSER:
-   * - handles multiple outputs
-   * - handles JSON-in-string fields (escaped quotes)
-   * - finds audioUrl/streamAudioUrl/audio_url anywhere in nested response (records/data/result/etc.)
+   * Robust parser (handles multiple outputs + JSON-in-string)
    */
   parseClips: (input: any): SunoClip[] => {
     const tryParseStringJSON = (v: any) => {
       if (typeof v !== 'string') return v;
-      let s: any = v;
 
-      // Quick reject: avoid parsing plain text
+      const s = v.trim();
       const looksJson =
-        (typeof s === 'string' && s.trim().startsWith('{') && s.trim().endsWith('}')) ||
-        (typeof s === 'string' && s.trim().startsWith('[') && s.trim().endsWith(']'));
+        (s.startsWith('{') && s.endsWith('}')) ||
+        (s.startsWith('[') && s.endsWith(']'));
 
       if (!looksJson) return v;
 
+      let cur: any = v;
       for (let i = 0; i < 3; i++) {
         try {
-          s = JSON.parse(s);
+          cur = JSON.parse(cur);
         } catch {
           break;
         }
-        if (typeof s !== 'string') break;
+        if (typeof cur !== 'string') break;
       }
-      return s;
+      return cur;
     };
 
     const clips: SunoClip[] = [];
@@ -211,32 +281,20 @@ export const kieSunoService = {
       if (depth > 30) return;
 
       node = tryParseStringJSON(node);
-
       if (node == null) return;
 
-      // If it’s an object that itself looks like a clip, grab it
       if (typeof node === 'object' && !Array.isArray(node)) {
         pushClip(node);
       }
 
-      // Arrays: walk items
       if (Array.isArray(node)) {
         for (const item of node) visit(item, depth + 1);
         return;
       }
 
-      // Objects: walk values and also parse common “result” string fields
       if (typeof node === 'object') {
-        // Common KIE pattern: record.result is a JSON string with audioUrl
-        const maybeResult =
-          (node as any).result ??
-          (node as any).output ??
-          (node as any).payload ??
-          (node as any).data;
-
-        if (typeof maybeResult === 'string') {
-          visit(maybeResult, depth + 1);
-        }
+        const maybeResult = (node as any).result ?? (node as any).output ?? (node as any).payload ?? (node as any).data;
+        if (typeof maybeResult === 'string') visit(maybeResult, depth + 1);
 
         for (const k of Object.keys(node)) {
           visit((node as any)[k], depth + 1);
@@ -253,6 +311,11 @@ export const kieSunoService = {
     return clips;
   },
 
+  /**
+   * Orchestrator:
+   * - saves to backend via saveAsset()
+   * - persists locally so tracks don't disappear
+   */
   runFullCycle: async (
     prompt: string,
     instrumental: boolean,
@@ -267,21 +330,57 @@ export const kieSunoService = {
     const signature = prompt.split(',')[0].trim().slice(0, 30);
     const urls: string[] = [];
 
-    clips.forEach((clip, i) => {
+    const persisted: PersistedSunoTrack[] = [];
+
+    // IMPORTANT: use for..of so we can await saveAsset if it's async
+    for (let i = 0; i < clips.length; i++) {
+      const clip = clips[i];
       const displayTitle = clip.title || `SUNO_TRACK_${i + 1}`;
+
+      // 1) Persist locally (so UI doesn't lose them on navigation)
+      persisted.push({
+        id: String(clip.id || job.taskId || `${Date.now()}_${i}`),
+        url: clip.url,
+        title: displayTitle,
+        image_url: customCoverUrl || clip.image_url,
+        duration: clip.duration || 120,
+        createdAt: Date.now(),
+        promptSignature: signature,
+        instrumental
+      });
+
+      // 2) Save to your Assets/Vault (server-side) if saveAsset is wired
       try {
-        saveAsset('AUDIO', displayTitle, clip.url, 'SONIC_STUDIO', leadId, {
-          sunoJobId: clip.id || job.taskId,
-          promptSignature: signature,
-          duration: clip.duration || 120,
-          isInstrumental: instrumental,
-          coverUrl: customCoverUrl || clip.image_url
-        });
+        const maybePromise = saveAsset(
+          'AUDIO',
+          displayTitle,
+          clip.url,
+          'SONIC_STUDIO',
+          leadId,
+          {
+            sunoJobId: clip.id || job.taskId,
+            promptSignature: signature,
+            duration: clip.duration || 120,
+            isInstrumental: instrumental,
+            coverUrl: customCoverUrl || clip.image_url
+          }
+        );
+
+        // If saveAsset returns a promise, wait for it
+        if (maybePromise && typeof (maybePromise as any).then === 'function') {
+          await maybePromise;
+        }
+
         urls.push(clip.url);
       } catch (err: any) {
         console.error('Failed to save asset for clip', clip, err);
+        // Still keep URL (it exists) even if saving fails
+        urls.push(clip.url);
       }
-    });
+    }
+
+    // Write local persistence LAST (so we keep everything)
+    upsertGalleryTracks(persisted);
 
     log('Final URLs Saved:', urls);
     toast.success(`Generated ${clips.length} Music Tracks.`);
