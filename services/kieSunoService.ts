@@ -1,8 +1,22 @@
 import { saveAsset } from './geminiService';
 import { toast } from './toastManager';
 
+// Must match vite.config.ts proxy matcher: url.startsWith('/api/kie/suno')
 const BASE_URL = '/api/kie/suno';
-const GALLERY_KEY = 'SONIC_STUDIO_SUNO_GALLERY_V1';
+
+// Local persistence key (so tracks don't vanish on navigation)
+const SUNO_GALLERY_CACHE_KEY = 'SONIC_STUDIO_SUNO_GALLERY_V1';
+
+export interface SunoJob {
+  id: string;
+  taskId?: string;
+  status: 'IDLE' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  prompt: string;
+  instrumental: boolean;
+  resultUrls?: string[];
+  error?: string;
+  createdAt: number;
+}
 
 export interface SunoClip {
   id?: string;
@@ -12,142 +26,372 @@ export interface SunoClip {
   title?: string;
 }
 
-type PersistedTrack = {
+type PersistedSunoTrack = {
   id: string;
   url: string;
   title: string;
   image_url?: string;
   duration?: number;
   createdAt: number;
+  promptSignature?: string;
+  instrumental?: boolean;
+};
+
+const log = (msg: string, data?: any) => {
+  if (data) console.log(`[KIE_SUNO] ${msg}`, data);
+  else console.log(`[KIE_SUNO] ${msg}`);
 };
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-const loadGallery = (): PersistedTrack[] => {
+const toDebugString = (v: any) => {
   try {
-    const raw = localStorage.getItem(GALLERY_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+};
+
+const safeLocalStorageGet = (key: string): string | null => {
+  try {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const safeLocalStorageSet = (key: string, value: string) => {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage?.setItem(key, value);
+  } catch {
+    // ignore
+  }
+};
+
+const loadGalleryCache = (): PersistedSunoTrack[] => {
+  const raw = safeLocalStorageGet(SUNO_GALLERY_CACHE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 };
 
-const saveGallery = (tracks: PersistedTrack[]) => {
-  localStorage.setItem(GALLERY_KEY, JSON.stringify(tracks));
-  window.dispatchEvent(
-    new CustomEvent('suno:gallery_updated', { detail: tracks })
+const writeGalleryCache = (tracks: PersistedSunoTrack[]) => {
+  safeLocalStorageSet(SUNO_GALLERY_CACHE_KEY, JSON.stringify(tracks));
+};
+
+const upsertGalleryTracks = (newTracks: PersistedSunoTrack[]) => {
+  const existing = loadGalleryCache();
+  const byUrl = new Map<string, PersistedSunoTrack>();
+
+  for (const t of existing) {
+    if (t?.url) byUrl.set(t.url, t);
+  }
+  for (const t of newTracks) {
+    if (t?.url) byUrl.set(t.url, t);
+  }
+
+  const merged = Array.from(byUrl.values()).sort(
+    (a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)
   );
+
+  writeGalleryCache(merged);
+
+  // notify UI
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('suno:gallery_updated', { detail: { tracks: merged } })
+      );
+    }
+  } catch {
+    // ignore
+  }
 };
 
 export const kieSunoService = {
-  getPersistedGallery: (): PersistedTrack[] => loadGallery(),
+  // UI helper
+  getPersistedGallery: (): PersistedSunoTrack[] => loadGalleryCache(),
 
-  // 🔒 SIGNATURE RESTORED (DO NOT CHANGE)
-  generateMusic: async (prompt: string, instrumental: boolean) => {
-    const res = await fetch(`${BASE_URL}/suno_submit`, {
+  /**
+   * Submit generation (via proxy)
+   * Keep signature backward-compatible with existing UI calls
+   */
+  generateMusic: async (
+    prompt: string,
+    instrumental: boolean,
+    duration?: number,
+    webhookUrl?: string
+  ): Promise<SunoJob> => {
+    const jobId = `JOB_SUNO_${Date.now()}`;
+    log(`Initializing Job ${jobId}`);
+
+    const payload: any = {
+      prompt,
+      customMode: false,
+      instrumental,
+      model: 'V4_5',
+      callBackUrl: webhookUrl || `${window.location.origin}/api/kie/callback`
+    };
+
+    if (typeof duration === 'number') payload.duration = duration;
+
+    const submitUrl = `${BASE_URL}/suno_submit`;
+    log(`Posting to Proxy: ${submitUrl}`, payload);
+
+    const res = await fetch(submitUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt,
-        instrumental,
-        model: 'V4_5'
-      })
+      body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
-    const taskId = data?.data?.taskId || data?.taskId;
+    const data = await res.json().catch(() => ({}));
+    log(`Submit Response (${res.status})`, data);
 
-    if (!taskId) throw new Error('Missing taskId from Suno');
+    if (!res.ok) {
+      throw new Error(
+        `Proxy Error (${res.status}): ${data?.error || data?.msg || 'Unknown Proxy Error'}`
+      );
+    }
 
-    return taskId;
+    const taskId =
+      data?.data?.taskId ||
+      data?.taskId ||
+      data?.id ||
+      data?.task_id;
+
+    if (!taskId) {
+      throw new Error(`KIE response missing 'taskId'. Debug: ${toDebugString(data)}`);
+    }
+
+    return {
+      id: jobId,
+      taskId,
+      status: 'QUEUED',
+      prompt,
+      instrumental,
+      createdAt: Date.now()
+    };
   },
 
+  /**
+   * Poll status (via proxy)
+   */
   pollTask: async (taskId: string): Promise<SunoClip[]> => {
-    const start = Date.now();
+    let attempts = 0;
+    const MAX_TIMEOUT = 180000;
+    const startTime = Date.now();
 
-    while (Date.now() - start < 180000) {
-      await sleep(3000);
+    const INITIAL_DELAY = 2000;
+    const MAX_DELAY = 10000;
+    const GROWTH_FACTOR = 1.5;
 
-      let res = await fetch(`${BASE_URL}/record-info?taskId=${taskId}`);
-      let data = await res.json();
+    while (Date.now() - startTime < MAX_TIMEOUT) {
+      attempts++;
+      const delay = Math.min(INITIAL_DELAY * Math.pow(GROWTH_FACTOR, attempts), MAX_DELAY);
+      await sleep(delay);
+
+      let res = await fetch(`${BASE_URL}/record-info?taskId=${encodeURIComponent(taskId)}`);
+      let raw = await res.json().catch(() => ({}));
 
       if (res.status === 404) {
-        res = await fetch(`${BASE_URL}/status/${taskId}`);
-        data = await res.json();
+        res = await fetch(`${BASE_URL}/status/${encodeURIComponent(taskId)}`);
+        raw = await res.json().catch(() => ({}));
       }
 
-      const payload = data?.data || data;
-      const status = String(payload?.status || '').toUpperCase();
+      const unwrapped = raw?.data ?? raw;
 
-      if (['COMPLETED', 'SUCCESS'].includes(status)) {
-        const clips: SunoClip[] = [];
-
-        const scan = (obj: any) => {
-          if (!obj) return;
-          if (Array.isArray(obj)) return obj.forEach(scan);
-          if (typeof obj === 'object') {
-            const url = obj.audio_url || obj.url;
-            if (url) {
-              clips.push({
-                url,
-                title: obj.title,
-                duration: obj.duration,
-                image_url: obj.image_url
-              });
-            }
-            Object.values(obj).forEach(scan);
-          }
-        };
-
-        scan(payload);
-        return clips;
+      if (res.status === 404) {
+        log(`Status 404 for ${taskId}`, raw);
+        if (attempts > 5) throw new Error(`Task Not Found (404) persistently. Debug: ${toDebugString(raw)}`);
+        continue;
       }
 
-      if (status.includes('FAIL')) {
-        throw new Error('Suno generation failed');
+      if (!res.ok) {
+        throw new Error(`Status Check Failed (${res.status}): ${raw?.error || raw?.msg || 'Unknown Error'}`);
+      }
+
+      const status = String(unwrapped?.status || unwrapped?.state || '').toUpperCase();
+      log(`Poll ${taskId} [${attempts}]: ${status}`, unwrapped);
+
+      if (['COMPLETED', 'SUCCESS', 'SUCCEEDED'].includes(status)) {
+        return kieSunoService.parseClips(raw);
+      }
+
+      if (status.includes('FAILED') || status.includes('ERROR')) {
+        throw new Error(unwrapped?.error || raw?.error || 'Generation Task Failed at Provider');
       }
     }
 
-    throw new Error('Polling timeout');
+    throw new Error('Polling Timed Out (Exceeded 3 minutes)');
   },
 
-  // 🔒 SIGNATURE MATCHES SonicStudio.tsx
-  runFullCycle: async (prompt: string, instrumental: boolean) => {
-    const taskId = await kieSunoService.generateMusic(prompt, instrumental);
-    const clips = await kieSunoService.pollTask(taskId);
+  /**
+   * Robust parser
+   */
+  parseClips: (input: any): SunoClip[] => {
+    const tryParseStringJSON = (v: any) => {
+      if (typeof v !== 'string') return v;
 
-    const existing = loadGallery();
-    const now = Date.now();
+      const s = v.trim();
+      const looksJson =
+        (s.startsWith('{') && s.endsWith('}')) ||
+        (s.startsWith('[') && s.endsWith(']'));
 
-    const newTracks: PersistedTrack[] = clips.map((c, i) => ({
-      id: `${taskId}_${i}`,
-      url: c.url,
-      title: c.title || `SUNO_TRACK_${i + 1}`,
-      image_url: c.image_url,
-      duration: c.duration || 120,
-      createdAt: now
-    }));
+      if (!looksJson) return v;
 
-    // ✅ LOCAL PERSISTENCE (FIXES DISAPPEARING TRACKS)
-    saveGallery([...newTracks, ...existing]);
+      let cur: any = v;
+      for (let i = 0; i < 3; i++) {
+        try {
+          cur = JSON.parse(cur);
+        } catch {
+          break;
+        }
+        if (typeof cur !== 'string') break;
+      }
+      return cur;
+    };
 
-    // ✅ ASSET / VAULT SAVE (NON-BLOCKING)
-    for (const track of newTracks) {
+    const clips: SunoClip[] = [];
+    const seen = new Set<string>();
+
+    const pushClip = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return;
+
+      const url =
+        obj.audio_url ||
+        obj.audioUrl ||
+        obj.streamAudioUrl ||
+        obj.url ||
+        obj.video_url ||
+        obj.videoUrl;
+
+      if (!url || typeof url !== 'string') return;
+      if (seen.has(url)) return;
+
+      seen.add(url);
+      clips.push({
+        id: obj.id || obj.taskId,
+        url,
+        image_url: obj.image_url || obj.imageUrl || obj.image_large_url,
+        duration: obj.duration,
+        title: obj.title
+      });
+    };
+
+    const visit = (node: any, depth = 0) => {
+      if (depth > 30) return;
+
+      node = tryParseStringJSON(node);
+      if (node == null) return;
+
+      if (typeof node === 'object' && !Array.isArray(node)) {
+        pushClip(node);
+      }
+
+      if (Array.isArray(node)) {
+        for (const item of node) visit(item, depth + 1);
+        return;
+      }
+
+      if (typeof node === 'object') {
+        const maybeResult =
+          (node as any).result ??
+          (node as any).output ??
+          (node as any).payload ??
+          (node as any).data;
+
+        if (typeof maybeResult === 'string') visit(maybeResult, depth + 1);
+
+        for (const k of Object.keys(node)) {
+          visit((node as any)[k], depth + 1);
+        }
+      }
+    };
+
+    visit(input);
+
+    if (!clips.length) {
+      throw new Error(`Task Completed but no Audio URLs found. Debug: ${toDebugString(input)}`);
+    }
+
+    return clips;
+  },
+
+  /**
+   * Orchestrator
+   * IMPORTANT: Signature is WIDE to match SonicStudio.tsx calls.
+   * This fixes TS2554.
+   */
+  runFullCycle: async (
+    prompt: string,
+    instrumental: boolean,
+    leadId?: string,
+    customCoverUrl?: string,
+    duration?: number,
+    webhookUrl?: string
+  ): Promise<string[]> => {
+    const job = await kieSunoService.generateMusic(prompt, instrumental, duration, webhookUrl);
+    const clips = await kieSunoService.pollTask(job.taskId!);
+
+    const signature = prompt.split(',')[0].trim().slice(0, 30);
+    const urls: string[] = [];
+
+    const persisted: PersistedSunoTrack[] = [];
+
+    for (let i = 0; i < clips.length; i++) {
+      const clip = clips[i];
+      const displayTitle = clip.title || `SUNO_TRACK_${i + 1}`;
+
+      // ✅ Local persistence (prevents disappearing on navigation/refresh)
+      persisted.push({
+        id: String(clip.id || job.taskId || `${Date.now()}_${i}`),
+        url: clip.url,
+        title: displayTitle,
+        image_url: customCoverUrl || clip.image_url,
+        duration: clip.duration || 120,
+        createdAt: Date.now(),
+        promptSignature: signature,
+        instrumental
+      });
+
+      // ✅ Asset/Vault persistence (best-effort)
       try {
-        await saveAsset(
+        const maybePromise = saveAsset(
           'AUDIO',
-          track.title,
-          track.url,
+          displayTitle,
+          clip.url,
           'SONIC_STUDIO',
-          undefined,
-          { duration: track.duration }
+          leadId,
+          {
+            sunoJobId: clip.id || job.taskId,
+            promptSignature: signature,
+            duration: clip.duration || 120,
+            isInstrumental: instrumental,
+            coverUrl: customCoverUrl || clip.image_url
+          }
         );
-      } catch {
-        // intentionally swallow errors
+
+        if (maybePromise && typeof (maybePromise as any).then === 'function') {
+          await maybePromise;
+        }
+
+        urls.push(clip.url);
+      } catch (err) {
+        console.error('saveAsset failed', err);
+        urls.push(clip.url);
       }
     }
 
-    toast.success(`Generated ${newTracks.length} tracks`);
-    return newTracks.map(t => t.url);
+    upsertGalleryTracks(persisted);
+
+    log('Final URLs Saved:', urls);
+    toast.success(`Generated ${clips.length} Music Tracks.`);
+    return urls;
   }
 };
