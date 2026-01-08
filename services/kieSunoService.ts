@@ -63,7 +63,7 @@ export const kieSunoService = {
     // If your UI passes duration, include it only when defined (harmless if upstream ignores it)
     if (typeof duration === 'number') payload.duration = duration;
 
-    const submitUrl = `${BASE_URL}/submit`;
+    const submitUrl = `${BASE_URL}/suno/suno_submit`;
     log(`Posting to Proxy: ${submitUrl}`, payload);
 
     const res = await fetch(submitUrl, {
