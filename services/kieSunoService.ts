@@ -34,12 +34,15 @@ const loadGallery = (): PersistedTrack[] => {
 
 const saveGallery = (tracks: PersistedTrack[]) => {
   localStorage.setItem(GALLERY_KEY, JSON.stringify(tracks));
-  window.dispatchEvent(new CustomEvent('suno:gallery_updated', { detail: tracks }));
+  window.dispatchEvent(
+    new CustomEvent('suno:gallery_updated', { detail: tracks })
+  );
 };
 
 export const kieSunoService = {
   getPersistedGallery: (): PersistedTrack[] => loadGallery(),
 
+  // 🔒 SIGNATURE RESTORED (DO NOT CHANGE)
   generateMusic: async (prompt: string, instrumental: boolean) => {
     const res = await fetch(`${BASE_URL}/suno_submit`, {
       method: 'POST',
@@ -84,7 +87,14 @@ export const kieSunoService = {
           if (Array.isArray(obj)) return obj.forEach(scan);
           if (typeof obj === 'object') {
             const url = obj.audio_url || obj.url;
-            if (url) clips.push({ url, title: obj.title, duration: obj.duration });
+            if (url) {
+              clips.push({
+                url,
+                title: obj.title,
+                duration: obj.duration,
+                image_url: obj.image_url
+              });
+            }
             Object.values(obj).forEach(scan);
           }
         };
@@ -101,6 +111,7 @@ export const kieSunoService = {
     throw new Error('Polling timeout');
   },
 
+  // 🔒 SIGNATURE MATCHES SonicStudio.tsx
   runFullCycle: async (prompt: string, instrumental: boolean) => {
     const taskId = await kieSunoService.generateMusic(prompt, instrumental);
     const clips = await kieSunoService.pollTask(taskId);
@@ -117,11 +128,10 @@ export const kieSunoService = {
       createdAt: now
     }));
 
-    // ✅ LOCAL PERSISTENCE (THIS FIXES DISAPPEARING TRACKS)
-    const merged = [...newTracks, ...existing];
-    saveGallery(merged);
+    // ✅ LOCAL PERSISTENCE (FIXES DISAPPEARING TRACKS)
+    saveGallery([...newTracks, ...existing]);
 
-    // ✅ ASSET / VAULT PERSISTENCE
+    // ✅ ASSET / VAULT SAVE (NON-BLOCKING)
     for (const track of newTracks) {
       try {
         await saveAsset(
@@ -132,8 +142,8 @@ export const kieSunoService = {
           undefined,
           { duration: track.duration }
         );
-      } catch (e) {
-        console.error('Asset save failed', e);
+      } catch {
+        // intentionally swallow errors
       }
     }
 
