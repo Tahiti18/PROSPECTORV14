@@ -153,50 +153,64 @@ export const kieSunoService = {
   },
 
   /**
-   * ✅ Robust clip parsing for KIE responses
-   * Supports: audioUrl, streamAudioUrl, audio_url, url, plus many container shapes.
+   * ✅ FIXED: parseClips now handles “JSON string in a field” (escaped quotes),
+   * which is exactly what your error screenshot shows.
    */
   parseClips: (data: any): SunoClip[] => {
-    const root = data?.data ?? data;
+    const tryParse = (v: any) => {
+      if (typeof v !== 'string') return v;
+      let cur: any = v;
+      for (let i = 0; i < 3; i++) {
+        try {
+          cur = JSON.parse(cur);
+        } catch {
+          break;
+        }
+        if (typeof cur !== 'string') break;
+      }
+      return cur;
+    };
 
-    // Collect any array-like containers we might have
+    const raw = tryParse(data);
+    const root = tryParse(raw?.data ?? raw);
+
     const containers: any[] = [
-      root?.clips,
-      root?.output,
-      root?.audios,
-      root?.audioList,
-      root?.records,
-      root?.list,
+      tryParse(root?.clips),
+      tryParse(root?.output),
+      tryParse(root?.audios),
+      tryParse(root?.audioList),
+      tryParse(root?.records),
+      tryParse(root?.list),
       root
     ].filter(Boolean);
 
-    // Flatten arrays
     const items: any[] = [];
     for (const c of containers) {
-      if (Array.isArray(c)) items.push(...c);
+      if (Array.isArray(c)) items.push(...c.map(tryParse));
     }
 
-    // If we still have no array items but root looks like a single record, use it
     if (items.length === 0 && root && typeof root === 'object') {
       items.push(root);
     }
 
     const clips: SunoClip[] = items
       .map((c: any) => {
+        const cc = tryParse(c);
+
         const url =
-          c?.audio_url ||
-          c?.audioUrl ||
-          c?.streamAudioUrl ||
-          c?.url ||
-          c?.video_url ||
-          c?.videoUrl;
+          cc?.audio_url ||
+          cc?.audioUrl ||
+          cc?.streamAudioUrl ||
+          cc?.url ||
+          cc?.video_url ||
+          cc?.videoUrl;
 
         return {
-          id: c?.id || c?.taskId,
+          id: cc?.id || cc?.taskId,
           url,
-          image_url: c?.image_url || c?.imageUrl || c?.image_large_url,
-          duration: c?.duration,
-          title: c?.title
+          image_url: cc?.image_url || cc?.imageUrl || cc?.image_large_url,
+          duration: cc?.duration,
+          title: cc?.title
         };
       })
       .filter((c: any) => !!c.url);
