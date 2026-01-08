@@ -48,7 +48,7 @@ export const kieSunoService = {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
-    // ✅ Correct payload for KIE /api/v1/generate (the proxy forwards /suno_submit -> /generate)
+    // Correct payload for KIE /api/v1/generate (proxy forwards /suno_submit -> /generate)
     const payload: any = {
       prompt,
       customMode: false,
@@ -59,7 +59,6 @@ export const kieSunoService = {
 
     if (typeof duration === 'number') payload.duration = duration;
 
-    // Proxy route (alias): /api/kie/suno/suno_submit  (proxy will forward to /generate)
     const submitUrl = `${BASE_URL}/suno_submit`;
     log(`Posting to Proxy: ${submitUrl}`, payload);
 
@@ -76,7 +75,6 @@ export const kieSunoService = {
       throw new Error(`Proxy Error (${res.status}): ${data?.error || data?.msg || 'Unknown Proxy Error'}`);
     }
 
-    // ✅ Accept all known task id shapes (new + legacy)
     const taskId =
       data?.data?.taskId ||
       data?.taskId ||
@@ -125,7 +123,7 @@ export const kieSunoService = {
         raw = await res.json().catch(() => ({}));
       }
 
-      const data = raw?.data ?? raw;
+      const unwrapped = raw?.data ?? raw;
 
       if (res.status === 404) {
         log(`Status 404 for ${taskId}`, raw);
@@ -137,15 +135,16 @@ export const kieSunoService = {
         throw new Error(`Status Check Failed (${res.status}): ${raw?.error || raw?.msg || 'Unknown Error'}`);
       }
 
-      const status = String(data?.status || data?.state || '').toUpperCase();
-      log(`Poll ${taskId} [${attempts}]: ${status}`, data);
+      const status = String(unwrapped?.status || unwrapped?.state || '').toUpperCase();
+      log(`Poll ${taskId} [${attempts}]: ${status}`, unwrapped);
 
       if (['COMPLETED', 'SUCCESS', 'SUCCEEDED'].includes(status)) {
-        return kieSunoService.parseClips(data);
+        // IMPORTANT: pass RAW to preserve wrappers like records/data/result
+        return kieSunoService.parseClips(raw);
       }
 
       if (status.includes('FAILED') || status.includes('ERROR')) {
-        throw new Error(data?.error || raw?.error || 'Generation Task Failed at Provider');
+        throw new Error(unwrapped?.error || raw?.error || 'Generation Task Failed at Provider');
       }
     }
 
@@ -153,70 +152,102 @@ export const kieSunoService = {
   },
 
   /**
-   * ✅ FIXED: parseClips now handles “JSON string in a field” (escaped quotes),
-   * which is exactly what your error screenshot shows.
+   * FINAL ROBUST PARSER:
+   * - handles multiple outputs
+   * - handles JSON-in-string fields (escaped quotes)
+   * - finds audioUrl/streamAudioUrl/audio_url anywhere in nested response (records/data/result/etc.)
    */
-  parseClips: (data: any): SunoClip[] => {
-    const tryParse = (v: any) => {
+  parseClips: (input: any): SunoClip[] => {
+    const tryParseStringJSON = (v: any) => {
       if (typeof v !== 'string') return v;
-      let cur: any = v;
+      let s: any = v;
+
+      // Quick reject: avoid parsing plain text
+      const looksJson =
+        (typeof s === 'string' && s.trim().startsWith('{') && s.trim().endsWith('}')) ||
+        (typeof s === 'string' && s.trim().startsWith('[') && s.trim().endsWith(']'));
+
+      if (!looksJson) return v;
+
       for (let i = 0; i < 3; i++) {
         try {
-          cur = JSON.parse(cur);
+          s = JSON.parse(s);
         } catch {
           break;
         }
-        if (typeof cur !== 'string') break;
+        if (typeof s !== 'string') break;
       }
-      return cur;
+      return s;
     };
 
-    const raw = tryParse(data);
-    const root = tryParse(raw?.data ?? raw);
+    const clips: SunoClip[] = [];
+    const seen = new Set<string>();
 
-    const containers: any[] = [
-      tryParse(root?.clips),
-      tryParse(root?.output),
-      tryParse(root?.audios),
-      tryParse(root?.audioList),
-      tryParse(root?.records),
-      tryParse(root?.list),
-      root
-    ].filter(Boolean);
+    const pushClip = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return;
 
-    const items: any[] = [];
-    for (const c of containers) {
-      if (Array.isArray(c)) items.push(...c.map(tryParse));
-    }
+      const url =
+        obj.audio_url ||
+        obj.audioUrl ||
+        obj.streamAudioUrl ||
+        obj.url ||
+        obj.video_url ||
+        obj.videoUrl;
 
-    if (items.length === 0 && root && typeof root === 'object') {
-      items.push(root);
-    }
+      if (!url || typeof url !== 'string') return;
+      if (seen.has(url)) return;
 
-    const clips: SunoClip[] = items
-      .map((c: any) => {
-        const cc = tryParse(c);
+      seen.add(url);
+      clips.push({
+        id: obj.id || obj.taskId,
+        url,
+        image_url: obj.image_url || obj.imageUrl || obj.image_large_url,
+        duration: obj.duration,
+        title: obj.title
+      });
+    };
 
-        const url =
-          cc?.audio_url ||
-          cc?.audioUrl ||
-          cc?.streamAudioUrl ||
-          cc?.url ||
-          cc?.video_url ||
-          cc?.videoUrl;
+    const visit = (node: any, depth = 0) => {
+      if (depth > 30) return;
 
-        return {
-          id: cc?.id || cc?.taskId,
-          url,
-          image_url: cc?.image_url || cc?.imageUrl || cc?.image_large_url,
-          duration: cc?.duration,
-          title: cc?.title
-        };
-      })
-      .filter((c: any) => !!c.url);
+      node = tryParseStringJSON(node);
+
+      if (node == null) return;
+
+      // If it’s an object that itself looks like a clip, grab it
+      if (typeof node === 'object' && !Array.isArray(node)) {
+        pushClip(node);
+      }
+
+      // Arrays: walk items
+      if (Array.isArray(node)) {
+        for (const item of node) visit(item, depth + 1);
+        return;
+      }
+
+      // Objects: walk values and also parse common “result” string fields
+      if (typeof node === 'object') {
+        // Common KIE pattern: record.result is a JSON string with audioUrl
+        const maybeResult =
+          (node as any).result ??
+          (node as any).output ??
+          (node as any).payload ??
+          (node as any).data;
+
+        if (typeof maybeResult === 'string') {
+          visit(maybeResult, depth + 1);
+        }
+
+        for (const k of Object.keys(node)) {
+          visit((node as any)[k], depth + 1);
+        }
+      }
+    };
+
+    visit(input);
 
     if (!clips.length) {
-      throw new Error(`Task Completed but no Audio URLs found. Debug: ${toDebugString(data)}`);
+      throw new Error(`Task Completed but no Audio URLs found. Debug: ${toDebugString(input)}`);
     }
 
     return clips;
