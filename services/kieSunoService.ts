@@ -30,6 +30,10 @@ const log = (msg: string, data?: any) => {
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+const toDebugString = (v: any) => {
+  try { return JSON.stringify(v); } catch { return String(v); }
+};
+
 export const kieSunoService = {
   /**
    * Submit generation (via proxy)
@@ -44,17 +48,19 @@ export const kieSunoService = {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
-    // Payload forwarded by proxy to KIE
+    // ✅ Correct payload for KIE /api/v1/generate (the proxy forwards /suno_submit -> /generate)
     const payload: any = {
       prompt,
-      make_instrumental: instrumental,
-      wait_audio: false
+      customMode: false,
+      instrumental,
+      model: 'V4_5',
+      callBackUrl: webhookUrl || `${window.location.origin}/api/kie/callback`
     };
 
+    // Keep duration only if you use it; harmless if ignored upstream
     if (typeof duration === 'number') payload.duration = duration;
-    if (webhookUrl) payload.webhook_url = webhookUrl;
 
-    // Proxy route: /api/kie/suno/suno_submit
+    // Proxy route (alias): /api/kie/suno/suno_submit  (proxy will forward to /generate)
     const submitUrl = `${BASE_URL}/suno_submit`;
     log(`Posting to Proxy: ${submitUrl}`, payload);
 
@@ -68,14 +74,10 @@ export const kieSunoService = {
     log(`Submit Response (${res.status})`, data);
 
     if (!res.ok) {
-      throw new Error(
-        `Proxy Error (${res.status}): ${data?.error || data?.msg || 'Unknown Proxy Error'}`
-      );
+      throw new Error(`Proxy Error (${res.status}): ${data?.error || data?.msg || 'Unknown Proxy Error'}`);
     }
 
-    // ✅ FIX: support BOTH response shapes:
-    // - legacy: { id } or { task_id }
-    // - current: { data: { taskId } }
+    // ✅ Accept all known task id shapes (new + legacy)
     const taskId =
       data?.data?.taskId ||
       data?.taskId ||
@@ -83,8 +85,8 @@ export const kieSunoService = {
       data?.task_id;
 
     if (!taskId) {
-      log('Missing Task ID in Response:', data);
-      throw new Error("KIE response missing 'taskId'");
+      // Show full upstream debug payload in the UI (you’re on iPad, no console)
+      throw new Error(`KIE response missing 'taskId'. Debug: ${toDebugString(data)}`);
     }
 
     return {
@@ -99,7 +101,7 @@ export const kieSunoService = {
 
   /**
    * Poll status (via proxy)
-   * Proxy route: GET /api/kie/suno/status/:id  (and/or record-info alias depending on proxy)
+   * Prefer /record-info?taskId=... (new). Fallback to /status/:id if needed.
    */
   pollTask: async (taskId: string): Promise<SunoClip[]> => {
     let attempts = 0;
@@ -115,23 +117,26 @@ export const kieSunoService = {
       const delay = Math.min(INITIAL_DELAY * Math.pow(GROWTH_FACTOR, attempts), MAX_DELAY);
       await sleep(delay);
 
-      const statusUrl = `${BASE_URL}/status/${encodeURIComponent(taskId)}`;
-      const res = await fetch(statusUrl);
-      const raw = await res.json().catch(() => ({}));
+      // Try record-info first
+      let res = await fetch(`${BASE_URL}/record-info?taskId=${encodeURIComponent(taskId)}`);
+      let raw = await res.json().catch(() => ({}));
 
-      // ✅ unwrap { data: {...} } when present
+      // Fallback to /status/:id if record-info isn't wired
+      if (res.status === 404) {
+        res = await fetch(`${BASE_URL}/status/${encodeURIComponent(taskId)}`);
+        raw = await res.json().catch(() => ({}));
+      }
+
       const data = raw?.data ?? raw;
 
       if (res.status === 404) {
         log(`Status 404 for ${taskId}`, raw);
-        if (attempts > 5) throw new Error('Task Not Found (404) persistently.');
+        if (attempts > 5) throw new Error(`Task Not Found (404) persistently. Debug: ${toDebugString(raw)}`);
         continue;
       }
 
       if (!res.ok) {
-        throw new Error(
-          `Status Check Failed (${res.status}): ${raw?.error || raw?.msg || 'Unknown Error'}`
-        );
+        throw new Error(`Status Check Failed (${res.status}): ${raw?.error || raw?.msg || 'Unknown Error'}`);
       }
 
       const status = String(data?.status || data?.state || '').toUpperCase();
@@ -141,7 +146,7 @@ export const kieSunoService = {
         return kieSunoService.parseClips(data);
       }
 
-      if (['FAILED', 'ERROR'].includes(status)) {
+      if (status.includes('FAILED') || status.includes('ERROR')) {
         throw new Error(data?.error || raw?.error || 'Generation Task Failed at Provider');
       }
     }
@@ -152,7 +157,7 @@ export const kieSunoService = {
   parseClips: (data: any): SunoClip[] => {
     let clips: SunoClip[] = [];
 
-    const rawClips = data?.clips || data?.output || data?.audios || [];
+    const rawClips = data?.clips || data?.output || data?.audios || data?.audioList || [];
 
     if (Array.isArray(rawClips)) {
       clips = rawClips
@@ -164,16 +169,16 @@ export const kieSunoService = {
           title: c.title
         }))
         .filter((c: any) => c.url);
-    } else if (data?.audio_url || data?.url) {
+    } else if (data?.audio_url || data?.audioUrl || data?.url) {
       clips = [{
         id: data?.id,
-        url: data?.audio_url || data?.url,
-        image_url: data?.image_url,
+        url: data?.audio_url || data?.audioUrl || data?.url,
+        image_url: data?.image_url || data?.imageUrl,
         duration: data?.duration
       }];
     }
 
-    if (!clips.length) throw new Error('Task Completed but no Audio URLs found.');
+    if (!clips.length) throw new Error(`Task Completed but no Audio URLs found. Debug: ${toDebugString(data)}`);
     return clips;
   },
 
