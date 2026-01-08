@@ -1,8 +1,6 @@
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { Buffer } from 'node:buffer';
 
 // Mock browser globals for Node environment compatibility if needed
 if (typeof (globalThis as any).localStorage === 'undefined') {
@@ -21,43 +19,57 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     try {
       const url = req.url || '';
-      
-      // 1. ROUTER MATCHING - Broaden scope to /api/kie
-      if (!url.startsWith('/api/kie')) {
-        return next();
+
+      // Only proxy routes under /api/kie/suno
+      if (!url.startsWith('/api/kie/suno')) return next();
+
+      // Read API key from env (support both names)
+      const KIE_KEY =
+        process.env.KIE_KEY ||
+        env.KIE_KEY ||
+        process.env.KIE_API_KEY ||
+        env.KIE_API_KEY;
+
+      if (!KIE_KEY) {
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ error: 'Server configuration error: Missing KIE_KEY' }));
+        return;
       }
 
-      // Secure Key Management (Server-Side Only)
-      const KIE_KEY = process.env.KIE_KEY || env.KIE_KEY || '302d700cb3e9e3dcc2ad9d94d5059279';
-      
-      if (!KIE_KEY) {
-          console.error('[KIE PROXY] CRITICAL: Missing KIE_KEY environment variable.');
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: 'Server configuration error: Missing KIE_KEY' }));
-          return;
-      }
-      
-      // Upstream KIE API path base
+      // Legacy upstream base (matches your existing proxy handlers)
       const KIE_BASE = 'https://api.kie.ai/api/v1/suno';
 
-      // Helper to read request body
+      // Helpers
       const readBody = async () => {
-        const buffers = [];
-        for await (const chunk of req) {
-          buffers.push(chunk);
-        }
+        const buffers: Buffer[] = [];
+        for await (const chunk of req) buffers.push(chunk as Buffer);
         return Buffer.concat(buffers).toString();
       };
 
-      console.log(`[KIE PROXY] Incoming: ${req.method} ${url}`);
+      const sendJson = (status: number, data: any) => {
+        res.statusCode = status;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(data));
+      };
 
-      // 2. ROUTE: POST /api/kie/submit -> https://api.kie.ai/api/v1/suno/submit
-      if (req.method === 'POST' && url.includes('/submit')) {
+      const safeJson = (rawText: string) => {
+        try {
+          return JSON.parse(rawText);
+        } catch {
+          return { error: 'Upstream returned non-JSON response', raw: rawText };
+        }
+      };
+
+      // ✅ ROUTE ALIASES — accept both submit styles:
+      // - POST /api/kie/suno/suno_submit   (old)
+      // - POST /api/kie/suno/submit        (new)
+      if (
+        req.method === 'POST' &&
+        (url.includes('/suno_submit') || url.endsWith('/submit') || url.includes('/submit?'))
+      ) {
         const bodyStr = await readBody();
-        const upstreamUrl = `${KIE_BASE}/submit`;
-        
-        console.log(`[KIE PROXY] POST Forward -> ${upstreamUrl}`);
+        const upstreamUrl = `${KIE_BASE}/suno_submit`;
 
         const upstreamRes = await fetch(upstreamUrl, {
           method: 'POST',
@@ -69,68 +81,48 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         });
 
         const rawText = await upstreamRes.text();
-        console.log(`[KIE PROXY] Response Status: ${upstreamRes.status}`);
-
-        let data;
-        try {
-            data = JSON.parse(rawText);
-        } catch (e) {
-            console.error(`[KIE PROXY] Non-JSON Response: ${rawText.substring(0, 100)}...`);
-            data = { error: "Upstream returned non-JSON response", raw: rawText };
-        }
-
-        res.statusCode = upstreamRes.status;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify(data));
-        return;
+        return sendJson(upstreamRes.status, safeJson(rawText));
       }
 
-      // 3. ROUTE: GET /api/kie/record-info -> https://api.kie.ai/api/v1/suno/record-info
-      if (req.method === 'GET' && url.includes('/record-info')) {
-        // Extract query params from local URL and append to upstream
-        const query = url.split('?')[1] || '';
-        const upstreamUrl = `${KIE_BASE}/record-info?${query}`;
+      // ✅ ROUTE ALIASES — accept both status styles:
+      // - GET /api/kie/suno/status/:id                 (old)
+      // - GET /api/kie/suno/record-info?taskId=...     (new)
+      if (req.method === 'GET' && (url.includes('/status/') || url.startsWith('/api/kie/suno/record-info'))) {
+        let taskId = '';
 
-        console.log(`[KIE PROXY] GET Forward -> ${upstreamUrl}`);
+        if (url.includes('/status/')) {
+          const parts = url.split('/');
+          taskId = parts[parts.length - 1] || '';
+        } else {
+          // record-info?taskId=...
+          const u = new URL(`http://local${url}`);
+          taskId = u.searchParams.get('taskId') || '';
+        }
+
+        if (!taskId) return sendJson(400, { error: 'Missing taskId' });
+
+        const upstreamUrl = `${KIE_BASE}/status/${encodeURIComponent(taskId)}`;
 
         const upstreamRes = await fetch(upstreamUrl, {
           method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${KIE_KEY}`
-          }
+          headers: { 'Authorization': `Bearer ${KIE_KEY}` }
         });
 
         const rawText = await upstreamRes.text();
-        let data;
-        try {
-            data = JSON.parse(rawText);
-        } catch (e) {
-            console.error(`[KIE PROXY] Non-JSON Response: ${rawText.substring(0, 100)}...`);
-            data = { error: "Upstream returned non-JSON response", raw: rawText };
-        }
-
-        res.statusCode = upstreamRes.status;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify(data));
-        return;
+        return sendJson(upstreamRes.status, safeJson(rawText));
       }
 
-      // Fallback 404
-      console.warn(`[KIE PROXY] 404 Not Found: ${url}`);
-      res.statusCode = 404;
-      res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: 'Route not found in KIE Proxy', path: url }));
-
+      // 404 for unknown API routes within this namespace
+      return sendJson(404, { error: 'Route not found in KIE Proxy', path: url });
     } catch (e: any) {
-      console.error('[KIE Proxy Error]', e);
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: e.message || 'Internal Proxy Error' }));
+      res.end(JSON.stringify({ error: e?.message || 'Internal Proxy Error' }));
     }
   };
 };
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(() => {
   const env = process.env;
 
   return {
@@ -152,9 +144,9 @@ export default defineConfig(({ mode }) => {
       allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost']
     },
     preview: {
-        host: '0.0.0.0',
-        port: Number(process.env.PORT) || 4173,
-        allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost']
+      host: '0.0.0.0',
+      port: Number(process.env.PORT) || 4173,
+      allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost']
     }
   };
 });
