@@ -1,9 +1,11 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Lead, OutreachStatus } from '../../types';
 import { AutomationOrchestrator } from '../../services/automation/orchestrator';
 import { RunStatus } from '../automation/RunStatus';
 import { HyperLaunchModal } from '../automation/HyperLaunchModal';
+import { db } from '../../services/automation/db';
+import { toast } from '../../services/toastManager';
 
 const STATUS_FILTER_OPTIONS: (OutreachStatus | 'ALL')[] = ['ALL', 'cold', 'queued', 'sent', 'opened', 'replied', 'booked', 'won', 'lost', 'paused'];
 
@@ -15,6 +17,8 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
   // NEW: Selection State
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showHyperLaunch, setShowHyperLaunch] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sortedLeads = useMemo(() => {
     let filtered = leads;
@@ -61,8 +65,55 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
     }
   };
 
+  // --- DATA MANAGEMENT HANDLERS ---
+
+  const handleExport = () => {
+    const dataStr = JSON.stringify(leads, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PROSPECTOR_LEADS_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Leads exported successfully.");
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const imported = JSON.parse(ev.target?.result as string);
+            if (Array.isArray(imported)) {
+                // Merge logic: append new, keep existing if ID matches
+                const currentIds = new Set(leads.map(l => l.id));
+                const newLeads = imported.filter((l: any) => !currentIds.has(l.id));
+                const merged = [...leads, ...newLeads];
+                db.saveLeads(merged);
+                toast.success(`Imported ${newLeads.length} new leads.`);
+            } else {
+                toast.error("Invalid file format. Expected JSON array.");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to parse import file.");
+        }
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSaveAll = () => {
+    db.saveLeads(leads);
+    toast.success("Database synchronized manually.");
+  };
+
   return (
-    <div className="space-y-6 py-6 max-w-[1600px] mx-auto relative px-6 pb-24 animate-in fade-in duration-700">
+    <div className="space-y-6 py-6 max-w-[1600px] mx-auto relative px-6 pb-32 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
         <div>
           <h3 className="text-2xl font-bold text-white uppercase tracking-tight leading-none drop-shadow-2xl">
@@ -195,6 +246,37 @@ export const TargetList: React.FC<{ leads: Lead[], lockedLeadId: string | null, 
         </div>
       </div>
       
+      {/* STATIC CONTROL BAR (Replaces Floating Footer) */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 mt-8 p-6 bg-[#0b1021] border border-slate-800 rounded-[24px] shadow-lg">
+         {/* Left: Import/Export */}
+         <div className="flex gap-4">
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-800 transition-all flex items-center gap-2"
+            >
+              <span>⬆️</span> IMPORT
+            </button>
+            <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
+            
+            <button 
+              onClick={handleExport}
+              className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-800 transition-all flex items-center gap-2"
+            >
+              <span>⬇️</span> EXPORT
+            </button>
+         </div>
+
+         {/* Right: Save All */}
+         <div>
+            <button 
+              onClick={handleSaveAll}
+              className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all active:scale-95 flex items-center gap-2"
+            >
+              <span>💾</span> SAVE DATABASE
+            </button>
+         </div>
+      </div>
+
       {activeRunId && <RunStatus runId={activeRunId} onClose={() => { setActiveRunId(null); window.location.reload(); }} />}
       
       <HyperLaunchModal 

@@ -12,12 +12,74 @@ interface SonicStudioProps {
 
 // --- CONFIGURATION CONSTANTS ---
 const PRESETS = [
-  { id: 'SAAS', label: 'Tech SaaS', prompt: 'Upbeat corporate tech, marimba, synthesizer, futuristic, optimistic, 120bpm', icon: '💻' },
-  { id: 'LUXURY', label: 'Luxury Real Estate', prompt: 'Sophisticated deep house, lounge, piano, elegant, expensive atmosphere, 110bpm', icon: '💎' },
-  { id: 'MEDICAL', label: 'Modern Medical', prompt: 'Clean, ambient, soft piano, reassuring, sterile but warm, 90bpm', icon: '🏥' },
-  { id: 'GYM', label: 'High Energy Gym', prompt: 'Phonk, aggressive drift bass, high energy, workout motivation, 140bpm', icon: '💪' },
-  { id: 'LOFI', label: 'Study/Focus', prompt: 'Lofi hip hop beats, chill, tape saturation, vinyl crackle, relaxing', icon: '☕' },
-  { id: 'CINEMATIC', label: 'Epic Cinematic', prompt: 'Orchestral hybrid, hans zimmer style, deep drums, epic swelling strings', icon: '🎬' }
+  { 
+    id: 'TECH / SAAS', 
+    label: 'Tech SaaS', 
+    prompt: 'Upbeat corporate tech, marimba, synthesizer, futuristic, optimistic, 120bpm', 
+    icon: (
+      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="4" width="16" height="16" rx="2" />
+        <rect x="9" y="9" width="6" height="6" />
+        <path d="M9 1v3" /><path d="M15 1v3" /><path d="M9 20v3" /><path d="M15 20v3" />
+        <path d="M20 9h3" /><path d="M20 14h3" /><path d="M1 9h3" /><path d="M1 14h3" />
+      </svg>
+    )
+  },
+  { 
+    id: 'LUXURY ESTATE', 
+    label: 'Luxury Estate', 
+    prompt: 'Sophisticated deep house, lounge, piano, elegant, expensive atmosphere, 110bpm', 
+    icon: (
+      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="8" y1="12" x2="16" y2="12" />
+      </svg>
+    )
+  },
+  { 
+    id: 'MODERN CLINIC', 
+    label: 'Modern Clinic', 
+    prompt: 'Clean, ambient, soft piano, reassuring, sterile but warm, 90bpm', 
+    icon: (
+      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+      </svg>
+    )
+  },
+  { 
+    id: 'HIGH PERFORMANCE', 
+    label: 'High Performance', 
+    prompt: 'Phonk, aggressive drift bass, high energy, workout motivation, 140bpm', 
+    icon: (
+      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+    )
+  },
+  { 
+    id: 'DEEP FOCUS', 
+    label: 'Deep Focus', 
+    prompt: 'Lofi hip hop beats, chill, tape saturation, vinyl crackle, relaxing', 
+    icon: (
+      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+        <path d="M3 12h2" /><path d="M19 12h2" /><path d="M12 3v2" /><path d="M12 19v2" />
+      </svg>
+    )
+  },
+  { 
+    id: 'CINEMATIC EPIC', 
+    label: 'Cinematic Epic', 
+    prompt: 'Orchestral hybrid, hans zimmer style, deep drums, epic swelling strings', 
+    icon: (
+      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 12h2" /><path d="M6 12v3" /><path d="M10 12v5" />
+        <path d="M14 12v3" /><path d="M18 12v2" /><path d="M22 12h2" />
+        <path d="M6 12V9" /><path d="M10 12V7" /><path d="M14 12V9" /><path d="M18 12v-1" />
+      </svg>
+    )
+  }
 ];
 
 const GENRES = ['Cinematic', 'Electronic', 'Rock', 'Hip Hop', 'Jazz', 'Ambient', 'Corporate', 'Pop', 'Synthwave', 'Lo-Fi'];
@@ -297,9 +359,9 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                               <button 
                                 key={p.id} 
                                 onClick={() => handlePresetSelect(p)}
-                                className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 p-3 rounded-xl flex flex-col items-center gap-2 transition-all group text-center"
+                                className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 p-3 rounded-xl flex flex-col items-center gap-2 transition-all group text-center py-6"
                               >
-                                <span className="text-xl group-hover:scale-110 transition-transform">{p.icon}</span>
+                                <span className="text-slate-500 group-hover:text-white transition-colors">{p.icon}</span>
                                 <span className="text-[7px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-emerald-400">{p.id}</span>
                               </button>
                             ))}

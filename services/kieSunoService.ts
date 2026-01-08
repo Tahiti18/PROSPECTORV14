@@ -35,6 +35,8 @@ const unwrap = (v: any) => (v && typeof v === 'object' && 'data' in v ? v.data :
 export const kieSunoService = {
   /**
    * Submit generation (via proxy)
+   *
+   * IMPORTANT: Signature is backward-compatible to avoid TS2554 in SonicStudio.tsx.
    */
   generateMusic: async (
     prompt: string,
@@ -46,6 +48,7 @@ export const kieSunoService = {
     log(`Initializing Job ${jobId}`);
 
     // KIE requires callBackUrl to be a valid URI.
+    // If caller provided webhookUrl, use it; otherwise use our Railway origin callback endpoint.
     const callBackUrl = webhookUrl || `${window.location.origin}/api/kie/callback`;
 
     // Minimal required fields per KIE docs: prompt/customMode/instrumental/model/callBackUrl
@@ -57,6 +60,7 @@ export const kieSunoService = {
       callBackUrl
     };
 
+    // If your UI passes duration, include it only when defined (harmless if upstream ignores it)
     if (typeof duration === 'number') payload.duration = duration;
 
     const submitUrl = `${BASE_URL}/submit`;
@@ -85,8 +89,6 @@ export const kieSunoService = {
       log('Missing taskId in response:', data);
       throw new Error("KIE response missing 'taskId'");
     }
-
-    log('KIE Submit Response (Task ID):', taskId);
 
     return {
       id: jobId,
@@ -122,10 +124,9 @@ export const kieSunoService = {
       }
 
       const status = String(d?.status || d?.state || data?.status || data?.state || '').toUpperCase();
-      log(`Poll ${taskId} [${attempts}]: ${status}`);
+      log(`Poll ${taskId} [${attempts}]: ${status}`, data);
 
       if (['SUCCESS', 'SUCCEEDED', 'COMPLETED'].includes(status)) {
-        log('Poll Complete Payload Shape:', d);
         return kieSunoService.parseClips(d);
       }
 
@@ -168,7 +169,7 @@ export const kieSunoService = {
   },
 
   /**
-   * Orchestrator
+   * Orchestrator (backward-compatible signature)
    */
   runFullCycle: async (
     prompt: string,
@@ -182,25 +183,18 @@ export const kieSunoService = {
     const clips = await kieSunoService.pollTask(job.taskId!);
 
     const signature = prompt.split(',')[0].trim().slice(0, 30);
-    const savedUrls: string[] = [];
 
     clips.forEach((clip, i) => {
       const displayTitle = clip.title || `SUNO_TRACK_${i + 1}`;
-      try {
-        saveAsset('AUDIO', displayTitle, clip.url, 'SONIC_STUDIO', leadId, {
-          sunoJobId: clip.id || job.taskId,
-          promptSignature: signature,
-          duration: clip.duration || 120,
-          isInstrumental: instrumental,
-          coverUrl: customCoverUrl || clip.image_url
-        });
-        savedUrls.push(clip.url);
-      } catch (e) {
-        log('Failed to save asset:', e);
-      }
+      saveAsset('AUDIO', displayTitle, clip.url, 'SONIC_STUDIO', leadId, {
+        sunoJobId: clip.id || job.taskId,
+        promptSignature: signature,
+        duration: clip.duration || 120,
+        isInstrumental: instrumental,
+        coverUrl: customCoverUrl || clip.image_url
+      });
     });
 
-    log('Final Asset URLs Saved:', savedUrls);
     toast.success(`Generated ${clips.length} Music Tracks.`);
     return clips.map(c => c.url);
   }
