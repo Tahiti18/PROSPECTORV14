@@ -3,7 +3,7 @@ import { saveAsset } from './geminiService';
 import { toast } from './toastManager';
 
 // Frontend hits the Vite proxy namespace
-const BASE_URL = '/api/kie';
+const BASE_URL = '/api/kie/suno';
 
 export interface SunoJob {
   id: string;
