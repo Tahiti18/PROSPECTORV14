@@ -44,7 +44,7 @@ export const kieSunoService = {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
-    // Payload must match what your proxy expects to forward to KIE /suno_submit
+    // Payload forwarded by proxy to KIE
     const payload: any = {
       prompt,
       make_instrumental: instrumental,
@@ -54,7 +54,7 @@ export const kieSunoService = {
     if (typeof duration === 'number') payload.duration = duration;
     if (webhookUrl) payload.webhook_url = webhookUrl;
 
-    // IMPORTANT: proxy route is /api/kie/suno/suno_submit (no extra /suno)
+    // Proxy route: /api/kie/suno/suno_submit
     const submitUrl = `${BASE_URL}/suno_submit`;
     log(`Posting to Proxy: ${submitUrl}`, payload);
 
@@ -68,15 +68,23 @@ export const kieSunoService = {
     log(`Submit Response (${res.status})`, data);
 
     if (!res.ok) {
-      throw new Error(`Proxy Error (${res.status}): ${data?.error || data?.msg || 'Unknown Proxy Error'}`);
+      throw new Error(
+        `Proxy Error (${res.status}): ${data?.error || data?.msg || 'Unknown Proxy Error'}`
+      );
     }
 
-    // Your existing proxy/upstream returns id or task_id (NOT data.taskId in this mode)
-    const taskId = data?.id || data?.task_id;
+    // ✅ FIX: support BOTH response shapes:
+    // - legacy: { id } or { task_id }
+    // - current: { data: { taskId } }
+    const taskId =
+      data?.data?.taskId ||
+      data?.taskId ||
+      data?.id ||
+      data?.task_id;
 
     if (!taskId) {
       log('Missing Task ID in Response:', data);
-      throw new Error("KIE response missing 'id' or 'task_id'");
+      throw new Error("KIE response missing 'taskId'");
     }
 
     return {
@@ -91,7 +99,7 @@ export const kieSunoService = {
 
   /**
    * Poll status (via proxy)
-   * Proxy route is GET /api/kie/suno/status/:id
+   * Proxy route: GET /api/kie/suno/status/:id  (and/or record-info alias depending on proxy)
    */
   pollTask: async (taskId: string): Promise<SunoClip[]> => {
     let attempts = 0;
@@ -109,16 +117,21 @@ export const kieSunoService = {
 
       const statusUrl = `${BASE_URL}/status/${encodeURIComponent(taskId)}`;
       const res = await fetch(statusUrl);
-      const data = await res.json().catch(() => ({}));
+      const raw = await res.json().catch(() => ({}));
+
+      // ✅ unwrap { data: {...} } when present
+      const data = raw?.data ?? raw;
 
       if (res.status === 404) {
-        log(`Status 404 for ${taskId}`, data);
+        log(`Status 404 for ${taskId}`, raw);
         if (attempts > 5) throw new Error('Task Not Found (404) persistently.');
         continue;
       }
 
       if (!res.ok) {
-        throw new Error(`Status Check Failed (${res.status}): ${data?.error || data?.msg || 'Unknown Error'}`);
+        throw new Error(
+          `Status Check Failed (${res.status}): ${raw?.error || raw?.msg || 'Unknown Error'}`
+        );
       }
 
       const status = String(data?.status || data?.state || '').toUpperCase();
@@ -129,7 +142,7 @@ export const kieSunoService = {
       }
 
       if (['FAILED', 'ERROR'].includes(status)) {
-        throw new Error(data?.error || 'Generation Task Failed at Provider');
+        throw new Error(data?.error || raw?.error || 'Generation Task Failed at Provider');
       }
     }
 
@@ -139,22 +152,22 @@ export const kieSunoService = {
   parseClips: (data: any): SunoClip[] => {
     let clips: SunoClip[] = [];
 
-    const rawClips = data?.clips || data?.output || [];
+    const rawClips = data?.clips || data?.output || data?.audios || [];
 
     if (Array.isArray(rawClips)) {
       clips = rawClips
         .map((c: any) => ({
           id: c.id,
-          url: c.audio_url || c.url || c.video_url,
-          image_url: c.image_url || c.image_large_url,
+          url: c.audio_url || c.audioUrl || c.url || c.video_url,
+          image_url: c.image_url || c.imageUrl || c.image_large_url,
           duration: c.duration,
           title: c.title
         }))
         .filter((c: any) => c.url);
-    } else if (data?.audio_url) {
+    } else if (data?.audio_url || data?.url) {
       clips = [{
         id: data?.id,
-        url: data?.audio_url,
+        url: data?.audio_url || data?.url,
         image_url: data?.image_url,
         duration: data?.duration
       }];
