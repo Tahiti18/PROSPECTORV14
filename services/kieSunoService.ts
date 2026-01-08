@@ -45,11 +45,7 @@ const log = (msg: string, data?: any) => {
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 const toDebugString = (v: any) => {
-  try {
-    return JSON.stringify(v);
-  } catch {
-    return String(v);
-  }
+  try { return JSON.stringify(v); } catch { return String(v); }
 };
 
 const safeLocalStorageGet = (key: string): string | null => {
@@ -96,18 +92,14 @@ const upsertGalleryTracks = (newTracks: PersistedSunoTrack[]) => {
     if (t?.url) byUrl.set(t.url, t);
   }
 
-  const merged = Array.from(byUrl.values()).sort(
-    (a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)
-  );
-
+  // newest first
+  const merged = Array.from(byUrl.values()).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
   writeGalleryCache(merged);
 
-  // notify UI
+  // notify UI (optional hook)
   try {
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('suno:gallery_updated', { detail: { tracks: merged } })
-      );
+      window.dispatchEvent(new CustomEvent('suno:gallery_updated', { detail: { tracks: merged } }));
     }
   } catch {
     // ignore
@@ -119,8 +111,39 @@ export const kieSunoService = {
   getPersistedGallery: (): PersistedSunoTrack[] => loadGalleryCache(),
 
   /**
+   * Overwrite persisted gallery cache.
+   * Used by UI Import flows.
+   */
+  setPersistedGallery: (tracks: PersistedSunoTrack[]) => {
+    const safe = Array.isArray(tracks)
+      ? tracks
+          .filter(t => t && typeof (t as any).url === 'string')
+          .map(t => ({
+            id: String((t as any).id || (t as any).url),
+            url: String((t as any).url),
+            title: String((t as any).title || 'SUNO_TRACK'),
+            image_url: (t as any).image_url,
+            duration: typeof (t as any).duration === 'number' ? (t as any).duration : undefined,
+            createdAt: typeof (t as any).createdAt === 'number' ? (t as any).createdAt : Date.now(),
+            promptSignature: (t as any).promptSignature,
+            instrumental: (t as any).instrumental
+          }))
+      : [];
+
+    writeGalleryCache(safe);
+
+    try {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('suno:gallery_updated', { detail: { tracks: safe } }));
+      }
+    } catch {
+      // ignore
+    }
+  },
+
+  /**
    * Submit generation (via proxy)
-   * Keep signature backward-compatible with existing UI calls
+   * Keep signature backward-compatible with SonicStudio.tsx calls
    */
   generateMusic: async (
     prompt: string,
@@ -131,6 +154,7 @@ export const kieSunoService = {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
+    // Correct payload for KIE /api/v1/generate (proxy forwards /suno_submit -> /generate)
     const payload: any = {
       prompt,
       customMode: false,
@@ -154,9 +178,7 @@ export const kieSunoService = {
     log(`Submit Response (${res.status})`, data);
 
     if (!res.ok) {
-      throw new Error(
-        `Proxy Error (${res.status}): ${data?.error || data?.msg || 'Unknown Proxy Error'}`
-      );
+      throw new Error(`Proxy Error (${res.status}): ${data?.error || data?.msg || 'Unknown Proxy Error'}`);
     }
 
     const taskId =
@@ -181,6 +203,7 @@ export const kieSunoService = {
 
   /**
    * Poll status (via proxy)
+   * Prefer /record-info?taskId=... (new). Fallback to /status/:id if needed.
    */
   pollTask: async (taskId: string): Promise<SunoClip[]> => {
     let attempts = 0;
@@ -220,6 +243,7 @@ export const kieSunoService = {
       log(`Poll ${taskId} [${attempts}]: ${status}`, unwrapped);
 
       if (['COMPLETED', 'SUCCESS', 'SUCCEEDED'].includes(status)) {
+        // IMPORTANT: parse RAW (preserves wrappers like records/result)
         return kieSunoService.parseClips(raw);
       }
 
@@ -232,7 +256,7 @@ export const kieSunoService = {
   },
 
   /**
-   * Robust parser
+   * Robust parser (handles multiple outputs + JSON-in-string)
    */
   parseClips: (input: any): SunoClip[] => {
     const tryParseStringJSON = (v: any) => {
@@ -300,12 +324,7 @@ export const kieSunoService = {
       }
 
       if (typeof node === 'object') {
-        const maybeResult =
-          (node as any).result ??
-          (node as any).output ??
-          (node as any).payload ??
-          (node as any).data;
-
+        const maybeResult = (node as any).result ?? (node as any).output ?? (node as any).payload ?? (node as any).data;
         if (typeof maybeResult === 'string') visit(maybeResult, depth + 1);
 
         for (const k of Object.keys(node)) {
@@ -324,9 +343,10 @@ export const kieSunoService = {
   },
 
   /**
-   * Orchestrator
-   * IMPORTANT: Signature is WIDE to match SonicStudio.tsx calls.
-   * This fixes TS2554.
+   * Orchestrator:
+   * - saves to in-memory vault via saveAsset()
+   * - persists locally so tracks don't disappear (Suno gallery cache)
+   * IMPORTANT: Wide signature to match SonicStudio.tsx calls
    */
   runFullCycle: async (
     prompt: string,
@@ -344,11 +364,12 @@ export const kieSunoService = {
 
     const persisted: PersistedSunoTrack[] = [];
 
+    // IMPORTANT: use for..of so we can await saveAsset if it's async later
     for (let i = 0; i < clips.length; i++) {
       const clip = clips[i];
       const displayTitle = clip.title || `SUNO_TRACK_${i + 1}`;
 
-      // ✅ Local persistence (prevents disappearing on navigation/refresh)
+      // 1) Persist locally (so UI doesn't lose them on navigation)
       persisted.push({
         id: String(clip.id || job.taskId || `${Date.now()}_${i}`),
         url: clip.url,
@@ -360,7 +381,7 @@ export const kieSunoService = {
         instrumental
       });
 
-      // ✅ Asset/Vault persistence (best-effort)
+      // 2) Save to your Vault (SESSION_ASSETS)
       try {
         const maybePromise = saveAsset(
           'AUDIO',
@@ -382,12 +403,14 @@ export const kieSunoService = {
         }
 
         urls.push(clip.url);
-      } catch (err) {
-        console.error('saveAsset failed', err);
+      } catch (err: any) {
+        console.error('Failed to save asset for clip', clip, err);
+        // Still keep URL even if saving fails
         urls.push(clip.url);
       }
     }
 
+    // Write local persistence LAST (so we keep everything)
     upsertGalleryTracks(persisted);
 
     log('Final URLs Saved:', urls);
