@@ -349,12 +349,10 @@ export const generateVideoPayload = async (
       };
     }
     
-    // We mock the actual Veo call here since we don't have a real paid key in this demo context,
-    // but in a real app this would call `ai.models.generateVideos`.
-    // For demo purposes, we will return a placeholder or simulate success if we had the key.
+    // Placeholder for actual Veo logic as we don't have a paid key in this environment context.
+    // The previous implementation was a stub.
     
     await new Promise(r => setTimeout(r, 2000));
-    // Simulate failure or return null as we can't really generate Veo without a paid key here.
     return null; 
 
   } catch (e) {
