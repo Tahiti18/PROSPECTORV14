@@ -226,7 +226,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
         toast.success("Music Generation Complete & Saved");
     } catch (e: any) {
         console.error("Music Gen Error:", e);
-        // Toast handled in service
+        toast.error(`Generation Failed: ${e.message}`);
     } finally {
         setIsGeneratingMusic(false);
     }

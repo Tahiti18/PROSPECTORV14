@@ -12,25 +12,24 @@ export default defineConfig({
     port: Number(process.env.PORT) || 5173,
     allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost'],
     proxy: {
-      // Proxy /api/kie requests to the real API
       '/api/kie': {
-        target: 'https://api.kie.ai/api/v1/suno',
+        target: 'https://api.kie.ai',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/kie/, ''),
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api\/kie/, '/api/v1/suno'),
         configure: (proxy, _options) => {
           proxy.on('proxyReq', (proxyReq, req, _res) => {
-            // Inject the API Key securely on the server side
             proxyReq.setHeader('Authorization', `Bearer ${KIE_KEY}`);
-            // Ensure JSON content type is preserved
+            // Ensure content-type is passed if present (fetch adds it automatically usually)
             if (req.headers['content-type']) {
               proxyReq.setHeader('Content-Type', req.headers['content-type']);
             }
           });
           proxy.on('error', (err, _req, res) => {
             console.error('[PROXY ERROR]', err);
-            res.writeHead(500, {
-              'Content-Type': 'application/json',
-            });
+            if (!res.headersSent) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+            }
             res.end(JSON.stringify({ error: 'Proxy Error', details: err.message }));
           });
         }
