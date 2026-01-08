@@ -14,7 +14,6 @@ if (typeof (globalThis as any).localStorage === 'undefined') {
   };
 }
 
-// --- BACKEND ROUTER: KIE PROXY MIDDLEWARE ---
 const createKieProxyMiddleware = (env: Record<string, string>) => {
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     try {
@@ -37,10 +36,9 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return;
       }
 
-      // Legacy upstream base (matches your existing proxy handlers)
-      const KIE_BASE = 'https://api.kie.ai/api/v1/suno';
+      // ✅ Correct upstream base (current KIE docs)
+      const KIE_GENERATE_BASE = 'https://api.kie.ai/api/v1/generate';
 
-      // Helpers
       const readBody = async () => {
         const buffers: Buffer[] = [];
         for await (const chunk of req) buffers.push(chunk as Buffer);
@@ -61,15 +59,15 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         }
       };
 
-      // ✅ ROUTE ALIASES — accept both submit styles:
-      // - POST /api/kie/suno/suno_submit   (old)
-      // - POST /api/kie/suno/submit        (new)
+      // ✅ Submit aliases:
+      // - POST /api/kie/suno/suno_submit (old)
+      // - POST /api/kie/suno/submit      (new)
       if (
         req.method === 'POST' &&
         (url.includes('/suno_submit') || url.endsWith('/submit') || url.includes('/submit?'))
       ) {
         const bodyStr = await readBody();
-        const upstreamUrl = `${KIE_BASE}/suno_submit`;
+        const upstreamUrl = `${KIE_GENERATE_BASE}`;
 
         const upstreamRes = await fetch(upstreamUrl, {
           method: 'POST',
@@ -84,24 +82,26 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return sendJson(upstreamRes.status, safeJson(rawText));
       }
 
-      // ✅ ROUTE ALIASES — accept both status styles:
-      // - GET /api/kie/suno/status/:id                 (old)
-      // - GET /api/kie/suno/record-info?taskId=...     (new)
-      if (req.method === 'GET' && (url.includes('/status/') || url.startsWith('/api/kie/suno/record-info'))) {
+      // ✅ Status aliases:
+      // - GET /api/kie/suno/status/:id
+      // - GET /api/kie/suno/record-info?taskId=...
+      if (
+        req.method === 'GET' &&
+        (url.includes('/status/') || url.startsWith('/api/kie/suno/record-info'))
+      ) {
         let taskId = '';
 
         if (url.includes('/status/')) {
           const parts = url.split('/');
           taskId = parts[parts.length - 1] || '';
         } else {
-          // record-info?taskId=...
           const u = new URL(`http://local${url}`);
           taskId = u.searchParams.get('taskId') || '';
         }
 
         if (!taskId) return sendJson(400, { error: 'Missing taskId' });
 
-        const upstreamUrl = `${KIE_BASE}/status/${encodeURIComponent(taskId)}`;
+        const upstreamUrl = `${KIE_GENERATE_BASE}/record-info?taskId=${encodeURIComponent(taskId)}`;
 
         const upstreamRes = await fetch(upstreamUrl, {
           method: 'GET',
@@ -112,7 +112,6 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return sendJson(upstreamRes.status, safeJson(rawText));
       }
 
-      // 404 for unknown API routes within this namespace
       return sendJson(404, { error: 'Route not found in KIE Proxy', path: url });
     } catch (e: any) {
       res.statusCode = 500;
