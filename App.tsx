@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { MainMode, SubModule, Lead, ComputeStats } from './types';
 import { Layout } from './components/Layout';
@@ -58,8 +57,6 @@ import { BrandDNA } from './components/workspaces/BrandDNA';
 import { SmokeTest } from './components/SmokeTest';
 import { ToastContainer } from './components/ToastContainer';
 import { db } from './services/automation/db';
-import { SESSION_ASSETS, importVault } from './services/geminiService';
-import { toast } from './services/toastManager';
 
 const STORAGE_KEY_LEADS = 'prospector_os_leads_v14_final';
 const STORAGE_KEY_THEATER = 'prospector_os_theater_v1';
@@ -76,8 +73,6 @@ const App: React.FC = () => {
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [compute, setCompute] = useState<ComputeStats | null>(null);
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- SMOKE TEST INTERCEPT ---
   if (typeof window !== 'undefined' && window.location.pathname === '/__smoketest_phase1') {
@@ -138,86 +133,6 @@ const App: React.FC = () => {
   };
 
   const navigate = (mode: MainMode, mod: SubModule) => { setActiveMode(mode); setActiveModule(mod); };
-
-  // --- FOOTER ACTIONS ---
-  const downloadJson = (data: any, filename: string) => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filename}_${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const raw = ev.target?.result as string;
-        const data = JSON.parse(raw);
-        let count = 0;
-        
-        // Support multiple formats: Full Backup or Ledger Export
-        if (Array.isArray(data)) {
-            // Raw Ledger array
-            db.saveLeads(data);
-            count = data.length;
-        } else {
-            // System Backup Object
-            if (data.leads && Array.isArray(data.leads)) {
-                db.saveLeads(data.leads);
-                count = data.leads.length;
-            }
-            if (data.assets && Array.isArray(data.assets)) {
-                importVault(data.assets);
-            }
-            if (data.settings?.theater) {
-                setTheater(data.settings.theater);
-            }
-        }
-        
-        toast.success(`SYSTEM RESTORED: ${count} LEADS LOADED`);
-        setTimeout(() => window.location.reload(), 1000);
-      } catch (err) {
-        console.error(err);
-        toast.error("IMPORT FAILED: INVALID OR CORRUPT FILE");
-      }
-    };
-    reader.readAsText(file);
-    // Reset
-    e.target.value = '';
-  };
-
-  const handleExport = () => {
-    const data = db.getLeads();
-    downloadJson(data, "PROSPECTOR_LEDGER");
-    toast.success("LEAD DATABASE EXPORTED");
-  };
-
-  const handleSaveAll = () => {
-    const fullBackup = {
-        meta: {
-            version: "14.2.0",
-            timestamp: Date.now(),
-            user: "ADMIN"
-        },
-        settings: {
-            theater,
-            layoutMode
-        },
-        leads: db.getLeads(),
-        assets: SESSION_ASSETS,
-        automation: db.listRuns() // Include automation history
-    };
-    
-    downloadJson(fullBackup, "PROSPECTOR_SYSTEM_BACKUP");
-    toast.success("FULL SYSTEM SNAPSHOT SAVED");
-  };
 
   const renderContent = () => {
     // --- OPERATE ---
@@ -326,44 +241,15 @@ const App: React.FC = () => {
         {/* COMMAND PALETTE */}
         <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme={theme} />
         
-        {/* PERSISTENT FOOTER - NOW INTERACTIVE */}
-        <footer className="fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t border-slate-800/80 px-8 py-3 flex justify-between items-center z-[100] bg-[#020617]/90 text-[10px] font-black uppercase tracking-widest text-slate-500 shadow-2xl">
-            
-            {/* LEFT: DATA I/O */}
-            <div className="flex items-center gap-4">
-                <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-2 hover:text-white transition-colors group"
-                >
-                    <span className="text-emerald-500 group-hover:text-emerald-400">⬆</span> IMPORT
-                </button>
-                <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
-                
-                <div className="w-px h-4 bg-slate-800"></div>
-                
-                <button 
-                    onClick={handleExport}
-                    className="flex items-center gap-2 hover:text-white transition-colors group"
-                >
-                    <span className="text-indigo-500 group-hover:text-indigo-400">⬇</span> EXPORT
-                </button>
-            </div>
-
-            {/* CENTER: SYSTEM STATUS */}
-            <div className="flex gap-6 opacity-50 select-none">
+        {/* PERSISTENT FOOTER */}
+        <footer className="fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t border-slate-800/50 px-10 py-2 flex justify-between items-center z-[100] bg-[#020617]/80 text-[9px] font-black uppercase tracking-widest text-slate-600 pointer-events-none">
+            <div className="flex gap-4">
                 <span>SYSTEM: ONLINE</span>
-                <span className="hidden md:inline">V14.2.0 (STABLE)</span>
-                <span className="hidden md:inline">LATENCY: 12ms</span>
+                <span>V14.2.0 (STABLE)</span>
             </div>
-
-            {/* RIGHT: SAVE ALL */}
-            <div className="flex items-center gap-4">
-                <button 
-                    onClick={handleSaveAll}
-                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-emerald-600/20 transition-all active:scale-95"
-                >
-                    <span>💾</span> SAVE ALL
-                </button>
+            <div className="flex gap-4">
+                <span>LATENCY: 12ms</span>
+                <span>MEM: 45MB</span>
             </div>
         </footer>
       </LayoutComponent>

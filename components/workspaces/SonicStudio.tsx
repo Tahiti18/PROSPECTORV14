@@ -10,34 +10,23 @@ interface SonicStudioProps {
   lead?: Lead;
 }
 
-// --- ICONS ---
-const Icons = {
-  Waveform: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12h2l2-6 4 12 4-12 2 6h2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-  Chip: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M9 9h6v6H9z" /><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3" /></svg>,
-  Pulse: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>,
-  Minimal: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>,
-  Energy: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
-  Flow: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M2 12h20" strokeDasharray="4 4"/></svg>,
-  Studio: () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-};
-
 // --- CONFIGURATION CONSTANTS ---
 const PRESETS = [
-  { id: 'TECH_SAAS', label: 'Tech / SaaS', prompt: 'Upbeat corporate tech, marimba, synthesizer, futuristic, optimistic, 120bpm', Icon: Icons.Chip },
-  { id: 'LUX_ESTATE', label: 'Luxury Estate', prompt: 'Sophisticated deep house, lounge, piano, elegant, expensive atmosphere, 110bpm', Icon: Icons.Minimal },
-  { id: 'MOD_CLINIC', label: 'Modern Clinic', prompt: 'Clean, ambient, soft piano, reassuring, sterile but warm, 90bpm', Icon: Icons.Pulse },
-  { id: 'HIGH_PERF', label: 'High Performance', prompt: 'Phonk, aggressive drift bass, high energy, workout motivation, 140bpm', Icon: Icons.Energy },
-  { id: 'FOCUS_FLOW', label: 'Deep Focus', prompt: 'Lofi hip hop beats, chill, tape saturation, vinyl crackle, relaxing', Icon: Icons.Flow },
-  { id: 'CINE_EPIC', label: 'Cinematic Epic', prompt: 'Orchestral hybrid, hans zimmer style, deep drums, epic swelling strings', Icon: Icons.Waveform }
+  { id: 'SAAS', label: 'Tech SaaS', prompt: 'Upbeat corporate tech, marimba, synthesizer, futuristic, optimistic, 120bpm', icon: '💻' },
+  { id: 'LUXURY', label: 'Luxury Real Estate', prompt: 'Sophisticated deep house, lounge, piano, elegant, expensive atmosphere, 110bpm', icon: '💎' },
+  { id: 'MEDICAL', label: 'Modern Medical', prompt: 'Clean, ambient, soft piano, reassuring, sterile but warm, 90bpm', icon: '🏥' },
+  { id: 'GYM', label: 'High Energy Gym', prompt: 'Phonk, aggressive drift bass, high energy, workout motivation, 140bpm', icon: '💪' },
+  { id: 'LOFI', label: 'Study/Focus', prompt: 'Lofi hip hop beats, chill, tape saturation, vinyl crackle, relaxing', icon: '☕' },
+  { id: 'CINEMATIC', label: 'Epic Cinematic', prompt: 'Orchestral hybrid, hans zimmer style, deep drums, epic swelling strings', icon: '🎬' }
 ];
 
 const GENRES = ['Cinematic', 'Electronic', 'Rock', 'Hip Hop', 'Jazz', 'Ambient', 'Corporate', 'Pop', 'Synthwave', 'Lo-Fi'];
 const VIBES = ['Uplifting', 'Melancholic', 'Energetic', 'Relaxing', 'Suspenseful', 'Motivational', 'Dark', 'Ethereal', 'Punchy', 'Warm'];
 
 const DURATIONS = [
-  { label: '15s SPOT', val: 15 },
-  { label: '30s AD', val: 30 },
-  { label: '60s FULL', val: 60 }
+  { label: '15s (Spot)', val: 15 },
+  { label: '30s (Ad)', val: 30 },
+  { label: '60s (Full)', val: 60 }
 ];
 
 const VOICES = ['Kore', 'Fenrir', 'Puck', 'Charon', 'Zephyr'];
@@ -98,7 +87,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
     });
     
     // Auto-Prompt Generation Logic
-    if (lead && !musicPrompt) {
+    if (lead) {
         setIsAutoPrompting(true);
         // Instant feedback
         setMusicPrompt(`[AI DIRECTOR] Analyzing ${lead.businessName} brand DNA for sonic architecture...`);
@@ -226,7 +215,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
         toast.success("Music Generation Complete & Saved");
     } catch (e: any) {
         console.error("Music Gen Error:", e);
-        toast.error(`Generation Failed: ${e.message}`);
+        toast.error(`Generation Failed: ${e.message || "Service Unreachable"}`);
     } finally {
         setIsGeneratingMusic(false);
     }
@@ -281,14 +270,13 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
              <button
                key={t}
                onClick={() => setActiveTab(t as any)}
-               className={`px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative overflow-hidden ${
+               className={`px-8 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                  activeTab === t 
                    ? 'bg-emerald-600 text-white shadow-lg' 
                    : 'text-slate-500 hover:text-white hover:bg-slate-900'
                }`}
              >
-               {activeTab === t && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
-               <span className="relative z-10">{t}</span>
+               {t}
              </button>
            ))}
         </div>
@@ -302,19 +290,17 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                   <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-6 shadow-xl h-full flex flex-col gap-8 overflow-y-auto custom-scrollbar">
                       <div className="space-y-4">
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> INDUSTRY PRESETS
+                            <span className="text-emerald-500">●</span> INDUSTRY PRESETS
                         </label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2">
                             {PRESETS.map(p => (
                               <button 
                                 key={p.id} 
                                 onClick={() => handlePresetSelect(p)}
-                                className="bg-slate-950 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900 p-4 rounded-xl flex flex-col items-center gap-3 transition-all group text-center active:scale-95 active:border-emerald-500"
+                                className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 p-3 rounded-xl flex flex-col items-center gap-2 transition-all group text-center"
                               >
-                                <div className="text-slate-500 group-hover:text-emerald-400 w-6 h-6 transition-colors">
-                                    <p.Icon />
-                                </div>
-                                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-white transition-colors">{p.label}</span>
+                                <span className="text-xl group-hover:scale-110 transition-transform">{p.icon}</span>
+                                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-wide group-hover:text-emerald-400">{p.id}</span>
                               </button>
                             ))}
                         </div>
@@ -329,8 +315,8 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                                 onClick={() => toggleKeyword(g)}
                                 className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all ${
                                   musicPrompt.includes(g) 
-                                    ? 'bg-emerald-600 border-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]' 
-                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                                    ? 'bg-emerald-600 border-emerald-500 text-white' 
+                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300'
                                 }`}
                               >
                                 {g}
@@ -348,8 +334,8 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                                 onClick={() => toggleKeyword(v)}
                                 className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all ${
                                   musicPrompt.includes(v) 
-                                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(79,70,229,0.3)]' 
-                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                                    ? 'bg-indigo-600 border-indigo-500 text-white' 
+                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300'
                                 }`}
                               >
                                 {v}
@@ -368,10 +354,10 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                           <button
                             key={v}
                             onClick={() => setSelectedVoice(v)}
-                            className={`p-4 rounded-2xl border flex items-center justify-between transition-all group active:scale-95 ${
+                            className={`p-4 rounded-2xl border flex items-center justify-between transition-all group ${
                               selectedVoice === v 
-                                ? 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.3)]' 
-                                : 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800 hover:border-slate-700'
+                                ? 'bg-indigo-600 border-indigo-500 text-white' 
+                                : 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800'
                             }`}
                           >
                             <span className="text-[10px] font-black uppercase tracking-widest">{v}</span>
@@ -454,14 +440,14 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                             <div className="flex gap-1">
                               {isAutoPrompting && <span className="text-[8px] font-bold text-emerald-500 animate-pulse bg-emerald-500/10 px-2 rounded">AI DIRECTING...</span>}
                               <button onClick={handleMagicEnhance} className="text-[9px] font-bold text-indigo-400 hover:text-white uppercase tracking-widest flex items-center gap-1">
-                                  ⚡ MAGIC
+                                  ⚡ MAGIC WAND
                               </button>
                             </div>
                         </div>
                         <textarea 
                           value={musicPrompt}
                           onChange={(e) => setMusicPrompt(e.target.value)}
-                          className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-4 text-xs font-medium text-slate-300 focus:outline-none focus:border-emerald-500 h-40 resize-none shadow-inner custom-scrollbar placeholder-slate-700"
+                          className="w-full bg-[#020617] border border-slate-800 rounded-2xl p-4 text-xs font-medium text-slate-300 focus:outline-none focus:border-emerald-500 h-40 resize-none shadow-inner custom-scrollbar"
                           placeholder={isAutoPrompting ? "AI is crafting your strategy..." : "Describe the sound..."}
                           disabled={isAutoPrompting}
                         />
@@ -499,14 +485,14 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                         onClick={() => coverInputRef.current?.click()}
                         className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex items-center gap-4 cursor-pointer group hover:border-emerald-500/50 transition-all"
                       >
-                        <div className="w-12 h-12 bg-black rounded-lg overflow-hidden border border-slate-800 relative flex items-center justify-center">
-                            {coverImage ? <img src={coverImage} className="w-full h-full object-cover" /> : <div className="text-slate-700"><Icons.Studio /></div>}
+                        <div className="w-12 h-12 bg-black rounded-lg overflow-hidden border border-slate-800 relative">
+                            {coverImage ? <img src={coverImage} className="w-full h-full object-cover" /> : <span className="absolute inset-0 flex items-center justify-center text-lg grayscale opacity-50">💿</span>}
                         </div>
                         <div className="flex-1">
                             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest group-hover:text-emerald-400">COVER ART</p>
                             <p className="text-[8px] text-slate-600 font-medium">CLICK TO CHANGE</p>
                         </div>
-                        <div className="text-slate-500 w-4 h-4"><Icons.Waveform /></div>
+                        <button onClick={(e) => { e.stopPropagation(); handleGenerateCover(); }} className="text-[10px] p-2 hover:bg-slate-800 rounded-lg">🎨</button>
                         <input type="file" ref={coverInputRef} onChange={handleCoverUpload} className="hidden" />
                       </div>
 
@@ -514,16 +500,14 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                         <button 
                           onClick={handleGenerateMusic}
                           disabled={isGeneratingMusic}
-                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
                         >
-                          {isGeneratingMusic ? (
-                             <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> INITIALIZING KIE...</span>
-                          ) : 'GENERATE TRACK'}
+                          {isGeneratingMusic ? 'COMPOSING...' : 'GENERATE TRACK'}
                         </button>
                         <button 
                           onClick={handleWriteLyrics} 
                           disabled={isWritingLyrics}
-                          className="w-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all hover:bg-slate-800 active:scale-95"
+                          className="w-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-white py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all hover:bg-slate-800"
                         >
                           {isWritingLyrics ? 'WRITING...' : 'LYRICSMITH AI'}
                         </button>
@@ -538,7 +522,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                         <textarea 
                           value={voiceText}
                           onChange={(e) => setVoiceText(e.target.value)}
-                          className="flex-1 w-full bg-[#020617] border border-slate-800 rounded-2xl p-4 text-xs font-medium text-slate-300 focus:outline-none focus:border-indigo-500 resize-none shadow-inner leading-relaxed custom-scrollbar placeholder-slate-700"
+                          className="flex-1 w-full bg-[#020617] border border-slate-800 rounded-2xl p-4 text-xs font-medium text-slate-300 focus:outline-none focus:border-indigo-500 resize-none shadow-inner leading-relaxed custom-scrollbar"
                           placeholder="Enter text to speak..."
                         />
                     </div>
