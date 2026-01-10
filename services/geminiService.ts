@@ -137,7 +137,7 @@ export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
     TASK: ORCHESTRATE A COMPREHENSIVE AGENCY CAMPAIGN.
     TARGET: ${lead.businessName} (${lead.niche})
     MARKET GAP: ${lead.socialGap}
-    AVAILABLE ASSETS: ${assets.length} items currently in media vault.
+    AVAILABLE ASSETS: ${assets.length} items.
 
     Return an exhaustive JSON payload using the UI_BLOCKS format:
     {
@@ -558,9 +558,21 @@ export const analyzeVisual = async (data: string, mime: string, p: string) => {
     contents: {
       parts: [
         { inlineData: { data, mimeType: mime } },
-        { text: p + " RETURN PLAIN TEXT ONLY. NO MARKDOWN." }
+        { text: `Deep analyze visual plate. Directive: ${p}. 
+
+          RETURN JSON IN UI_BLOCKS FORMAT:
+          {
+            "format": "ui_blocks",
+            "title": "VISION ANALYSIS",
+            "sections": [
+              { "heading": "VISUAL DECODING", "body": [{ "type": "p", "content": "Narrative..." }] }
+            ]
+          }
+          STRICT RULES: NO MARKDOWN. NO INTRO TEXT.` 
+        }
       ]
-    }
+    },
+    config: { responseMimeType: 'application/json' }
   });
   return response.text || "";
 };
@@ -569,8 +581,27 @@ export const analyzeVideoUrl = async (u: string, p: string, id?: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Analyze video stream at ${u}. Mission: ${p}. RETURN PLAIN TEXT ONLY. NO MARKDOWN.`,
-    config: { tools: [{ googleSearch: {} }] }
+    contents: `Analyze video stream at ${u}. Mission: ${p}.
+    
+    RETURN JSON IN UI_BLOCKS FORMAT:
+    {
+      "format": "ui_blocks",
+      "title": "CINEMA INTELLIGENCE REPORT",
+      "sections": [
+        { 
+          "heading": "SCENE DECONSTRUCTION", 
+          "body": [
+            { "type": "p", "content": "Detailed scene-by-scene analysis..." },
+            { "type": "bullets", "content": ["Key Observation 1", "Key Observation 2"] }
+          ]
+        }
+      ]
+    }
+    STRICT RULES: NO MARKDOWN. NO CODE BLOCKS. RETURN JSON ONLY.`,
+    config: { 
+      responseMimeType: 'application/json',
+      tools: [{ googleSearch: {} }] 
+    }
   });
   return response.text || "";
 };
@@ -579,7 +610,18 @@ export const synthesizeArticle = async (s: string, m: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Synthesize article content: ${s}. Mode: ${m}. RETURN PLAIN TEXT ONLY. NO MARKDOWN.`
+    contents: `Synthesize article content: ${s}. Mode: ${m}.
+    
+    RETURN JSON IN UI_BLOCKS FORMAT:
+    {
+      "format": "ui_blocks",
+      "title": "ARTICLE SYNTHESIS",
+      "sections": [
+        { "heading": "CORE INSIGHTS", "body": [{ "type": "bullets", "content": ["Insight A", "Insight B"] }] }
+      ]
+    }
+    STRICT RULES: NO MARKDOWN. NO CODE BLOCKS. RETURN JSON ONLY.`,
+    config: { responseMimeType: 'application/json' }
   });
   return response.text || "";
 };
@@ -680,7 +722,8 @@ export const critiqueVideoPresence = async (lead: Lead) => {
         { "heading": "OPPORTUNITY", "body": [{ "type": "p", "content": "Text..." }] }
       ]
     }
-    NO MARKDOWN.`
+    NO MARKDOWN.`,
+    config: { responseMimeType: 'application/json' }
   });
   return response.text || "";
 };
@@ -731,7 +774,8 @@ export const generateROIReport = async (ltv: number, vol: number, conv: number) 
         { "heading": "SUMMARY", "body": [{ "type": "p", "content": "Narrative..." }] }
       ]
     }
-    NO MARKDOWN.`
+    NO MARKDOWN.`,
+    config: { responseMimeType: 'application/json' }
   });
   return response.text || "";
 };
