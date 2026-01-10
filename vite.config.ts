@@ -36,7 +36,6 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return;
       }
 
-      // ✅ Correct upstream base (current KIE docs)
       const KIE_GENERATE_BASE = 'https://api.kie.ai/api/v1/generate';
 
       const readBody = async () => {
@@ -59,9 +58,6 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         }
       };
 
-      // ✅ Submit aliases:
-      // - POST /api/kie/suno/suno_submit (old)
-      // - POST /api/kie/suno/submit      (new)
       if (
         req.method === 'POST' &&
         (url.includes('/suno_submit') || url.endsWith('/submit') || url.includes('/submit?'))
@@ -80,17 +76,14 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
 
         const rawText = await upstreamRes.text();
         const parsed = safeJson(rawText);
-return sendJson(upstreamRes.status, {
-  _debug_upstreamStatus: upstreamRes.status,
-  _debug_upstreamUrl: upstreamUrl,
-  _debug_raw: rawText,
-  ...parsed
-});
+        return sendJson(upstreamRes.status, {
+          _debug_upstreamStatus: upstreamRes.status,
+          _debug_upstreamUrl: upstreamUrl,
+          _debug_raw: rawText,
+          ...parsed
+        });
       }
 
-      // ✅ Status aliases:
-      // - GET /api/kie/suno/status/:id
-      // - GET /api/kie/suno/record-info?taskId=...
       if (
         req.method === 'GET' &&
         (url.includes('/status/') || url.startsWith('/api/kie/suno/record-info'))
@@ -143,6 +136,9 @@ export default defineConfig(() => {
         }
       }
     ],
+    define: {
+      'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
+    },
     server: {
       host: '0.0.0.0',
       port: Number(process.env.PORT) || 5173,

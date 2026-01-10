@@ -57,29 +57,25 @@ export const saveAsset = (type: any, title: string, data: string, module?: strin
 };
 
 /**
- * MANDATORY AI STUDIO KEY BRIDGE
- * Ensures the user has selected a valid key from a paid GCP project.
+ * MANDATORY KEY SELECTION LOGIC
+ * Checks for a selected key and prompts if missing.
  */
-const ensureKeySelected = async () => {
-  // @ts-ignore - access the AI Studio global bridge
+const ensureKey = async () => {
+  // @ts-ignore
   if (typeof window !== 'undefined' && window.aistudio) {
     // @ts-ignore
-    const hasKey = await window.aistudio.hasSelectedApiKey();
-    if (!hasKey) {
-      pushLog("API_KEY_MISSING: Prompting for key selection...");
+    if (!(await window.aistudio.hasSelectedApiKey())) {
       // @ts-ignore
       await window.aistudio.openSelectKey();
-      // Proceed immediately as per instructions
     }
   }
 };
 
 /**
- * Robust instance creator
+ * Robust instance creator used right before making an API call.
  */
 export const getAI = async () => {
-  await ensureKeySelected();
-  // Strictly use process.env.API_KEY as required
+  await ensureKey();
   return new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 };
 
