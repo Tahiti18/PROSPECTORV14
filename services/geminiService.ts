@@ -62,14 +62,13 @@ export const saveAsset = (type: any, title: string, data: string, module?: strin
 
 /**
  * DIRECT API KEY RETRIEVAL
- * As per hard requirement, use process.env.API_KEY directly.
  */
 export const getAI = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey || apiKey === "undefined") {
-    throw new Error("CRITICAL: API_KEY is missing in environment. Ensure it is set in Railway and Redeploy.");
+  const key = process.env.API_KEY;
+  if (!key || key === "undefined" || key === "null" || key === "") {
+    throw new Error("CRITICAL: API_KEY is missing. Check Railway variables and Redeploy.");
   }
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenAI({ apiKey: key });
 };
 
 export const loggedGenerateContent = async (opts: any): Promise<string> => {
@@ -221,14 +220,16 @@ export const generateVisual = async (p: string, l: any, editImage?: string) => {
     contents,
   });
 
-  // FIXED: Explicit checks for candidates and parts to resolve TS18048
-  const candidates = response.candidates;
-  if (candidates && candidates.length > 0 && candidates[0].content && candidates[0].content.parts) {
-    for (const part of candidates[0].content.parts) {
-      if (part.inlineData) {
-        const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-        saveAsset('IMAGE', `Visual: ${p.slice(0, 20)}`, imageUrl, 'VISUAL_STUDIO', l?.id);
-        return imageUrl;
+  // FIXED: Explicit checks for candidates and parts to resolve build errors
+  if (response.candidates && response.candidates.length > 0) {
+    const candidate = response.candidates[0];
+    if (candidate.content && candidate.content.parts) {
+      for (const part of candidate.content.parts) {
+        if (part.inlineData) {
+          const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+          saveAsset('IMAGE', `Visual: ${p.slice(0, 20)}`, imageUrl, 'VISUAL_STUDIO', l?.id);
+          return imageUrl;
+        }
       }
     }
   }
@@ -279,12 +280,14 @@ export const generateVideoPayload = async (
     operation = await ai.operations.getVideosOperation({ operation });
   }
   
-  const generatedVideos = operation.response?.generatedVideos;
-  if (generatedVideos && generatedVideos.length > 0 && generatedVideos[0].video) {
-    const uri = generatedVideos[0].video.uri;
-    const url = `${uri}&key=${process.env.API_KEY}`;
-    saveAsset('VIDEO', `Video: ${p.slice(0, 20)}`, url, 'VIDEO_PITCH', id);
-    return url;
+  // FIXED: Explicit checks for operation response to resolve build errors
+  if (operation.response && operation.response.generatedVideos && operation.response.generatedVideos.length > 0) {
+    const video = operation.response.generatedVideos[0].video;
+    if (video && video.uri) {
+      const url = `${video.uri}&key=${process.env.API_KEY}`;
+      saveAsset('VIDEO', `Video: ${p.slice(0, 20)}`, url, 'VIDEO_PITCH', id);
+      return url;
+    }
   }
   return null;
 };
