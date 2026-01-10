@@ -47,7 +47,8 @@ async function guardedGenerate<T>(
   try {
     ai = getAI();
   } catch (e: any) {
-    throw { stepId: module, message: e.message, error: e.message };
+    // Crucial: Throw an error that the orchestrator catch block will recognize
+    throw new Error(e.message || "API_KEY_REQUIRED");
   }
 
   let lastRaw = "";
@@ -68,6 +69,7 @@ async function guardedGenerate<T>(
     }
   } catch (e: any) {
     console.error(`[GuardedGenerate] Attempt 1 Failed for ${module}:`, e.message);
+    if (e.message?.includes('API_KEY')) throw e; // Pass through key errors
   }
 
   // ATTEMPT 2: Instruction-heavy retry
@@ -111,23 +113,15 @@ async function guardedGenerate<T>(
       if (validation.ok) {
         return { data: finalParsed.value!, raw: lastRaw };
       } else {
-        throw { stepId: module, message: 'Schema validation failed after repair', missingKeys: validation.missing, rawOutput: lastRaw, error: 'Validation failed' };
+        throw new Error(`Schema validation failed after repair for ${module}`);
       }
     }
   } catch (e: any) {
-    if (e.stepId) throw e;
     console.error(`[GuardedGenerate] Repair Failed for ${module}:`, e.message);
   }
 
   // Final failure fallback
-  const finalCheck = safeJsonParse<T>(lastRaw);
-  throw {
-    stepId: module,
-    message: `Exhausted all recovery attempts. Last output: ${lastRaw.slice(0, 100)}...`,
-    missingKeys: finalCheck.ok ? validateKeys(finalCheck.value, requiredKeys).missing : ['MALFORMED_JSON_STRUCTURE'],
-    rawOutput: lastRaw,
-    error: 'Exhausted recovery'
-  };
+  throw new Error(`Exhausted all recovery attempts for ${module}. Check raw logs.`);
 }
 
 export const Steps = {

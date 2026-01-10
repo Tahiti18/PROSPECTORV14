@@ -115,8 +115,9 @@ export const importVault = (assets: AssetRecord[]): number => {
 
 export const getAI = () => {
   const key = process.env.API_KEY;
-  if (!key || key === "undefined" || key === "") {
-    const error = new Error("API_KEY_MISSING: No Gemini API Key detected in environment. Please configure Railway environment variables or select a key in Settings.");
+  // Robust check for missing, empty, or placeholder strings in production
+  if (!key || key === "undefined" || key === "" || key === "null") {
+    const error = new Error("API_KEY_MISSING: No valid Gemini API Key detected. Use Settings or Logic Verifier to select a key.");
     (error as any).code = 'MISSING_KEY';
     throw error;
   }

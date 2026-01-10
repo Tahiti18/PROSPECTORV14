@@ -46,7 +46,6 @@ export class AutomationOrchestrator {
         artifacts: []
       };
       
-      // Store mode via property extension
       (run as any).mode = mode;
       
       db.saveRun(run);
@@ -102,10 +101,8 @@ export class AutomationOrchestrator {
       const targetLead = db.getLeads().find(l => l.id === run!.leadId);
       if (!targetLead) throw new Error("Lead missing from database.");
 
-      // Restore dynamic run mode detection
       const runMode = (run as any).mode || 'full';
 
-      // --- EVIDENCE LEVEL ---
       const hasWebsite = !!(targetLead.websiteUrl && targetLead.websiteUrl !== '#' && targetLead.websiteUrl.length > 5);
       const hasMaps = !!(targetLead.groundingSources?.some(s => s.uri?.includes('google.com/maps')));
       const hasSocials = !!((targetLead.instagram && targetLead.instagram !== 'Not found') || 
@@ -113,9 +110,7 @@ export class AutomationOrchestrator {
                          (targetLead.youtube && targetLead.youtube !== 'Not found'));
       
       const evidenceLevel = (hasWebsite || hasMaps || hasSocials) ? 'high' : 'low';
-      
-      // --- COMPLIANCE MODE ---
-      const industryText = ((targetLead as any).industry || targetLead.niche || '').toLowerCase();
+      const industryText = (targetLead.niche || '').toLowerCase();
       const isRegulated = REGULATED_KEYWORDS.some(kw => industryText.includes(kw));
       const complianceMode = isRegulated ? 'regulated' : 'standard';
 
@@ -140,7 +135,6 @@ export class AutomationOrchestrator {
              try {
                 const parsed = JSON.parse(art.content);
                 this.hydrateContext(step.name, parsed, context);
-                // Persistence of Identity Strict Mode from DeepResearch
                 if (step.name === 'DeepResearch' && parsed.identity_resolution?.business_confirmed === false) {
                   runCtx.identity_strict = true;
                 }
@@ -149,26 +143,10 @@ export class AutomationOrchestrator {
           continue;
         }
 
-        // --- SKIP LOGIC ---
         if (shouldSkipRemaining && step.name !== 'CompleteRun') {
           step.status = 'skipped';
           db.saveRun(run);
           continue;
-        }
-
-        // --- SAFETY GUARDRAILS ---
-        if (step.name === 'DeepResearch') {
-          const missingFields: string[] = [];
-          if (!targetLead.businessName) missingFields.push("business_name");
-          if (!targetLead.city) missingFields.push("location");
-          
-          if (missingFields.length > 0) {
-            throw {
-              stepId: step.name,
-              message: "Missing required lead fields: business_name or location",
-              missingFields
-            };
-          }
         }
 
         step.status = 'running';
@@ -188,12 +166,11 @@ export class AutomationOrchestrator {
             case 'DeepResearch':
               if (runMode === 'lite') {
                 result = await Steps.generateDeepResearchLite(context.resolved, runCtx);
-                shouldSkipRemaining = true; // Mark skip for later steps
+                shouldSkipRemaining = true;
               } else {
                 result = await Steps.deepResearch(context.resolved, runCtx);
               }
               context.research = result.data;
-              // Guardrail: Identity Strict Mode
               if (result.data.identity_resolution?.business_confirmed === false) {
                 runCtx.identity_strict = true;
               }
@@ -237,7 +214,6 @@ export class AutomationOrchestrator {
               break;
 
             case 'GenerateVideoScripts':
-              // Fix: Corrected property name from 'videoScripts' to 'generateVideoScripts' and fixed assignment to context.videoScripts
               result = await Steps.generateVideoScripts(context.strategy, runCtx);
               context.videoScripts = result.data;
               this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
@@ -305,15 +281,8 @@ export class AutomationOrchestrator {
           step.completedAt = Date.now();
         } catch (e: any) {
           step.status = 'failed';
-          let finalErr = e.message || e.error || "Unknown operational failure.";
-          
-          if (e.missingFields) {
-            finalErr = `${e.message}: [${e.missingFields.join(', ')}]`;
-          } else if (e.rawOutput) {
-            this.addArtifact(run, step, 'text', e.rawOutput, `${step.name}_FAILURE_RAW`);
-            finalErr = e.message || `Missing keys: ${e.missingKeys?.join(', ')}`;
-          }
-          
+          // Ensure we extract the most useful error message
+          const finalErr = e.message || e.error || (typeof e === 'string' ? e : "Internal Orchestration Error");
           step.error = finalErr;
           run.status = 'failed';
           run.errorSummary = `Step '${step.name}' failed: ${finalErr}`;
