@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { analyzeVideoUrl } from '../../services/geminiService';
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface CinemaIntelProps {
   lead?: Lead;
@@ -92,9 +92,7 @@ export const CinemaIntel: React.FC<CinemaIntelProps> = ({ lead }) => {
                       <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest animate-pulse">SEARCHING VIDEO METADATA...</p>
                    </div>
                  ) : analysis ? (
-                   <div className="prose prose-invert max-w-none text-slate-300 font-sans leading-relaxed whitespace-pre-wrap">
-                      {analysis}
-                   </div>
+                    <FormattedOutput content={analysis} />
                  ) : (
                    <div className="h-full flex flex-col items-center justify-center text-center p-20 opacity-20">
                       <h4 className="text-4xl font-black italic text-white uppercase tracking-tighter">STREAM OFFLINE</h4>
