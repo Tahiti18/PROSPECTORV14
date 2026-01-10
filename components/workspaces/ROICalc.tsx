@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { generateROIReport } from '../../services/geminiService';
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface ROICalcProps {
   leads: Lead[];
@@ -72,7 +72,7 @@ export const ROICalc: React.FC<ROICalcProps> = ({ leads }) => {
       {report && (
         <div className="mt-8 bg-slate-900 border border-slate-800 p-8 rounded-[32px] animate-in slide-in-from-bottom-4 duration-700">
            <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-4">EXECUTIVE SUMMARY</h3>
-           <p className="text-slate-300 text-sm font-medium leading-relaxed font-sans">{report}</p>
+           <FormattedOutput content={report} />
         </div>
       )}
     </div>

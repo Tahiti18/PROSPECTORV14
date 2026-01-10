@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { synthesizeArticle } from '../../services/geminiService';
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface ArticleIntelProps {
   lead?: Lead;
@@ -93,9 +93,7 @@ export const ArticleIntel: React.FC<ArticleIntelProps> = ({ lead }) => {
                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse italic">Crystallizing Insight Mesh...</p>
                     </div>
                  ) : output ? (
-                    <div className="prose prose-invert max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap font-sans">
-                       {output}
-                    </div>
+                    <FormattedOutput content={output} />
                  ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center p-20 opacity-10 grayscale scale-110">
                        <svg className="w-24 h-24 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" strokeWidth="2"/></svg>

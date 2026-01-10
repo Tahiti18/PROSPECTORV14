@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { SubModule, Lead } from '../../types';
 import { generateProposalDraft } from '../../services/geminiService';
@@ -12,6 +11,7 @@ import { LiveScribe } from './LiveScribe';
 import { AIConcierge } from './AIConcierge';
 import { PitchGen } from './PitchGen';
 import { FunnelMap } from './FunnelMap';
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface SellWorkspaceProps {
   activeModule: SubModule;
@@ -57,9 +57,7 @@ export const SellWorkspace: React.FC<SellWorkspaceProps> = ({ activeModule, lead
                </div>
             ) : proposal ? (
                <div className="flex-1 p-16 overflow-y-auto custom-scrollbar">
-                  <div className="prose prose-invert max-w-none text-slate-300 font-sans leading-relaxed whitespace-pre-wrap">
-                     {proposal}
-                  </div>
+                  <FormattedOutput content={proposal} />
                </div>
             ) : (
                <div className="absolute inset-0 flex items-center justify-center p-20 text-center opacity-30">

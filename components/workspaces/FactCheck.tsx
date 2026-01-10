@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { performFactCheck } from '../../services/geminiService';
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface FactCheckProps {
   lead?: Lead;
@@ -79,8 +79,8 @@ export const FactCheck: React.FC<FactCheckProps> = ({ lead }) => {
                 <h3 className="text-xl font-black text-white italic tracking-tighter uppercase leading-none">Status Assessment</h3>
              </div>
 
-             <div className="bg-slate-950 p-10 rounded-[32px] border border-slate-800/60 prose prose-invert max-w-none">
-                <p className="text-slate-300 text-lg leading-relaxed font-medium font-sans">{result.evidence}</p>
+             <div className="bg-slate-950 p-10 rounded-[32px] border border-slate-800/60 overflow-hidden">
+                <FormattedOutput content={result.evidence} />
              </div>
 
              <div className="space-y-4">

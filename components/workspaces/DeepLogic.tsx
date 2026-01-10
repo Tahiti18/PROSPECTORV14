@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { GoogleGenAI } from "@google/genai";
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface DeepLogicProps {
   lead?: Lead;
@@ -116,11 +116,7 @@ export const DeepLogic: React.FC<DeepLogicProps> = ({ lead }) => {
                       <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.5em]">SYSTEM 1: FLASH INFERENCE...</p>
                    </div>
                  ) : output ? (
-                   <div className="prose prose-invert max-w-none">
-                      <div className="text-slate-300 text-lg leading-relaxed whitespace-pre-wrap font-sans">
-                        {output}
-                      </div>
-                   </div>
+                    <FormattedOutput content={output} />
                  ) : (
                    <div className="h-full flex flex-col items-center justify-center text-center space-y-8 opacity-20">
                       <div className="text-[120px] grayscale brightness-50 select-none">⚡</div>

@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Lead } from '../../types';
 import { critiqueVideoPresence } from '../../services/geminiService';
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface VideoAIProps {
   lead?: Lead;
@@ -53,11 +53,7 @@ export const VideoAI: React.FC<VideoAIProps> = ({ lead }) => {
              <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] animate-pulse">Scouring Global Video Indexes...</p>
           </div>
         ) : (
-          <div className="prose prose-invert max-w-none">
-            <div className="text-slate-300 text-lg leading-relaxed whitespace-pre-wrap font-sans">
-              {audit}
-            </div>
-          </div>
+          <FormattedOutput content={audit} />
         )}
       </div>
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { AutomationRun, AutomationArtifact } from '../../services/automation/types';
 import { AutomationOrchestrator } from '../../services/automation/orchestrator';
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface RunStatusProps {
   runId: string;
@@ -208,8 +209,8 @@ export const RunStatus: React.FC<RunStatusProps> = ({ runId, onClose }) => {
                     <button onClick={() => downloadArtifact(art)} className="text-[9px] font-black text-emerald-500 hover:text-white uppercase tracking-widest">DOWNLOAD</button>
                   </div>
                   <h4 className="text-lg font-black text-white uppercase tracking-tight mb-4">{art.stepName}</h4>
-                  <div className="flex-1 bg-black/40 p-4 rounded-xl border border-slate-800/50 overflow-hidden relative">
-                    <pre className="text-[10px] text-slate-400 font-mono leading-relaxed line-clamp-6 opacity-70 group-hover:opacity-100 transition-opacity">{art.content}</pre>
+                  <div className="flex-1 bg-black/40 p-6 rounded-xl border border-slate-800/50 overflow-y-auto max-h-96 custom-scrollbar relative">
+                    <FormattedOutput content={art.content} />
                   </div>
                 </div>
               ))}
@@ -241,9 +242,7 @@ export const RunStatus: React.FC<RunStatusProps> = ({ runId, onClose }) => {
                                 <button onClick={() => navigator.clipboard.writeText(selectedRaw.content)} className="text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest">COPY RAW</button>
                             </div>
                             <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-950/50 p-6 rounded-2xl border border-slate-900">
-                                <pre className="text-[11px] text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
-                                    {selectedRaw.content}
-                                </pre>
+                                <FormattedOutput content={selectedRaw.content} />
                             </div>
                         </div>
                     ) : (

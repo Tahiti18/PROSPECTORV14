@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Lead } from '../../types';
 import { generateProposalDraft } from '../../services/geminiService';
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface ProposalDraftingProps {
   lead?: Lead;
@@ -53,11 +53,7 @@ export const ProposalDrafting: React.FC<ProposalDraftingProps> = ({ lead }) => {
              <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.5em] animate-pulse italic">Synthesizing Visionary Copy...</p>
           </div>
         ) : (
-          <div className="prose prose-invert max-w-none">
-            <div className="text-slate-300 text-lg leading-relaxed whitespace-pre-wrap font-sans">
-              {draft}
-            </div>
-          </div>
+          <FormattedOutput content={draft} />
         )}
       </div>
 

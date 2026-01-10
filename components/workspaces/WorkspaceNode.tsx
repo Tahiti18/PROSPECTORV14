@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { GoogleGenAI } from "@google/genai";
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface WorkspaceNodeProps {
   leads: Lead[];
@@ -110,9 +110,7 @@ export const WorkspaceNode: React.FC<WorkspaceNodeProps> = ({ leads }) => {
                       <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest">GEMINI_CORE_THINKING...</p>
                    </div>
                  ) : report ? (
-                   <div className="prose prose-invert max-w-none text-slate-300 font-sans whitespace-pre-wrap leading-relaxed">
-                      {report}
-                   </div>
+                    <FormattedOutput content={report} />
                  ) : (
                    <div className="h-full flex flex-col items-center justify-center text-center opacity-20 py-20">
                       <div className="w-32 h-32 border-4 border-slate-800 rounded-full flex items-center justify-center mb-8">

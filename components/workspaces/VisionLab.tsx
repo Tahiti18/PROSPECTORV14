@@ -1,7 +1,7 @@
-
 import React, { useState, useRef } from 'react';
 import { Lead } from '../../types';
 import { analyzeVisual } from '../../services/geminiService';
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface VisionLabProps {
   lead?: Lead;
@@ -112,9 +112,7 @@ export const VisionLab: React.FC<VisionLabProps> = ({ lead }) => {
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">DECODING PIXEL MATRIX...</p>
                    </div>
                  ) : analysis ? (
-                   <div className="prose prose-invert max-w-none text-slate-300 font-sans leading-relaxed whitespace-pre-wrap">
-                      {analysis}
-                   </div>
+                   <FormattedOutput content={analysis} />
                  ) : (
                    <div className="h-full flex flex-col items-center justify-center text-center p-20 opacity-20">
                       <h4 className="text-4xl font-black italic text-slate-700 uppercase tracking-tighter">OPTIC SENSOR IDLE</h4>
