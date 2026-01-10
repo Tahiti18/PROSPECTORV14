@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { SESSION_ASSETS, AssetRecord, importVault, clearVault, saveAsset, subscribeToAssets, generateVideoPayload } from '../../services/geminiService';
 
@@ -10,12 +9,15 @@ export const MediaVault: React.FC = () => {
   const mediaInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Replaced Interval with Subscription for Instant Updates
     const unsubscribe = subscribeToAssets((updatedAssets) => {
         setAssets(updatedAssets);
     });
     return () => unsubscribe();
   }, []);
+
+  const sanitizeFilename = (name: string) => {
+    return name.replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 30);
+  };
 
   const handleExportVault = () => {
     const dataStr = JSON.stringify(SESSION_ASSETS, null, 2);
@@ -90,16 +92,13 @@ export const MediaVault: React.FC = () => {
         if (asset.data.startsWith("data:")) {
             base64Image = asset.data;
         } else {
-            // Handle remote URLs if necessary
             alert("External URL animation not supported in this mode. Download and re-upload.");
             setAnimatingId(null);
             return;
         }
 
         const prompt = "Cinematic slow motion pan, bringing the image to life, 4k high quality, natural movement";
-        // Calls Veo 3.1 via updated default in service
         await generateVideoPayload(prompt, asset.leadId, base64Image);
-        // Result is auto-saved to assets by service
     } catch (e) {
         console.error("Animation failed", e);
         alert("Failed to animate image.");
@@ -116,7 +115,6 @@ export const MediaVault: React.FC = () => {
           <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Persistent Asset Reservoir (Local Storage)</p>
         </div>
         <div className="flex gap-4">
-           {/* Manual Media Upload - Fixes iOS Grayed Out Issue */}
            <button 
              onClick={() => mediaInputRef.current?.click()}
              className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-600/20 flex items-center gap-2"
@@ -131,7 +129,6 @@ export const MediaVault: React.FC = () => {
              accept="image/*,video/*,audio/*,text/plain,application/pdf,.mp4,.mov,.webm,.m4v,.mp3,.wav,.png,.jpg,.jpeg,.webp"
            />
 
-           {/* Vault Actions */}
            <button 
              onClick={handleExportVault}
              disabled={assets.length === 0}
@@ -170,6 +167,11 @@ export const MediaVault: React.FC = () => {
 
          {assets.map(a => {
            const isError = mediaErrors.has(a.id);
+           // FIXED: Sanitized filename to prevent extension conflicts (.ts -> video)
+           const safeBase = sanitizeFilename(a.title);
+           const ext = a.type === 'TEXT' ? 'txt' : a.type === 'IMAGE' ? 'png' : a.type === 'VIDEO' ? 'mp4' : 'bin';
+           const downloadName = `POM_${safeBase}_${a.id.slice(-4)}.${ext}`;
+
            return (
              <div key={a.id} className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 space-y-6 hover:border-emerald-500/40 transition-all group relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 blur-[40px] rounded-full"></div>
@@ -191,7 +193,6 @@ export const MediaVault: React.FC = () => {
                    <h4 className="text-sm font-black text-slate-200 uppercase tracking-tight truncate" title={a.title}>{a.title}</h4>
                 </div>
                 
-                {/* PREVIEW AREA */}
                 <div className="aspect-video bg-slate-950 rounded-xl overflow-hidden relative border border-slate-800 flex items-center justify-center group-hover:border-slate-700 transition-colors">
                    {isError ? (
                       <div className="flex flex-col items-center justify-center text-rose-500 text-center p-4">
@@ -223,7 +224,6 @@ export const MediaVault: React.FC = () => {
                      </>
                    )}
                    
-                   {/* ANIMATE OVERLAY (IMAGES ONLY) */}
                    {a.type === 'IMAGE' && !isError && (
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                          <button 
@@ -247,7 +247,7 @@ export const MediaVault: React.FC = () => {
                 <div className="pt-4 border-t border-slate-800/50 flex gap-3 relative z-10">
                    <a 
                      href={a.type === 'TEXT' ? `data:text/plain;charset=utf-8,${encodeURIComponent(a.data)}` : a.data} 
-                     download={`POM_${a.id}.${a.type === 'TEXT' ? 'txt' : a.type === 'VIDEO' ? 'mp4' : a.type === 'IMAGE' ? 'png' : 'bin'}`} 
+                     download={downloadName} 
                      className="flex-1 bg-emerald-600/10 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white py-3 rounded-xl text-[8px] font-black text-emerald-400 uppercase tracking-widest transition-all text-center flex items-center justify-center"
                    >
                      DOWNLOAD FILE
