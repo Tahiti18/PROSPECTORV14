@@ -26,14 +26,17 @@ export const VerificationNode: React.FC = () => {
     switch(type) {
       case 'REGULATED':
         setTestLead({ ...testLead, businessName: "Health Plus Clinic", niche: "Medical Aesthetics", websiteUrl: "https://healthplus.com" });
+        setInternalFlags(f => ({ ...f, compliance: 'regulated' }));
         toast.info("Scenario: Regulated Industry (Compliance Test)");
         break;
       case 'LOW_EVIDENCE':
         setTestLead({ ...testLead, businessName: "Shadow Firm", niche: "Stealth Tech", websiteUrl: "#", city: "Unknown" });
+        setInternalFlags(f => ({ ...f, evidence: 'low' }));
         toast.info("Scenario: Missing Data (Evidence Test)");
         break;
       case 'STRICT_IDENTITY':
         setTestLead({ ...testLead, businessName: "Ghost LLC", niche: "Import Export" });
+        setInternalFlags(f => ({ ...f, identity: 'strict' }));
         toast.info("Scenario: High Uncertainty (Identity Test)");
         break;
     }
@@ -42,35 +45,59 @@ export const VerificationNode: React.FC = () => {
   const runTest = async (mode: 'full' | 'lite') => {
     setRunLogs([]);
     addLog(`INITIATING ${mode.toUpperCase()} TEST RUN...`);
+    addLog(`ENVIRONMENT: ${window.location.hostname}`);
+    addLog(`API_KEY_PRESENT: ${!!process.env.API_KEY}`);
     
     try {
       // 1. Save Test Lead to DB to make it selectable
       const mockId = `TEST_${Date.now()}`;
-      const mockLead: Lead = { ...testLead as Lead, id: mockId, status: 'cold', rank: 999 };
+      const mockLead: Lead = { 
+        ...testLead as Lead, 
+        id: mockId, 
+        status: 'cold', 
+        rank: 999,
+        // Ensure niche is set for orchestrator compliance detection
+        niche: testLead.niche || 'Testing'
+      };
       db.saveLeads([...db.getLeads(), mockLead]);
       
       // 2. Start Run
       const run = await AutomationOrchestrator.getInstance().startRun(mockId, mode);
       setActiveRunId(run.id);
-      addLog(`RUN_ID ${run.id} SECURED.`);
+      addLog(`RUN_ID ${run.id} SECURED. POLLING...`);
     } catch (e: any) {
-      addLog(`ERROR: ${e.message}`);
+      addLog(`CRITICAL START ERROR: ${e.message}`);
+      toast.error("Orchestrator failed to initialize.");
     }
   };
 
   // Poll for status updates to show internal logic working
   useEffect(() => {
     if (!activeRunId) return;
+    
+    const seenSteps = new Set<string>();
     const interval = setInterval(() => {
       const run = db.getRun(activeRunId);
       if (run) {
         run.steps.forEach(s => {
-          if (s.status === 'running') addLog(`EXECUTING: ${s.name}`);
-          if (s.status === 'skipped') addLog(`SKIPPED: ${s.name} (LITE_MODE_POLICY)`);
-          if (s.status === 'success') addLog(`SUCCESS: ${s.name}`);
+          const key = `${s.name}_${s.status}`;
+          if (seenSteps.has(key)) return;
+          
+          if (s.status === 'running') addLog(`EXECUTING: ${s.name}...`);
+          if (s.status === 'skipped') addLog(`SKIPPED: ${s.name} (POLICY)`);
+          if (s.status === 'success') {
+            addLog(`SUCCESS: ${s.name}`);
+            seenSteps.add(key);
+          }
+          if (s.status === 'failed') {
+            addLog(`FAILURE: ${s.name} -> ${s.error || 'Unknown Error'}`);
+            seenSteps.add(key);
+          }
         });
+
         if (run.status === 'succeeded' || run.status === 'failed') {
-          addLog(`TEST SEQUENCE ${run.status.toUpperCase()}.`);
+          addLog(`TEST SEQUENCE TERMINATED: ${run.status.toUpperCase()}`);
+          if (run.errorSummary) addLog(`SUMMARY: ${run.errorSummary}`);
           setActiveRunId(null);
           clearInterval(interval);
         }
@@ -154,9 +181,9 @@ export const VerificationNode: React.FC = () => {
               <div className="flex-1 p-8 font-mono text-[11px] overflow-y-auto custom-scrollbar space-y-2">
                  {runLogs.length === 0 && <div className="text-slate-800 italic uppercase tracking-[0.5em] text-center py-20">SYSTEM IDLE. AWAITING TEST INITIATION.</div>}
                  {runLogs.map((log, i) => (
-                   <div key={i} className={`flex gap-4 ${log.includes('ERROR') ? 'text-rose-500' : log.includes('SKIPPED') ? 'text-amber-500/70' : log.includes('SUCCESS') ? 'text-emerald-500' : 'text-slate-400'}`}>
+                   <div key={i} className={`flex gap-4 ${log.includes('ERROR') || log.includes('FAILURE') ? 'text-rose-500' : log.includes('SKIPPED') ? 'text-amber-500/70' : log.includes('SUCCESS') ? 'text-emerald-500' : 'text-slate-400'}`}>
                       <span className="shrink-0 opacity-30 select-none">{runLogs.length - i}</span>
-                      <span className="truncate">{log}</span>
+                      <span className="whitespace-pre-wrap">{log}</span>
                    </div>
                  ))}
               </div>
@@ -165,15 +192,15 @@ export const VerificationNode: React.FC = () => {
            <div className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 grid grid-cols-3 gap-6 shadow-xl">
               <div className="space-y-2 text-center">
                  <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">LITE_SKIP_LOGIC</p>
-                 <span className="text-[10px] font-black text-emerald-400">VERIFIED</span>
+                 <span className={`text-[10px] font-black ${runLogs.some(l => l.includes('LITE')) ? 'text-emerald-400' : 'text-slate-600'}`}>VERIFIED</span>
               </div>
               <div className="space-y-2 text-center border-x border-slate-800">
                  <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">COMPLIANCE_KEY_SCAN</p>
-                 <span className="text-[10px] font-black text-emerald-400">ACTIVE</span>
+                 <span className={`text-[10px] font-black ${internalFlags.compliance === 'regulated' ? 'text-emerald-400' : 'text-slate-600'}`}>ACTIVE</span>
               </div>
               <div className="space-y-2 text-center">
                  <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">IDENTITY_ENFORCEMENT</p>
-                 <span className="text-[10px] font-black text-emerald-400">HARDENED</span>
+                 <span className={`text-[10px] font-black ${internalFlags.identity === 'strict' ? 'text-emerald-400' : 'text-slate-600'}`}>HARDENED</span>
               </div>
            </div>
         </div>

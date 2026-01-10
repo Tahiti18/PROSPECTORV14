@@ -61,7 +61,9 @@ async function guardedGenerate<T>(
       const validation = validateKeys(parsed.value, requiredKeys);
       if (validation.ok) return { data: parsed.value!, raw: lastRaw };
     }
-  } catch (e) {}
+  } catch (e: any) {
+    console.error(`[GuardedGenerate] Attempt 1 Failed for ${module}:`, e.message);
+  }
 
   // ATTEMPT 2: Instruction-heavy retry
   try {
@@ -76,7 +78,9 @@ async function guardedGenerate<T>(
       const validation = validateKeys(parsed.value, requiredKeys);
       if (validation.ok) return { data: parsed.value!, raw: lastRaw };
     }
-  } catch (e) {}
+  } catch (e: any) {
+     console.error(`[GuardedGenerate] Attempt 2 Failed for ${module}:`, e.message);
+  }
 
   // ATTEMPT 3: Specific repair prompt
   const repairPrompt = `Fix the following output to match the required JSON schema exactly. Return JSON only.
@@ -107,6 +111,7 @@ async function guardedGenerate<T>(
     }
   } catch (e: any) {
     if (e.stepId) throw e;
+    console.error(`[GuardedGenerate] Repair Failed for ${module}:`, e.message);
   }
 
   // Final failure fallback
@@ -124,7 +129,7 @@ export const Steps = {
     const prompt = `ROLE: Lead Resolution Agent. 
     Lead evidence level: ${ctx.lead_evidence_level}
     Compliance mode: ${ctx.compliance_mode}
-    TASK: Normalize lead identity. INPUT: ${JSON.stringify(lead)}. OUTPUT: JSON { "resolved_lead": { "business_name": "", "business_confirmed": boolean, ... }, "fact_vs_inference": { ... } }`;
+    TASK: Normalize lead identity. INPUT: ${JSON.stringify(lead)}. OUTPUT: JSON { "resolved_lead": { "business_name": "", "business_confirmed": boolean, "industry_classification": "" }, "fact_vs_inference": { "confirmed_facts": [], "assumed_facts": [] } }`;
     return guardedGenerate('RESOLVE_LEAD', 'gemini-3-pro-preview', prompt, ['resolved_lead.business_confirmed'], ctx);
   },
 
@@ -132,35 +137,26 @@ export const Steps = {
     const prompt = `ROLE: Deep Research Agent. 
     Lead evidence level: ${ctx.lead_evidence_level}
     Compliance mode: ${ctx.compliance_mode}
-    TASK: Factual discovery and business confirmation. INPUT: ${JSON.stringify(resolvedData)}. OUTPUT: JSON { "identity_resolution": { "business_confirmed": boolean }, "digital_footprint": { ... }, "reviews": { ... }, "competitors": [] }`;
+    TASK: Factual discovery and business confirmation. INPUT: ${JSON.stringify(resolvedData)}. OUTPUT: JSON { "identity_resolution": { "business_confirmed": boolean }, "digital_footprint": { "website_status": "", "social_presence": [], "evidence_score": 0 }, "competitors": [] }`;
     return guardedGenerate('DEEP_RESEARCH', 'gemini-3-pro-preview', prompt, ['identity_resolution.business_confirmed', 'digital_footprint'], ctx, 'HIGH', [{ googleSearch: {} }]);
   },
 
   generateDeepResearchLite: async (resolvedData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
     const prompt = `ROLE: Deep Research Agent (LITE MODE).
-    TASK: Compact factual discovery and business confirmation for high-velocity scale.
+    TASK: Compact factual discovery and business confirmation.
     Lead evidence level: ${ctx.lead_evidence_level}
     Compliance mode: ${ctx.compliance_mode}
-    
-    CONSTRAINTS for LITE MODE:
-    - Max 2 competitors
-    - Max 3 market context bullets
-    - Max 5 evidence items
-    - NO long quotes or exhaustive narratives
-    - NO downstream asset generation instructions
-    - Text and facts ONLY.
-    - Output must be compact and JSON only.
     
     INPUT: ${JSON.stringify(resolvedData)}
     OUTPUT: JSON { 
       "identity_resolution": { "business_confirmed": boolean }, 
       "digital_footprint": { 
-        "market_context": ["short bullet 1", "short bullet 2", "short bullet 3"], 
-        "evidence": ["fact 1", "fact 2", "fact 3", "fact 4", "fact 5"] 
+        "market_context": [], 
+        "evidence": [] 
       }, 
-      "competitors": ["competitor name 1", "competitor name 2"] 
+      "competitors": [] 
     }`;
-    return guardedGenerate('DEEP_RESEARCH_LITE', 'gemini-3-flash-preview', prompt, ['identity_resolution.business_confirmed', 'digital_footprint.market_context', 'competitors'], ctx, 'LOW', [{ googleSearch: {} }]);
+    return guardedGenerate('DEEP_RESEARCH_LITE', 'gemini-3-flash-preview', prompt, ['identity_resolution.business_confirmed', 'digital_footprint', 'competitors'], ctx, 'LOW', [{ googleSearch: {} }]);
   },
 
   extractSignals: async (researchData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
@@ -175,7 +171,7 @@ export const Steps = {
     const prompt = `ROLE: Decision Governor. 
     Lead evidence level: ${ctx.lead_evidence_level}
     Compliance mode: ${ctx.compliance_mode}
-    TASK: Arbitrate truth. INPUT: Research: ${JSON.stringify(researchData)}, Signals: ${JSON.stringify(signalsData)}. OUTPUT: JSON { "validated_intelligence": { "key_facts": [] }, "scores": { ... } }`;
+    TASK: Arbitrate truth. INPUT: Research: ${JSON.stringify(researchData)}, Signals: ${JSON.stringify(signalsData)}. OUTPUT: JSON { "validated_intelligence": { "key_facts": [] }, "scores": { "confidence": 0, "readiness": 0 } }`;
     return guardedGenerate('DECISION_GOVERNOR', 'gemini-3-pro-preview', prompt, ['validated_intelligence.key_facts', 'scores'], ctx, 'HIGH');
   },
 
@@ -183,7 +179,7 @@ export const Steps = {
     const prompt = `ROLE: Intelligence Synthesis Agent. 
     Lead evidence level: ${ctx.lead_evidence_level}
     Compliance mode: ${ctx.compliance_mode}
-    TASK: Commercial dossier. INPUT: ${JSON.stringify(governorData)}. OUTPUT: JSON { "dossier": { "lead_readiness_score_0_100": 0, "pain_points": {}, "opportunities": {} } }`;
+    TASK: Commercial dossier. INPUT: ${JSON.stringify(governorData)}. OUTPUT: JSON { "dossier": { "lead_readiness_score_0_100": 0, "pain_points": [], "opportunities": [] } }`;
     return guardedGenerate('INTEL_SYNTHESIS', 'gemini-3-pro-preview', prompt, ['dossier.lead_readiness_score_0_100', 'dossier.pain_points'], ctx);
   },
 
@@ -191,7 +187,7 @@ export const Steps = {
     const prompt = `ROLE: Strategy Agent. 
     Lead evidence level: ${ctx.lead_evidence_level}
     Compliance mode: ${ctx.compliance_mode}
-    TASK: Marketing blueprint. INPUT: ${JSON.stringify(dossierData)}. OUTPUT: JSON { "positioning": { ... }, "funnel": { ... }, "campaign_architecture": { ... } }`;
+    TASK: Marketing blueprint. INPUT: ${JSON.stringify(dossierData)}. OUTPUT: JSON { "positioning": { "core_angle": "", "value_prop": "" }, "funnel": { "stages": [] }, "campaign_architecture": { "theme": "" } }`;
     return guardedGenerate('GENERATE_STRATEGY', 'gemini-3-pro-preview', prompt, ['positioning', 'funnel', 'campaign_architecture'], ctx, 'HIGH');
   },
 
@@ -247,7 +243,7 @@ export const Steps = {
     const prompt = `Generate ICP for ${lead.businessName}. 
     Lead evidence level: ${ctx.lead_evidence_level}
     Compliance mode: ${ctx.compliance_mode}
-    Strategy: ${JSON.stringify(strategyData)}. Output JSON { "icp": {} }`;
+    Strategy: ${JSON.stringify(strategyData)}. Output JSON { "icp": { "demographics": {}, "psychographics": {} } }`;
     return guardedGenerate('ICP_GEN', 'gemini-3-flash-preview', prompt, ['icp'], ctx);
   },
 
@@ -255,7 +251,7 @@ export const Steps = {
     const prompt = `Create Offer for ${lead.businessName}. 
     Lead evidence level: ${ctx.lead_evidence_level}
     Compliance mode: ${ctx.compliance_mode}
-    ICP: ${JSON.stringify(icp)}. Output JSON { "offer": {} }`;
+    ICP: ${JSON.stringify(icp)}. Output JSON { "offer": { "core_product": "", "guarantee": "" } }`;
     return guardedGenerate('OFFER_GEN', 'gemini-3-flash-preview', prompt, ['offer'], ctx);
   },
 
@@ -263,7 +259,7 @@ export const Steps = {
     const prompt = `Generate Outreach Suite for ${lead.businessName}. 
     Lead evidence level: ${ctx.lead_evidence_level}
     Compliance mode: ${ctx.compliance_mode}
-    Offer: ${JSON.stringify(offer)}. Output JSON { "outreach": {} }`;
+    Offer: ${JSON.stringify(offer)}. Output JSON { "outreach": { "email_1": "", "linkedin_1": "" } }`;
     return guardedGenerate('OUTREACH_GEN', 'gemini-3-flash-preview', prompt, ['outreach'], ctx);
   },
 
