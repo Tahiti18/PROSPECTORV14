@@ -647,43 +647,52 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
                       <div className="space-y-4">
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">CONFIGURATION</label>
                         
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">DURATION</label>
-                            <select 
-                              value={targetDuration.val}
-                              onChange={(e) => setTargetDuration(DURATIONS.find(d => d.val === Number(e.target.value)) || DURATIONS[1])}
-                              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-[10px] font-black text-white uppercase tracking-widest focus:outline-none focus:border-emerald-500"
-                            >
-                              {DURATIONS.map(d => <option key={d.val} value={d.val}>{d.label}</option>)}
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">MODE</label>
-                            <button
-                              onClick={() => setIsInstrumental(!isInstrumental)}
-                              className={`w-full px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                                isInstrumental 
-                                  ? 'bg-emerald-600 border-emerald-500 text-white' 
-                                  : 'bg-rose-600 border-rose-500 text-white'
-                              }`}
-                            >
-                              {isInstrumental ? 'INSTRUMENTAL' : 'VOCAL'}
-                            </button>
+                        {/* Duration - 3 horizontal buttons */}
+                        <div className="space-y-2">
+                          <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">DURATION</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {DURATIONS.map(d => (
+                              <button
+                                key={d.val}
+                                onClick={() => setTargetDuration(d)}
+                                className={`px-3 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
+                                  targetDuration.val === d.val
+                                    ? 'bg-emerald-600 border-emerald-500 text-white'
+                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-white hover:border-slate-700'
+                                }`}
+                              >
+                                {d.val}s
+                              </button>
+                            ))}
                           </div>
                         </div>
 
+                        {/* Mode - Single full-width button */}
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => setIsInstrumental(!isInstrumental)}
+                            className={`w-full px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                              isInstrumental 
+                                ? 'bg-emerald-600 border-emerald-500 text-white' 
+                                : 'bg-indigo-600 border-indigo-500 text-white'
+                            }`}
+                          >
+                            {isInstrumental ? 'INSTRUMENTAL' : 'VOICE'}
+                          </button>
+                        </div>
+
+                        {/* Export Format - 2 horizontal buttons */}
                         <div className="space-y-2">
                           <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">EXPORT FORMAT</label>
-                          <div className="flex gap-2">
+                          <div className="grid grid-cols-2 gap-2">
                             {(['MP3', 'WAV'] as const).map(fmt => (
                               <button
                                 key={fmt}
                                 onClick={() => setExportFormat(fmt)}
-                                className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                                className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
                                   exportFormat === fmt
                                     ? 'bg-indigo-600 border-indigo-500 text-white'
-                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-white'
+                                    : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-white hover:border-slate-700'
                                 }`}
                               >
                                 {fmt}
