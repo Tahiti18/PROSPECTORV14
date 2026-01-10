@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Lead } from '../types';
 
@@ -59,7 +58,6 @@ export const saveAsset = (type: any, title: string, data: string, module?: strin
 
 /**
  * MANDATORY KEY SELECTION LOGIC
- * Checks for a selected key and prompts if missing via AI Studio bridge.
  */
 const ensureKey = async () => {
   // @ts-ignore
@@ -141,35 +139,33 @@ export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
     MARKET GAP: ${lead.socialGap}
     AVAILABLE ASSETS: ${assets.length} items currently in media vault.
 
-    Return an exhaustive JSON payload:
+    Return an exhaustive JSON payload using the UI_BLOCKS format:
     {
-      "presentation": {
-        "title": "Transformation Strategy for ${lead.businessName}",
-        "slides": [
-          { "title": "Market Positioning", "bullets": ["Point A", "Point B"], "visualRef": "Visual Directive" },
-          { "title": "Revenue Gap Analysis", "bullets": ["Detail 1", "Detail 2"], "visualRef": "Chart Directive" },
-          { "title": "The Implementation Roadmap", "bullets": ["Phase 1", "Phase 2"], "visualRef": "Flow Directive" }
-        ]
-      },
-      "narrative": "A cinematic, persuasive executive-level narrative script...",
-      "contentPack": [
-        { "platform": "Instagram", "type": "Reel", "caption": "Caption here", "assetRef": "Visual directive" },
-        { "platform": "LinkedIn", "type": "Thought Leadership", "caption": "Caption here", "assetRef": "Visual directive" }
+      "format": "ui_blocks",
+      "title": "Transformation Strategy for ${lead.businessName}",
+      "sections": [
+        {
+          "heading": "Market Positioning",
+          "body": [
+            { "type": "p", "content": "Narrative text here..." },
+            { "type": "bullets", "content": ["Point A", "Point B"] }
+          ]
+        },
+        {
+          "heading": "Visual Direction",
+          "body": [
+            { "type": "callout", "content": "Brand Mood description..." },
+            { "type": "scorecard", "content": [{ "label": "Premium", "value": "95" }] }
+          ]
+        }
       ],
-      "outreach": {
-        "emailSequence": [
-          { "subject": "A strategic observation regarding ${lead.businessName}", "body": "Custom high-ticket outreach body..." }
-        ],
-        "linkedin": "Personalized connection request script."
-      },
-      "visualDirection": {
-        "brandMood": "Define the target mood...",
-        "colorPsychology": [{ "color": "#HEX", "purpose": "Explain why" }],
-        "visualThemes": ["Theme A", "Theme B"],
-        "aiImagePrompts": [{ "use_case": "Hero Asset", "prompt": "Exhaustive image prompt..." }],
-        "aiVideoPrompts": [{ "use_case": "Promotional Clip", "prompt": "Exhaustive video prompt..." }]
-      }
+      "presentation": { "title": "Strategy", "slides": [] },
+      "narrative": "Detailed executive script...",
+      "contentPack": [],
+      "outreach": { "emailSequence": [], "linkedin": "" },
+      "visualDirection": { "brandMood": "", "colorPsychology": [], "visualThemes": [], "aiImagePrompts": [], "aiVideoPrompts": [] }
     }
+    IMPORTANT: DO NOT USE MARKDOWN. USE ONLY THE UI_BLOCKS JSON STRUCTURE.
   `;
 
   const response = await ai.models.generateContent({
@@ -185,7 +181,7 @@ export const generateOutreachSequence = async (lead: Lead) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Generate a 5-day high-ticket outreach sequence for ${lead.businessName} targeting their ${lead.socialGap}. Return a JSON array. Each object: day (1-5), channel (Email/LinkedIn/Phone), purpose, content.`,
+    contents: `Generate a 5-day high-ticket outreach sequence for ${lead.businessName} targeting their ${lead.socialGap}. Return a JSON array. Each object: day (1-5), channel (Email/LinkedIn/Phone), purpose, content. DO NOT USE MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "[]");
@@ -196,7 +192,26 @@ export const generateProposalDraft = async (lead: Lead) => {
   pushLog(`PROPOSAL_GEN: Drafting high-ticket proposal for ${lead.businessName}...`);
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Write a sophisticated, persuasive high-ticket sales proposal for ${lead.businessName}. Focus on how AI transformation solves their specific ${lead.socialGap}. Use professional markdown with sections for Objectives, Current Gap, Solution, ROI, and Next Steps.`
+    contents: `Write a sophisticated, persuasive high-ticket sales proposal for ${lead.businessName}. Focus on how AI transformation solves their specific ${lead.socialGap}. 
+    
+    RETURN JSON IN UI_BLOCKS FORMAT:
+    {
+      "format": "ui_blocks",
+      "title": "PROPOSAL: AI TRANSFORMATION",
+      "subtitle": "PREPARED FOR ${lead.businessName}",
+      "sections": [
+        {
+          "heading": "EXECUTIVE SUMMARY",
+          "body": [ { "type": "p", "content": "Persuasive text..." } ]
+        },
+        {
+          "heading": "IMPLEMENTATION STEPS",
+          "body": [ { "type": "steps", "content": [ { "title": "Phase 1", "desc": "Details..." } ] } ]
+        }
+      ]
+    }
+    DO NOT USE MARKDOWN TOKEN SYMBOLS.`,
+    config: { responseMimeType: 'application/json' }
   });
   return response.text || "";
 };
@@ -210,7 +225,7 @@ export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> =
       model: 'gemini-3-flash-preview',
       contents: `Perform a deep technical and strategic benchmark for ${lead.businessName} (${lead.websiteUrl}). 
       Analyze their mission, visual stack, sonic presence, and deep architecture. 
-      Return JSON: { entityName, missionSummary, visualStack: [{label, description}], sonicStack: [{label, description}], featureGap, businessModel, designSystem, deepArchitecture }.`,
+      Return JSON: { entityName, missionSummary, visualStack: [{label, description}], sonicStack: [{label, description}], featureGap, businessModel, designSystem, deepArchitecture }. NO MARKDOWN.`,
       config: { 
         responseMimeType: 'application/json',
         tools: [{ googleSearch: {} }] 
@@ -230,8 +245,8 @@ export const analyzeLedger = async (leads: Lead[]) => {
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `Analyze this collection of leads: ${JSON.stringify(leadData)}. 
-    Evaluate aggregate market risk and high-level opportunity for an AI transformation agency. 
-    Return JSON: { "risk": "Extensive paragraph on market risks", "opportunity": "Extensive paragraph on opportunities" }`,
+    Evaluate aggregate market risk and high-level opportunity.
+    Return JSON: { "risk": "text block", "opportunity": "text block" }. NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "{}");
@@ -242,8 +257,8 @@ export const performFactCheck = async (lead: Lead, claim: string) => {
   pushLog(`FACT_CHECK: Verifying claim for ${lead.businessName}...`);
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Fact check this claim for ${lead.businessName}: "${claim}". Is it verifiable? Is it accurate? Provide evidence. 
-    Return JSON: { status: "Verified/Disputed/Unknown", evidence: "string", sources: [{title, uri}] }`,
+    contents: `Fact check this claim for ${lead.businessName}: "${claim}". 
+    Return JSON: { status: "Verified/Disputed/Unknown", evidence: "Clear text evidence (no markdown)", sources: [{title, uri}] }`,
     config: { 
       responseMimeType: 'application/json',
       tools: [{ googleSearch: {} }] 
@@ -259,7 +274,7 @@ export const generatePlaybookStrategy = async (niche: string) => {
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `Architect a master tactical playbook for scaling an AI agency in the ${niche} niche. 
-    Return JSON: { strategyName: "string", steps: [{title: "string", tactic: "string"}] }`,
+    Return JSON: { strategyName: "string", steps: [{title: "string", tactic: "string"}] }. NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "{}");
@@ -269,7 +284,7 @@ export const architectFunnel = async (lead: Lead) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Architect a high-conversion 4-stage sales funnel for ${lead.businessName}. Return JSON array. Each object: stage, title, description, conversionGoal.`,
+    contents: `Architect a high-conversion 4-stage sales funnel for ${lead.businessName}. Return JSON array. Each object: stage, title, description, conversionGoal. NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "[]");
@@ -279,7 +294,7 @@ export const architectPitchDeck = async (lead: Lead) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Outline a winning 7-slide pitch deck structure for ${lead.businessName}. Return JSON array. Each object: title, narrativeGoal, keyVisuals.`,
+    contents: `Outline a winning 7-slide pitch deck structure for ${lead.businessName}. Return JSON array. Each object: title, narrativeGoal, keyVisuals. NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "[]");
@@ -289,7 +304,7 @@ export const generateTaskMatrix = async (lead: Lead) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Generate a prioritized checklist of 8 tactical onboarding tasks for ${lead.businessName}. Return JSON array. Each: id, task, status (pending).`,
+    contents: `Generate a prioritized checklist of 8 tactical onboarding tasks for ${lead.businessName}. Return JSON array. Each: id, task, status (pending). NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "[]");
@@ -299,7 +314,7 @@ export const generateNurtureDialogue = async (lead: Lead, scenario: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Simulate a realistic 4-turn sales nurture dialogue for ${lead.businessName} based on this scenario: ${scenario}. Return JSON array. Each object: role (user/ai), text.`,
+    contents: `Simulate a realistic 4-turn sales nurture dialogue for ${lead.businessName} based on: ${scenario}. Return JSON array. Each: role (user/ai), text. NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "[]");
@@ -310,8 +325,7 @@ export const extractBrandDNA = async (lead: any, url: string) => {
   pushLog(`BRAND_DNA: Analyzing visual identity of ${url}...`);
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Deep analyze the brand DNA of ${url}. Extract visual tone, colors, typography, and values. 
-    Return JSON: { colors: string[], fontPairing: string, archetype: string, visualTone: string, tagline: string, brandValues: string[], logoUrl: string, extractedImages: string[] }.`,
+    contents: `Deep analyze the brand DNA of ${url}. Return JSON: { colors, fontPairing, archetype, visualTone, tagline, brandValues, logoUrl, extractedImages }. NO MARKDOWN.`,
     config: { 
       responseMimeType: 'application/json',
       tools: [{ googleSearch: {} }] 
@@ -324,8 +338,8 @@ export const synthesizeProduct = async (lead: Lead) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Synthesize a premium AI transformation product tailored for ${lead.businessName}. 
-    Return JSON: { productName, tagline, pricePoint, features: string[] }.`,
+    contents: `Synthesize a premium AI transformation product for ${lead.businessName}. 
+    Return JSON: { productName, tagline, pricePoint, features }. NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "{}");
@@ -335,7 +349,7 @@ export const generateFlashSparks = async (lead: Lead) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Generate 6 rapid-fire viral content 'sparks' (hooks/ideas) for ${lead.businessName}. Return JSON array of strings.`,
+    contents: `Generate 6 viral content 'sparks' for ${lead.businessName}. Return JSON array of strings. NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "[]");
@@ -345,34 +359,37 @@ export const generatePitch = async (lead: Lead) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Generate a high-impact 30-second elevator pitch for ${lead.businessName} focusing on AI efficiency.`
+    contents: `Generate a high-impact 30-second elevator pitch for ${lead.businessName}. RETURN ONLY PLAIN TEXT. NO MARKDOWN SYMBOLS.`
   });
   return response.text || "";
 };
 
-// Added missing function for MotionLab.tsx
 export const generateMotionLabConcept = async (lead: Lead) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Generate a high-end cinematic motion storyboard concept for ${lead.businessName} (${lead.niche}). 
-    Analyze their social gap: ${lead.socialGap}.
-    Return a JSON object: { "title": "string", "hook": "string", "scenes": [{ "time": "0:00", "visual": "string", "text": "string" }] }. 
-    Provide exactly 4 scenes representing a 15-second spot.`,
+    contents: `Generate storyboard for ${lead.businessName}. Return JSON: { "title", "hook", "scenes": [{ "time", "visual", "text" }] }. NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "{}");
 };
 
-// Added missing function for DemoSandbox.tsx
 export const simulateSandbox = async (lead: Lead, ltv: number, volume: number) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Run a high-fidelity growth simulation for ${lead.businessName} (${lead.niche}). 
-    Current LTV: $${ltv}. Monthly Lead Volume: ${volume}.
-    Simulate the impact of AI-driven conversion optimization. 
-    Provide a detailed, professional executive report in Markdown format including specific revenue projections and efficiency gains.`
+    contents: `Run a high-fidelity growth simulation for ${lead.businessName}. LTV: $${ltv}. Vol: ${volume}.
+    
+    RETURN JSON IN UI_BLOCKS FORMAT:
+    {
+      "format": "ui_blocks",
+      "title": "GROWTH SIMULATION",
+      "sections": [
+        { "heading": "REVENUE LIFT", "body": [{ "type": "scorecard", "content": [{"label": "Projected", "value": "$1.2M"}] }] }
+      ]
+    }
+    DO NOT USE MARKDOWN.`,
+    config: { responseMimeType: 'application/json' }
   });
   return response.text || "";
 };
@@ -414,7 +431,6 @@ export const generateVisual = async (p: string, l: any, editImage?: string) => {
   return null;
 };
 
-// Updated generateVideoPayload to accept 7 arguments for video extension, fixing VideoPitch.tsx line 130
 export const generateVideoPayload = async (
   prompt: string, 
   id?: string, 
@@ -422,7 +438,7 @@ export const generateVideoPayload = async (
   endImg?: string, 
   config?: VeoConfig,
   referenceImages?: string[],
-  inputVideo?: string // Added 7th argument for video extension
+  inputVideo?: string 
 ) => {
   const ai = await getAI();
   const videoConfig: any = {
@@ -434,18 +450,15 @@ export const generateVideoPayload = async (
   const isMultiRef = referenceImages && referenceImages.length > 0;
   const isExtension = !!inputVideo;
   
-  // Rule: Extensions and multi-ref require veo-3.1-generate-preview
   const model = (isMultiRef || isExtension) ? 'veo-3.1-generate-preview' : (config?.modelStr || 'veo-3.1-fast-generate-preview');
 
   const payload: any = { model, prompt, config: videoConfig };
 
-  // Handle Video Extension
   if (isExtension && inputVideo) {
     payload.video = {
       uri: inputVideo.startsWith('http') ? inputVideo : undefined,
       videoBytes: !inputVideo.startsWith('http') ? (inputVideo.includes(',') ? inputVideo.split(',')[1] : inputVideo) : undefined
     };
-    // Extensions are only supported at 720p
     payload.config.resolution = '720p';
   }
 
@@ -524,7 +537,7 @@ export const fetchLiveIntel = async (lead: any, module: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Execute deep intelligence node for ${lead.websiteUrl}. Analyze market positioning, feature gaps, and monetization architecture. Return exhaustive JSON.`,
+    contents: `Execute deep intelligence node for ${lead.websiteUrl}. Return exhaustive JSON. NO MARKDOWN.`,
     config: { 
       responseMimeType: 'application/json',
       tools: [{ googleSearch: {} }] 
@@ -545,7 +558,7 @@ export const analyzeVisual = async (data: string, mime: string, p: string) => {
     contents: {
       parts: [
         { inlineData: { data, mimeType: mime } },
-        { text: p }
+        { text: p + " RETURN PLAIN TEXT ONLY. NO MARKDOWN." }
       ]
     }
   });
@@ -556,7 +569,7 @@ export const analyzeVideoUrl = async (u: string, p: string, id?: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Analyze video stream at ${u}. Mission: ${p}`,
+    contents: `Analyze video stream at ${u}. Mission: ${p}. RETURN PLAIN TEXT ONLY. NO MARKDOWN.`,
     config: { tools: [{ googleSearch: {} }] }
   });
   return response.text || "";
@@ -566,7 +579,7 @@ export const synthesizeArticle = async (s: string, m: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Synthesize article content: ${s}. Mode: ${m}`
+    contents: `Synthesize article content: ${s}. Mode: ${m}. RETURN PLAIN TEXT ONLY. NO MARKDOWN.`
   });
   return response.text || "";
 };
@@ -585,7 +598,7 @@ export const generateLyrics = async (l: any, p: string, t: string) => {
   const ai = await getAI();
   const res = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Write 15-second catchy lyrics for a jingle for ${l.businessName} based on: ${p}. Type: ${t}`
+    contents: `Write lyrics for ${l.businessName}. Prompt: ${p}. Type: ${t}. RETURN PLAIN TEXT ONLY. NO MARKDOWN.`
   });
   return res.text || "";
 };
@@ -594,7 +607,7 @@ export const generateSonicPrompt = async (l: any) => {
   const ai = await getAI();
   const res = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Generate a specific sonic description for ${l.businessName} brand music based on their profile.`
+    contents: `Generate a sonic description for ${l.businessName}. RETURN PLAIN TEXT ONLY. NO MARKDOWN.`
   });
   return res.text || "Ambient high-end corporate background music.";
 };
@@ -603,7 +616,7 @@ export const generateMockup = async (b: string, n: string, id?: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
-    contents: `High-end 4K brand mockup for ${b} (${n}). Minimalist luxury design showing professional product placement.`
+    contents: `High-end 4K brand mockup for ${b} (${n}).`
   });
   const parts = response.candidates?.[0]?.content?.parts;
   if (parts) {
@@ -622,14 +635,14 @@ export const enhanceVideoPrompt = async (p: string) => {
   const ai = await getAI();
   const res = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Enhance this video prompt for production quality cinema: "${p}"`
+    contents: `Enhance this video prompt: "${p}". RETURN PLAIN TEXT ONLY. NO MARKDOWN.`
   });
   return res.text || p;
 };
 
 export const testModelPerformance = async (m: string, p: string) => {
   const ai = await getAI();
-  const res = await ai.models.generateContent({ model: m, contents: p });
+  const res = await ai.models.generateContent({ model: m, contents: p + " NO MARKDOWN." });
   return res.text || "";
 };
 
@@ -637,7 +650,7 @@ export const generateAgencyIdentity = async (niche: string, region: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Generate a professional agency identity for an AI automation firm in the ${niche} niche in ${region}. Return JSON: name, tagline, manifesto, colors[].`,
+    contents: `Generate agency identity for ${niche} in ${region}. Return JSON: { name, tagline, manifesto, colors[] }. NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "{}");
@@ -647,7 +660,7 @@ export const generateAffiliateProgram = async (niche: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Generate an affiliate partner program for ${niche}. Return JSON: programName, recruitScript, tiers[{name, commission, requirement}].`,
+    contents: `Generate affiliate program for ${niche}. Return JSON: { programName, recruitScript, tiers[] }. NO MARKDOWN.`,
     config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "{}");
@@ -657,7 +670,17 @@ export const critiqueVideoPresence = async (lead: Lead) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Critique the video presence of ${lead.businessName}. Focus on psychological triggers and production gaps.`
+    contents: `Critique the video presence of ${lead.businessName}. 
+    
+    RETURN JSON IN UI_BLOCKS FORMAT:
+    {
+      "format": "ui_blocks",
+      "title": "VIDEO AUDIT",
+      "sections": [
+        { "heading": "OPPORTUNITY", "body": [{ "type": "p", "content": "Text..." }] }
+      ]
+    }
+    NO MARKDOWN.`
   });
   return response.text || "";
 };
@@ -666,7 +689,7 @@ export const translateTactical = async (text: string, lang: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Translate the following tactical outreach copy to ${lang}: "${text}"`
+    contents: `Translate to ${lang}: "${text}". RETURN PLAIN TEXT ONLY.`
   });
   return response.text || text;
 };
@@ -675,11 +698,8 @@ export const fetchViralPulseData = async (niche: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Analyze current viral trends in ${niche}. Return JSON array. Each: label, type (up/down), val (number).`,
-    config: { 
-      responseMimeType: 'application/json',
-      tools: [{ googleSearch: {} }] 
-    }
+    contents: `Analyze trends in ${niche}. Return JSON array: [{ label, type, val }]. NO MARKDOWN.`,
+    config: { responseMimeType: 'application/json' }
   });
   return JSON.parse(response.text || "[]");
 };
@@ -688,7 +708,7 @@ export const queryRealtimeAgent = async (q: string) => {
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: q,
+    contents: q + " NO MARKDOWN.",
     config: { tools: [{ googleSearch: {} }] }
   });
   return { 
@@ -701,7 +721,17 @@ export const generateROIReport = async (ltv: number, vol: number, conv: number) 
   const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `Write a summary report for a business with $${ltv} LTV and ${vol} monthly leads. Explain the financial impact of an additional ${conv}% conversion lift through AI automation.`
+    contents: `Write ROI summary for $${ltv} LTV, ${vol} leads, ${conv}% lift. 
+    
+    RETURN JSON IN UI_BLOCKS FORMAT:
+    {
+      "format": "ui_blocks",
+      "title": "ROI PROJECTION",
+      "sections": [
+        { "heading": "SUMMARY", "body": [{ "type": "p", "content": "Narrative..." }] }
+      ]
+    }
+    NO MARKDOWN.`
   });
   return response.text || "";
 };

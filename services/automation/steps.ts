@@ -264,11 +264,23 @@ export const Steps = {
   },
 
   generateFinalReport: async (lead: Lead, allData: any): Promise<string> => {
-    const ai = getAI();
-    const prompt = `Compile Final Report for ${lead.businessName}. Data: ${JSON.stringify(allData)}. Format as Markdown.`;
+    const ai = await getAI();
+    const prompt = `Compile Final Report for ${lead.businessName}. Data: ${JSON.stringify(allData)}. 
+    
+    RETURN JSON IN UI_BLOCKS FORMAT:
+    {
+      "format": "ui_blocks",
+      "title": "FINAL DOSSIER",
+      "subtitle": "${lead.businessName}",
+      "sections": [
+        { "heading": "OPPORTUNITY", "body": [{ "type": "p", "content": "Narrative..." }] }
+      ]
+    }
+    DO NOT USE MARKDOWN.`;
     return await loggedGenerateContent({
       ai, module: 'REPORT_GEN', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-      contents: prompt
+      contents: prompt,
+      config: { responseMimeType: 'application/json' }
     });
   }
 };
