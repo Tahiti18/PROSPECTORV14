@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { setEconomyMode, isEconomyMode, getUserTier, checkFeatureAccess } from '../../services/computeTracker';
+import { setEconomyMode, isEconomyMode, checkFeatureAccess } from '../../services/computeTracker';
 import { db } from '../../services/automation/db';
 
 export const SettingsNode: React.FC = () => {
@@ -12,19 +12,14 @@ export const SettingsNode: React.FC = () => {
   const [agencyName, setAgencyName] = useState('');
   const [hasAccess, setHasAccess] = useState(false);
 
-  // Manual API Key Override
-  const [manualApiKey, setManualApiKey] = useState('');
-
   useEffect(() => {
     const savedSens = localStorage.getItem('pomelli_os_sensitivity');
     const savedRecon = localStorage.getItem('pomelli_os_auto_recon');
     const savedAgency = localStorage.getItem('pomelli_agency_name');
-    const savedKey = localStorage.getItem('pomelli_api_key');
     
     if (savedSens) setSensitivity(parseInt(savedSens));
     if (savedRecon) setAutoRecon(savedRecon === 'true');
     if (savedAgency) setAgencyName(savedAgency);
-    if (savedKey) setManualApiKey(savedKey);
     
     setHasAccess(checkFeatureAccess('WHITE_LABEL'));
   }, []);
@@ -34,16 +29,19 @@ export const SettingsNode: React.FC = () => {
     setEconomyMode(val);
   };
 
+  const handleSelectKey = async () => {
+    try {
+      // @ts-ignore
+      await window.aistudio.openSelectKey();
+    } catch (e) {
+      console.error("Key selection failed", e);
+    }
+  };
+
   const handleSave = () => {
     localStorage.setItem('pomelli_os_sensitivity', sensitivity.toString());
     localStorage.setItem('pomelli_os_auto_recon', autoRecon.toString());
     
-    if (manualApiKey) {
-        localStorage.setItem('pomelli_api_key', manualApiKey.trim());
-    } else {
-        localStorage.removeItem('pomelli_api_key');
-    }
-
     if (hasAccess) {
         localStorage.setItem('pomelli_agency_name', agencyName);
     }
@@ -67,6 +65,34 @@ export const SettingsNode: React.FC = () => {
       <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] p-16 shadow-2xl space-y-12">
          <div className="grid grid-cols-1 gap-12">
             
+            {/* API KEY SELECTION PANEL */}
+            <div className="bg-indigo-900/10 border border-indigo-500/30 p-8 rounded-3xl">
+                <div className="flex justify-between items-center mb-6">
+                    <h4 className="text-[14px] font-black text-white uppercase tracking-widest flex items-center gap-3">
+                        AI STUDIO KEY SELECTION
+                    </h4>
+                    <span className="text-2xl">🔑</span>
+                </div>
+                <div className="space-y-6">
+                    <p className="text-[10px] text-slate-400 font-medium max-w-lg leading-relaxed">
+                        To use advanced features (Gemini 3 Pro, Veo Video) in production, you must select a valid Gemini API key from a paid GCP project. 
+                        Refer to the <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="text-indigo-400 hover:underline">Billing Documentation</a> for more details.
+                    </p>
+                    <button 
+                        onClick={handleSelectKey}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-2"
+                    >
+                        <span>🛡️</span> SELECT SECURE API KEY
+                    </button>
+                    <div className="flex items-center gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full ${process.env.API_KEY ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">
+                            CURRENT_ENV_KEY_STATUS: {process.env.API_KEY ? 'LOADED' : 'NOT_DETECTED'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
             {/* COST AUDIT PANEL */}
             <div className="bg-[#05091a] border border-slate-800 p-8 rounded-3xl space-y-6 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-600/5 blur-[40px] rounded-full"></div>
@@ -86,7 +112,7 @@ export const SettingsNode: React.FC = () => {
                         <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">IMAGE ENGINE</span>
                         <div className="flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            <span className="text-[10px] font-black text-white">NANO BANANA (2.5 FLASH)</span>
+                            <span className="text-[10px] font-black text-white">2.5 FLASH IMAGE</span>
                         </div>
                         <p className="text-[8px] text-slate-600 font-mono">$0.004 / IMAGE</p>
                     </div>
@@ -98,30 +124,6 @@ export const SettingsNode: React.FC = () => {
                         </div>
                         <p className="text-[8px] text-slate-600 font-mono">ECONOMY TIER ACTIVE</p>
                     </div>
-                </div>
-            </div>
-
-            {/* MANUAL API KEY OVERRIDE */}
-            <div className="bg-indigo-900/10 border border-indigo-500/30 p-8 rounded-3xl">
-                <div className="flex justify-between items-center mb-6">
-                    <h4 className="text-[14px] font-black text-white uppercase tracking-widest flex items-center gap-3">
-                        API KEY OVERRIDE
-                    </h4>
-                    <span className="text-2xl">🔑</span>
-                </div>
-                <div className="space-y-4">
-                    <p className="text-[10px] text-slate-400 font-medium max-w-lg leading-relaxed">
-                        Use this to test a different Google Gemini API Key directly in the browser. 
-                        Useful if the environment variable in Railway is missing or incorrect. 
-                        <strong>Leave empty to use the system default (Environment Variable).</strong>
-                    </p>
-                    <input 
-                        value={manualApiKey}
-                        onChange={(e) => setManualApiKey(e.target.value)}
-                        placeholder="Paste AIza... key here"
-                        type="password"
-                        className="w-full bg-[#020617] border border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-indigo-500 placeholder-slate-700"
-                    />
                 </div>
             </div>
 
@@ -178,14 +180,14 @@ export const SettingsNode: React.FC = () => {
                         value={agencyName}
                         onChange={(e) => setAgencyName(e.target.value)}
                         placeholder="ENTER YOUR AGENCY NAME"
-                        className="w-full bg-[#020617] border border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-indigo-500 disabled:cursor-not-allowed"
+                        className="w-full bg-[#020617] border border-slate-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 disabled:cursor-not-allowed"
                     />
                 </div>
             </div>
 
             <div className="space-y-6">
                <div className="flex justify-between items-center">
-                  <label className="text-[11px] font-black text-slate-100 uppercase tracking-widest">Neural Scan Sensitivity</label>
+                  <label className="text-11px font-black text-slate-100 uppercase tracking-widest">Neural Scan Sensitivity</label>
                   <span className="text-sm font-black italic text-emerald-400 tracking-tighter">{sensitivity}%</span>
                </div>
                <input 

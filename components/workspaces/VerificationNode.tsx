@@ -42,11 +42,31 @@ export const VerificationNode: React.FC = () => {
     }
   };
 
+  const handleSelectKey = async () => {
+    try {
+      // @ts-ignore
+      await window.aistudio.openSelectKey();
+      addLog("SUCCESS: AI Studio API Key Selection Initialized.");
+    } catch (e) {
+      addLog("ERROR: API Key Selection Failed.");
+    }
+  };
+
   const runTest = async (mode: 'full' | 'lite') => {
     setRunLogs([]);
     addLog(`INITIATING ${mode.toUpperCase()} TEST RUN...`);
     addLog(`ENVIRONMENT: ${window.location.hostname}`);
-    addLog(`API_KEY_PRESENT: ${!!process.env.API_KEY}`);
+    
+    // Check key presence
+    const hasKey = !!process.env.API_KEY && process.env.API_KEY !== "undefined";
+    addLog(`API_KEY_PRESENT: ${hasKey}`);
+
+    if (!hasKey) {
+        addLog("CRITICAL: API_KEY is missing from environment.");
+        addLog("ACTION: Prompting user for AI Studio Key selection...");
+        await handleSelectKey();
+        addLog("NOTICE: Proceeding with run assuming key selection successful.");
+    }
     
     try {
       // 1. Save Test Lead to DB to make it selectable
@@ -120,15 +140,15 @@ export const VerificationNode: React.FC = () => {
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-4">1. CONFIGURE TEST SCENARIO</h3>
               
               <div className="grid grid-cols-1 gap-3">
-                 <button onClick={() => generateScenario('REGULATED')} className="w-full py-4 rounded-2xl bg-slate-900 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-amber-500/50 transition-all text-left px-6 flex justify-between items-center">
+                 <button onClick={() => generateScenario('REGULATED')} className="w-full py-4 rounded-2xl bg-slate-900 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-emerald-500/50 transition-all text-left px-6 flex justify-between items-center">
                    <span>REGULATED COMPLIANCE (DENTAL/LEGAL)</span>
-                   <span className="text-amber-500">⚖️</span>
+                   <span className="text-emerald-500">⚖️</span>
                  </button>
-                 <button onClick={() => generateScenario('LOW_EVIDENCE')} className="w-full py-4 rounded-2xl bg-slate-900 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-rose-500/50 transition-all text-left px-6 flex justify-between items-center">
+                 <button onClick={() => generateScenario('LOW_EVIDENCE')} className="w-full py-4 rounded-2xl bg-slate-900 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-emerald-500/50 transition-all text-left px-6 flex justify-between items-center">
                    <span>LOW EVIDENCE (NO WEBSITE/MAPS)</span>
                    <span className="text-rose-500">📉</span>
                  </button>
-                 <button onClick={() => generateScenario('STRICT_IDENTITY')} className="w-full py-4 rounded-2xl bg-slate-900 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-indigo-500/50 transition-all text-left px-6 flex justify-between items-center">
+                 <button onClick={() => generateScenario('STRICT_IDENTITY')} className="w-full py-4 rounded-2xl bg-slate-900 border border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-300 hover:border-emerald-500/50 transition-all text-left px-6 flex justify-between items-center">
                    <span>IDENTITY UNCERTAINTY</span>
                    <span className="text-indigo-500">👻</span>
                  </button>
@@ -181,7 +201,7 @@ export const VerificationNode: React.FC = () => {
               <div className="flex-1 p-8 font-mono text-[11px] overflow-y-auto custom-scrollbar space-y-2">
                  {runLogs.length === 0 && <div className="text-slate-800 italic uppercase tracking-[0.5em] text-center py-20">SYSTEM IDLE. AWAITING TEST INITIATION.</div>}
                  {runLogs.map((log, i) => (
-                   <div key={i} className={`flex gap-4 ${log.includes('ERROR') || log.includes('FAILURE') ? 'text-rose-500' : log.includes('SKIPPED') ? 'text-amber-500/70' : log.includes('SUCCESS') ? 'text-emerald-500' : 'text-slate-400'}`}>
+                   <div key={i} className={`flex gap-4 ${log.includes('ERROR') || log.includes('FAILURE') || log.includes('CRITICAL') ? 'text-rose-500' : log.includes('SKIPPED') ? 'text-amber-500/70' : log.includes('SUCCESS') ? 'text-emerald-500' : 'text-slate-400'}`}>
                       <span className="shrink-0 opacity-30 select-none">{runLogs.length - i}</span>
                       <span className="whitespace-pre-wrap">{log}</span>
                    </div>

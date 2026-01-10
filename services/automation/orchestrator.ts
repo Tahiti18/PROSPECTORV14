@@ -237,6 +237,7 @@ export class AutomationOrchestrator {
               break;
 
             case 'GenerateVideoScripts':
+              // Fix: Corrected property name from 'videoScripts' to 'generateVideoScripts' and fixed assignment to context.videoScripts
               result = await Steps.generateVideoScripts(context.strategy, runCtx);
               context.videoScripts = result.data;
               this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
@@ -304,16 +305,18 @@ export class AutomationOrchestrator {
           step.completedAt = Date.now();
         } catch (e: any) {
           step.status = 'failed';
+          let finalErr = e.message || e.error || "Unknown operational failure.";
+          
           if (e.missingFields) {
-            step.error = `${e.message}: [${e.missingFields.join(', ')}]`;
+            finalErr = `${e.message}: [${e.missingFields.join(', ')}]`;
           } else if (e.rawOutput) {
             this.addArtifact(run, step, 'text', e.rawOutput, `${step.name}_FAILURE_RAW`);
-            step.error = `Missing keys: ${e.missingKeys?.join(', ')}`;
-          } else {
-            step.error = e.message || "Unknown operational failure.";
+            finalErr = e.message || `Missing keys: ${e.missingKeys?.join(', ')}`;
           }
+          
+          step.error = finalErr;
           run.status = 'failed';
-          run.errorSummary = `Step '${step.name}' failed: ${step.error}`;
+          run.errorSummary = `Step '${step.name}' failed: ${finalErr}`;
           db.saveRun(run);
           return;
         }

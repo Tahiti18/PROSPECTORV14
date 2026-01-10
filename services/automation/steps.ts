@@ -43,9 +43,14 @@ async function guardedGenerate<T>(
   reasoning: 'LOW' | 'MEDIUM' | 'HIGH' = 'MEDIUM',
   tools: any[] = []
 ): Promise<{ data: T; raw: string }> {
-  const ai = getAI();
-  let lastRaw = "";
+  let ai;
+  try {
+    ai = getAI();
+  } catch (e: any) {
+    throw { stepId: module, message: e.message, error: e.message };
+  }
 
+  let lastRaw = "";
   const finalPrompt = `${getSafetyInstruction(ctx)}\n\n${prompt}`;
 
   // ATTEMPT 1: Normal execution
@@ -106,7 +111,7 @@ async function guardedGenerate<T>(
       if (validation.ok) {
         return { data: finalParsed.value!, raw: lastRaw };
       } else {
-        throw { stepId: module, missingKeys: validation.missing, rawOutput: lastRaw, error: 'Validation failed after repair' };
+        throw { stepId: module, message: 'Schema validation failed after repair', missingKeys: validation.missing, rawOutput: lastRaw, error: 'Validation failed' };
       }
     }
   } catch (e: any) {
@@ -118,9 +123,10 @@ async function guardedGenerate<T>(
   const finalCheck = safeJsonParse<T>(lastRaw);
   throw {
     stepId: module,
+    message: `Exhausted all recovery attempts. Last output: ${lastRaw.slice(0, 100)}...`,
     missingKeys: finalCheck.ok ? validateKeys(finalCheck.value, requiredKeys).missing : ['MALFORMED_JSON_STRUCTURE'],
     rawOutput: lastRaw,
-    error: 'Exhausted all recovery attempts'
+    error: 'Exhausted recovery'
   };
 }
 

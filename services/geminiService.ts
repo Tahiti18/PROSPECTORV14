@@ -1,14 +1,9 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Lead, BrandIdentity } from '../types';
 import { logAiOperation, uuidLike } from './usageLogger';
 import { getModuleWeight } from './creditWeights';
 import { deductCost } from './computeTracker';
 import { toast } from './toastManager';
-
-// STRICT HARDCODED KEY FOR VEO OPERATIONS (KIE PROXY) - Legacy/Fallback
-const KIE_KEY = '302d700cb3e9e3dcc2ad9d94d5059279';
-const KIE_ENDPOINT = 'https://api.kie.ai/api/v1/veo/generate';
 
 // --- TYPES ---
 export interface AudioMetadata {
@@ -119,13 +114,13 @@ export const importVault = (assets: AssetRecord[]): number => {
 };
 
 export const getAI = () => {
-  // In production, ensure process.env.API_KEY is available
-  // For smoke tests/demos, we might fallback or error out.
-  if (!process.env.API_KEY) {
-    console.warn("API Key missing.");
-    // Return dummy or throw based on app resilience needs
+  const key = process.env.API_KEY;
+  if (!key || key === "undefined" || key === "") {
+    const error = new Error("API_KEY_MISSING: No Gemini API Key detected in environment. Please configure Railway environment variables or select a key in Settings.");
+    (error as any).code = 'MISSING_KEY';
+    throw error;
   }
-  return new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  return new GoogleGenAI({ apiKey: key });
 };
 
 interface GenerateOptions {
@@ -175,6 +170,11 @@ export const loggedGenerateContent = async (opts: GenerateOptions): Promise<stri
 
     return text;
   } catch (e: any) {
+    let errMsg = e.message || "Unknown API Error";
+    if (errMsg.includes("Requested entity was not found")) {
+      errMsg = "API_KEY_INVALID: The provided API key was not found or is inactive.";
+    }
+
     logAiOperation({
         logId: uuidLike(),
         timestamp: new Date().toISOString(),
@@ -189,9 +189,12 @@ export const loggedGenerateContent = async (opts: GenerateOptions): Promise<stri
         effectiveWeight: getModuleWeight(opts.module),
         latencyMs: Date.now() - start,
         status: 'FAILURE',
-        errorMessage: e.message
+        errorMessage: errMsg
     });
-    throw e;
+    
+    const enhancedError = new Error(errMsg);
+    (enhancedError as any).raw = e;
+    throw enhancedError;
   }
 };
 
@@ -199,19 +202,20 @@ export const loggedGenerateContent = async (opts: GenerateOptions): Promise<stri
 
 export const generateLeads = async (region: string, niche: string, count: number) => {
   pushLog(`SCANNING: ${region} for ${niche}`);
-  const ai = getAI();
-  const prompt = `Generate ${count} realistic B2B leads for "${niche}" in "${region}".
-  Return a JSON array. Each lead must have: businessName, websiteUrl, city, niche, leadScore (0-100), assetGrade (A/B/C), socialGap (short text), visualProof (short text), bestAngle (short text), personalizedHook (short text).`;
-  
   try {
+      const ai = getAI();
+      const prompt = `Generate ${count} realistic B2B leads for "${niche}" in "${region}".
+      Return a JSON array. Each lead must have: businessName, websiteUrl, city, niche, leadScore (0-100), assetGrade (A/B/C), socialGap (short text), visualProof (short text), bestAngle (short text), personalizedHook (short text).`;
+      
       const json = await loggedGenerateContent({
           ai, module: 'RADAR_RECON', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: false,
           contents: prompt,
           config: { responseMimeType: 'application/json' }
       });
       return { leads: JSON.parse(json), groundingSources: [] };
-  } catch (e) {
+  } catch (e: any) {
       console.error(e);
+      toast.error(e.message || "Discovery Failed");
       return { leads: [], groundingSources: [] };
   }
 };
@@ -226,10 +230,10 @@ export const generateVideoPayload = async (
   videoInput?: string // for extension
 ): Promise<string | null> => {
   pushLog(`VEO: GENERATING VIDEO FOR ${leadId || 'SANDBOX'}`);
-  const ai = getAI();
-  const model = config?.modelStr || 'veo-3.1-fast-generate-preview';
-
+  
   try {
+    const ai = getAI();
+    const model = config?.modelStr || 'veo-3.1-fast-generate-preview';
     const payload: any = {
       model,
       prompt,
@@ -254,21 +258,45 @@ export const generateVideoPayload = async (
         };
     }
 
-    const operation = await ai.models.generateVideos(payload);
-    return null; // Mock return as polling logic is omitted for brevity
+    let operation = await ai.models.generateVideos(payload);
+    while (!operation.done) {
+      await new Promise(resolve => setTimeout(resolve, 8000));
+      operation = await (ai as any).operations.getVideosOperation({operation: operation});
+    }
 
-  } catch (e) {
+    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+    if (downloadLink) {
+        const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        return new Promise((resolve) => {
+            reader.onloadend = () => {
+                const b64 = reader.result as string;
+                saveAsset('VIDEO', `VEO: ${prompt.slice(0, 20)}`, b64, 'VIDEO_PITCH', leadId);
+                resolve(b64);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+    return null;
+
+  } catch (e: any) {
     console.error(e);
+    toast.error(e.message || "Video Generation Failed");
     return null;
   }
 };
 
 export const enhanceVideoPrompt = async (prompt: string): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-    ai, module: 'PROMPT_AI', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-    contents: `Enhance this video prompt for Veo 3.1 (Cinematic, detailed): ${prompt}`
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+      ai, module: 'PROMPT_AI', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+      contents: `Enhance this video prompt for Veo 3.1 (Cinematic, detailed): ${prompt}`
+    });
+  } catch (e) {
+    return prompt;
+  }
 };
 
 export const generateMockup = async (brand: string, niche: string, leadId: string): Promise<string | null> => {
@@ -277,9 +305,9 @@ export const generateMockup = async (brand: string, niche: string, leadId: strin
 
 export const generateVisual = async (prompt: string, lead: Partial<Lead>, baseImage?: string): Promise<string | null> => {
   pushLog(`VISUAL: ${prompt.slice(0, 30)}...`);
-  const ai = getAI();
   
   try {
+    const ai = getAI();
     const response = await ai.models.generateImages({
         model: 'imagen-3.0-generate-001',
         prompt,
@@ -292,15 +320,16 @@ export const generateVisual = async (prompt: string, lead: Partial<Lead>, baseIm
         return url;
     }
     return null;
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
+    toast.error(e.message || "Image Generation Failed");
     return null;
   }
 };
 
 export const generateAudioPitch = async (script: string, voiceName: string, leadId?: string): Promise<string | null> => {
-  const ai = getAI();
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
       contents: { parts: [{ text: script }] },
@@ -316,223 +345,266 @@ export const generateAudioPitch = async (script: string, voiceName: string, lead
        return url;
     }
     return null;
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
+    toast.error(e.message || "Speech Synthesis Failed");
     return null;
   }
 };
 
 export const generateSonicPrompt = async (lead: Lead): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-      ai, module: 'SONIC_STUDIO', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-      contents: `You are a Sonic Branding Expert. Create a detailed audio generation prompt (for Suno/MusicGen) for a client named "${lead.businessName}".
-      
-      Context:
-      - Industry: ${lead.niche}
-      - Location: ${lead.city}
-      - Vibe: Professional, High-Ticket, Trustworthy
-      
-      Task: Write a concise, comma-separated prompt describing the music. Include genre, specific instruments, tempo, and mood. 
-      Example output: "Upbeat corporate tech, marimba, deep bass, futuristic synthesizer, 120bpm, optimistic"
-      
-      Output ONLY the prompt string.`
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+        ai, module: 'SONIC_STUDIO', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+        contents: `You are a Sonic Branding Expert. Create a detailed audio generation prompt (for Suno/MusicGen) for a client named "${lead.businessName}".
+        
+        Context:
+        - Industry: ${lead.niche}
+        - Location: ${lead.city}
+        - Vibe: Professional, High-Ticket, Trustworthy
+        
+        Task: Write a concise, comma-separated prompt describing the music. Include genre, specific instruments, tempo, and mood. 
+        Example output: "Upbeat corporate tech, marimba, deep bass, futuristic synthesizer, 120bpm, optimistic"
+        
+        Output ONLY the prompt string.`
+    });
+  } catch (e) { return "Corporate high-tech, professional ambiance."; }
 };
 
 export const generateFlashSparks = async (lead: Lead): Promise<string[]> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'FLASH_SPARK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-      contents: `Generate 6 viral social media hooks for ${lead.businessName}. Return JSON array of strings.`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'FLASH_SPARK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+        contents: `Generate 6 viral social media hooks for ${lead.businessName}. Return JSON array of strings.`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return []; }
 };
 
 export const generateOutreachSequence = async (lead: Lead): Promise<any> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'SEQUENCER', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
-      contents: `Create a 5-step outreach sequence for ${lead.businessName}. JSON: [{day: 1, channel: 'Email', purpose: 'Intro', content: '...'}, ...]`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'SEQUENCER', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+        contents: `Create a 5-step outreach sequence for ${lead.businessName}. JSON: [{day: 1, channel: 'Email', purpose: 'Intro', content: '...'}, ...]`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return []; }
 };
 
 export const generatePitch = async (lead: Lead): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-      ai, module: 'PITCH_GEN', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-      contents: `Write a 30s elevator pitch for ${lead.businessName}.`
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+        ai, module: 'PITCH_GEN', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+        contents: `Write a 30s elevator pitch for ${lead.businessName}.`
+    });
+  } catch (e) { return "Elevator pitch unavailable."; }
 };
 
 export const architectFunnel = async (lead: Lead): Promise<any[]> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'FUNNEL_MAP', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
-      contents: `Design a sales funnel for ${lead.businessName}. JSON: [{stage: 'Top', title: '...', description: '...', conversionGoal: '...'}, ...]`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'FUNNEL_MAP', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
+        contents: `Design a sales funnel for ${lead.businessName}. JSON: [{stage: 'Top', title: '...', description: '...', conversionGoal: '...'}, ...]`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return []; }
 };
 
 export const generateROIReport = async (ltv: number, vol: number, lift: number): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-      ai, module: 'ROI_CALC', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
-      contents: `Write an ROI Executive Summary. LTV: $${ltv}, Volume: ${vol}/mo, Projected Lift: ${lift}%. Focus on revenue impact.`
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+        ai, module: 'ROI_CALC', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+        contents: `Write an ROI Executive Summary. LTV: $${ltv}, Volume: ${vol}/mo, Projected Lift: ${lift}%. Focus on revenue impact.`
+    });
+  } catch (e) { return "ROI Summary failed to generate."; }
 };
 
 export const generateProposalDraft = async (lead: Lead): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-      ai, module: 'PROPOSALS', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
-      contents: `Draft a high-ticket proposal for ${lead.businessName}. Include Executive Summary, Scope, and Investment.`
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+        ai, module: 'PROPOSALS', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
+        contents: `Draft a high-ticket proposal for ${lead.businessName}. Include Executive Summary, Scope, and Investment.`
+    });
+  } catch (e) { return "Proposal draft failed."; }
 };
 
 export const architectPitchDeck = async (lead: Lead): Promise<any[]> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'DECK_ARCH', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
-      contents: `Outline a 10-slide pitch deck for ${lead.businessName}. JSON: [{title: '...', narrativeGoal: '...', keyVisuals: '...'}, ...]`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'DECK_ARCH', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
+        contents: `Outline a 10-slide pitch deck for ${lead.businessName}. JSON: [{title: '...', narrativeGoal: '...', keyVisuals: '...'}, ...]`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return []; }
 };
 
 export const generateTaskMatrix = async (lead: Lead): Promise<any[]> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'TASKS', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-      contents: `Create a checklist of 10 tasks to close ${lead.businessName}. JSON: [{id: '1', task: '...', status: 'pending'}, ...]`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'TASKS', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+        contents: `Create a checklist of 10 tasks to close ${lead.businessName}. JSON: [{id: '1', task: '...', status: 'pending'}, ...]`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return []; }
 };
 
 export const generateNurtureDialogue = async (lead: Lead, scenario: string): Promise<any[]> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'AI_CONCIERGE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
-      contents: `Simulate a chat between a lead (${lead.businessName}) and an AI Concierge. Scenario: ${scenario}. JSON: [{role: 'user'|'ai', text: '...'}, ...]`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'AI_CONCIERGE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+        contents: `Simulate a chat between a lead (${lead.businessName}) and an AI Concierge. Scenario: ${scenario}. JSON: [{role: 'user'|'ai', text: '...'}, ...]`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return []; }
 };
 
 export const fetchViralPulseData = async (niche: string): Promise<any[]> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'VIRAL_PULSE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-      contents: `List 4 trending topics in ${niche}. JSON: [{label: '...', val: 100, type: 'up'}, ...]`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'VIRAL_PULSE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+        contents: `List 4 trending topics in ${niche}. JSON: [{label: '...', val: 100, type: 'up'}, ...]`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return []; }
 };
 
 export const queryRealtimeAgent = async (query: string): Promise<{text: string; sources: any[]}> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: query,
-      config: { tools: [{ googleSearch: {} }] }
-  });
-  return { 
-      text: response.text || "", 
-      sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
-  };
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: query,
+        config: { tools: [{ googleSearch: {} }] }
+    });
+    return { 
+        text: response.text || "", 
+        sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
+    };
+  } catch (e: any) {
+      return { text: `Error: ${e.message}`, sources: [] };
+  }
 };
 
 export const analyzeVisual = async (base64: string, mimeType: string, prompt: string): Promise<string> => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: [
-          { inlineData: { mimeType, data: base64 } },
-          { text: prompt }
-      ]
-  });
-  return response.text || "";
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-image",
+        contents: [
+            { inlineData: { mimeType, data: base64 } },
+            { text: prompt }
+        ]
+    });
+    return response.text || "";
+  } catch (e: any) { return `Vision Analysis Error: ${e.message}`; }
 };
 
 export const analyzeVideoUrl = async (url: string, prompt: string, leadId?: string): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-      ai, module: 'CINEMA_INTEL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
-      contents: `Analyze this video URL: ${url}. ${prompt}`,
-      config: { tools: [{ googleSearch: {} }] }
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+        ai, module: 'CINEMA_INTEL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+        contents: `Analyze this video URL: ${url}. ${prompt}`,
+        config: { tools: [{ googleSearch: {} }] }
+    });
+  } catch (e: any) { return `Video Analysis Error: ${e.message}`; }
 };
 
 export const synthesizeArticle = async (source: string, mode: string): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-      ai, module: 'ARTICLE_INTEL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-      contents: `Synthesize this content (${source}) in mode: ${mode}.`,
-      config: { tools: [{ googleSearch: {} }] }
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+        ai, module: 'ARTICLE_INTEL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+        contents: `Synthesize this content (${source}) in mode: ${mode}.`,
+        config: { tools: [{ googleSearch: {} }] }
+    });
+  } catch (e: any) { return `Article Synthesis Error: ${e.message}`; }
 };
 
 export const synthesizeProduct = async (lead: Lead): Promise<any> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'PRODUCT_SYNTH', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
-      contents: `Design a high-ticket AI product for ${lead.businessName}. JSON: {productName, tagline, pricePoint, features: []}`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'PRODUCT_SYNTH', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
+        contents: `Design a high-ticket AI product for ${lead.businessName}. JSON: {productName, tagline, pricePoint, features: []}`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return {}; }
 };
 
 export const generateAgencyIdentity = async (niche: string, region: string): Promise<any> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'IDENTITY', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
-      contents: `Generate agency identity for ${niche} in ${region}. JSON: {name, tagline, manifesto, colors: []}`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'IDENTITY', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+        contents: `Generate agency identity for ${niche} in ${region}. JSON: {name, tagline, manifesto, colors: []}`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return {}; }
 };
 
 export const generateAffiliateProgram = async (niche: string): Promise<any> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'AFFILIATE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
-      contents: `Design affiliate program for ${niche}. JSON: {programName, recruitScript, tiers: [{name, requirement, commission}]}`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'AFFILIATE', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+        contents: `Design affiliate program for ${niche}. JSON: {programName, recruitScript, tiers: [{name, requirement, commission}]}`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return {}; }
 };
 
 export const performFactCheck = async (lead: Lead, claim: string): Promise<any> => {
-  const ai = getAI();
-  const res = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Verify claim for ${lead.businessName}: "${claim}"`,
-      config: { tools: [{ googleSearch: {} }] }
-  });
-  return { 
-      status: 'Verified', 
-      evidence: res.text, 
-      sources: res.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
-  };
+  try {
+    const ai = getAI();
+    const res = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `Verify claim for ${lead.businessName}: "${claim}"`,
+        config: { tools: [{ googleSearch: {} }] }
+    });
+    return { 
+        status: 'Verified', 
+        evidence: res.text, 
+        sources: res.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
+    };
+  } catch (e: any) { return { status: 'Error', evidence: e.message, sources: [] }; }
 };
 
 export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> => {
-  const ai = getAI();
-  const prompt = `Analyze ${lead.websiteUrl} for ${lead.businessName}. 
-  Return JSON: { entityName, missionSummary, visualStack: [{label, description}], sonicStack: [{label, description}], featureGap, businessModel, designSystem, deepArchitecture }`;
-  
-  const res = await loggedGenerateContent({
-      ai, module: 'BENCHMARK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
-      contents: prompt,
-      config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
-  });
-  const data = JSON.parse(res);
-  return { ...data, sources: [] }; // Sources added from metadata if available
+  try {
+    const ai = getAI();
+    const prompt = `Analyze ${lead.websiteUrl} for ${lead.businessName}. 
+    Return JSON: { entityName, missionSummary, visualStack: [{label, description}], sonicStack: [{label, description}], featureGap, businessModel, designSystem, deepArchitecture }`;
+    
+    const res = await loggedGenerateContent({
+        ai, module: 'BENCHMARK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
+        contents: prompt,
+        config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
+    });
+    const data = JSON.parse(res);
+    return { ...data, sources: [] }; // Sources added from metadata if available
+  } catch (e) { throw e; }
 };
 
 export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
@@ -544,49 +616,59 @@ export const fetchTokenStats = async (): Promise<any> => {
 };
 
 export const simulateSandbox = async (lead: Lead, ltv: number, vol: number): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-      ai, module: 'DEMO_SANDBOX', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
-      contents: `Simulate growth for ${lead.businessName} with LTV $${ltv} and ${vol} leads/mo. Detailed text report.`
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+        ai, module: 'DEMO_SANDBOX', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
+        contents: `Simulate growth for ${lead.businessName} with LTV $${ltv} and ${vol} leads/mo. Detailed text report.`
+    });
+  } catch (e: any) { return `Simulation Error: ${e.message}`; }
 };
 
 export const generateMotionLabConcept = async (lead: Lead): Promise<any> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'MOTION_LAB', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
-      contents: `Create motion graphics storyboard for ${lead.businessName}. JSON: {title, hook, scenes: [{time, visual, text}]}`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'MOTION_LAB', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+        contents: `Create motion graphics storyboard for ${lead.businessName}. JSON: {title, hook, scenes: [{time, visual, text}]}`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return {}; }
 };
 
 export const extractBrandDNA = async (lead: Lead, url: string): Promise<BrandIdentity> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'BRAND_DNA', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
-      contents: `Extract Brand DNA from ${url}. JSON: {colors: [], fontPairing, archetype, visualTone, tagline, brandValues: [], aestheticTags: [], voiceTags: [], mission}`,
-      config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
-  });
-  const data = JSON.parse(res);
-  data.extractedImages = [`https://logo.clearbit.com/${new URL(url).hostname}`];
-  return data;
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'BRAND_DNA', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+        contents: `Extract Brand DNA from ${url}. JSON: {colors: [], fontPairing, archetype, visualTone, tagline, brandValues: [], aestheticTags: [], voiceTags: [], mission}`,
+        config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
+    });
+    const data = JSON.parse(res);
+    data.extractedImages = [`https://logo.clearbit.com/${new URL(url).hostname}`];
+    return data;
+  } catch (e) { throw e; }
 };
 
 export const critiqueVideoPresence = async (lead: Lead): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-      ai, module: 'VIDEO_AI', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
-      contents: `Audit video presence for ${lead.businessName}.`
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+        ai, module: 'VIDEO_AI', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+        contents: `Audit video presence for ${lead.businessName}.`
+    });
+  } catch (e: any) { return `Audit Error: ${e.message}`; }
 };
 
 export const translateTactical = async (text: string, lang: string): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-      ai, module: 'TRANSLATOR', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-      contents: `Translate to ${lang}: ${text}`
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+        ai, module: 'TRANSLATOR', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+        contents: `Translate to ${lang}: ${text}`
+    });
+  } catch (e: any) { return `Translation Error: ${e.message}`; }
 };
 
 export const crawlTheaterSignals = async (sector: string, signal: string): Promise<Lead[]> => {
@@ -594,67 +676,79 @@ export const crawlTheaterSignals = async (sector: string, signal: string): Promi
 };
 
 export const identifySubRegions = async (theater: string): Promise<string[]> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'AUTO_CRAWL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: false,
-      contents: `List 5 key business districts/sub-regions in ${theater}. JSON array of strings.`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'AUTO_CRAWL', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: false,
+        contents: `List 5 key business districts/sub-regions in ${theater}. JSON array of strings.`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return []; }
 };
 
 export const analyzeLedger = async (leads: Lead[]): Promise<{ risk: string; opportunity: string }> => {
-  const ai = getAI();
-  const summary = leads.map(l => `${l.businessName}: ${l.leadScore}`).join(', ');
-  const res = await loggedGenerateContent({
-      ai, module: 'ANALYTICS_HUB', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
-      contents: `Analyze this lead ledger: ${summary}. Return JSON: {risk, opportunity}`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const summary = leads.map(l => `${l.businessName}: ${l.leadScore}`).join(', ');
+    const res = await loggedGenerateContent({
+        ai, module: 'ANALYTICS_HUB', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'MEDIUM', isClientFacing: true,
+        contents: `Analyze this lead ledger: ${summary}. Return JSON: {risk, opportunity}`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return { risk: "Analysis Failed", opportunity: "Analysis Failed" }; }
 };
 
 export const testModelPerformance = async (model: string, prompt: string): Promise<string> => {
-  const ai = getAI();
-  const start = Date.now();
-  const res = await ai.models.generateContent({ model, contents: prompt });
-  const latency = Date.now() - start;
-  return `Latency: ${latency}ms\nResponse: ${res.text}`;
+  try {
+    const ai = getAI();
+    const start = Date.now();
+    const res = await ai.models.generateContent({ model, contents: prompt });
+    const latency = Date.now() - start;
+    return `Latency: ${latency}ms\nResponse: ${res.text}`;
+  } catch (e: any) { return `Test Error: ${e.message}`; }
 };
 
 export const generatePlaybookStrategy = async (niche: string): Promise<any> => {
-  const ai = getAI();
-  const res = await loggedGenerateContent({
-      ai, module: 'PLAYBOOK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
-      contents: `Generate playbook strategy for ${niche}. JSON: {strategyName, steps: [{title, tactic}]}`,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const res = await loggedGenerateContent({
+        ai, module: 'PLAYBOOK', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
+        contents: `Generate playbook strategy for ${niche}. JSON: {strategyName, steps: [{title, tactic}]}`,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { return {}; }
 };
 
 export const generateLyrics = async (lead: Lead, style: string, type: 'JINGLE' | 'FULL_SONG' | 'RAP'): Promise<string> => {
-  const ai = getAI();
-  return await loggedGenerateContent({
-    ai, module: 'SONIC_STUDIO', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-    contents: `Write lyrics for ${lead.businessName} (${type}, ${style}).`
-  });
+  try {
+    const ai = getAI();
+    return await loggedGenerateContent({
+      ai, module: 'SONIC_STUDIO', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+      contents: `Write lyrics for ${lead.businessName} (${type}, ${style}).`
+    });
+  } catch (e: any) { return `Lyrics Error: ${e.message}`; }
 };
 
 export const orchestrateBusinessPackage = async (lead: Lead, existingAssets: AssetRecord[]): Promise<any> => {
-  const ai = getAI();
-  const assetsSummary = existingAssets.map(a => a.type).join(', ');
-  const prompt = `Orchestrate a full business package for ${lead.businessName}. Assets available: ${assetsSummary}.
-  Return JSON with: 
-  - narrative: executive summary
-  - presentation: {title, slides: [{title, bullets: [], visualRef}]}
-  - outreach: {emailSequence: [{subject, body}], linkedin}
-  - contentPack: [{platform, type, caption, assetRef}]
-  - visualDirection: {brandMood, colorPsychology: [{color, purpose}], visualThemes: [], shotLists: {website: [], social: [], ads: []}, aiImagePrompts: [], aiVideoPrompts: []}`;
-  
-  const res = await loggedGenerateContent({
-      ai, module: 'BUSINESS_ORCHESTRATOR', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
-      contents: prompt,
-      config: { responseMimeType: 'application/json' }
-  });
-  return JSON.parse(res);
+  try {
+    const ai = getAI();
+    const assetsSummary = existingAssets.map(a => a.type).join(', ');
+    const prompt = `Orchestrate a full business package for ${lead.businessName}. Assets available: ${assetsSummary}.
+    Return JSON with: 
+    - narrative: executive summary
+    - presentation: {title, slides: [{title, bullets: [], visualRef}]}
+    - outreach: {emailSequence: [{subject, body}], linkedin}
+    - contentPack: [{platform, type, caption, assetRef}]
+    - visualDirection: {brandMood, colorPsychology: [{color, purpose}], visualThemes: [], shotLists: {website: [], social: [], ads: []}, aiImagePrompts: [], aiVideoPrompts: []}`;
+    
+    const res = await loggedGenerateContent({
+        ai, module: 'BUSINESS_ORCHESTRATOR', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
+    });
+    return JSON.parse(res);
+  } catch (e) { throw e; }
 };
