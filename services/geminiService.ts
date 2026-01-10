@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Lead, BrandIdentity } from '../types';
 import { logAiOperation, uuidLike } from './usageLogger';
@@ -7,7 +6,6 @@ import { deductCost } from './computeTracker';
 import { toast } from './toastManager';
 
 // --- TYPES ---
-/* Fix: Added BenchmarkReport interface missing from exports */
 export interface BenchmarkReport {
   entityName: string;
   missionSummary: string;
@@ -20,7 +18,6 @@ export interface BenchmarkReport {
   sources: Array<{ title: string; uri: string }>;
 }
 
-/* Fix: Added VeoConfig interface missing from exports */
 export interface VeoConfig {
   aspectRatio: '16:9' | '9:16';
   resolution: '720p' | '1080p';
@@ -64,40 +61,27 @@ export const saveAsset = (type: any, title: string, data: string, module?: strin
 };
 
 /**
- * HARDENED KEY RETRIEVAL
- * Checks process.env, import.meta.env, and VITE_ prefixes.
+ * DIRECT API KEY RETRIEVAL
+ * As per hard requirement, use process.env.API_KEY directly.
  */
 export const getAI = () => {
-  /* Fix: Initialization: Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY}); as per guidelines */
-  // 1. Check for the VITE_ prefixed version (Best for Production/Railway)
-  // @ts-ignore
-  const viteKey = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_KEY : undefined;
-  
-  // 2. Check for standard process.env (Sandbox/Local)
-  const procKey = process.env.API_KEY || process.env.VITE_API_KEY;
-
-  const key = viteKey || procKey;
-
-  if (!key || key === "undefined" || key === "" || key === "null") {
-    const err = new Error("CRITICAL: API_KEY is missing. Action: Rename Railway variable to VITE_API_KEY and Redeploy.");
-    (err as any).code = "MISSING_KEY";
-    throw err;
+  const apiKey = process.env.API_KEY;
+  if (!apiKey || apiKey === "undefined") {
+    throw new Error("CRITICAL: API_KEY is missing in environment. Ensure it is set in Railway and Redeploy.");
   }
-  return new GoogleGenAI({ apiKey: key });
+  return new GoogleGenAI({ apiKey });
 };
 
 export const loggedGenerateContent = async (opts: any): Promise<string> => {
   const start = Date.now();
   try {
     const aiInstance = opts.ai || getAI();
-    /* Fix: Generate Content: use ai.models.generateContent to query GenAI with both the model name and prompt */
     const response = await aiInstance.models.generateContent({
       model: opts.model,
       contents: opts.contents,
       config: opts.config
     });
     
-    /* Fix: Extracting Text Output from GenerateContentResponse: Access .text property directly */
     const text = response.text || "";
     logAiOperation({
         logId: uuidLike(),
@@ -163,7 +147,6 @@ export const generateProposalDraft = async (lead: any) => {
 
 export const testModelPerformance = async (model: string, prompt: string) => {
   const ai = getAI();
-  /* Fix: Correct GenerateContent call and .text property access */
   const res = await ai.models.generateContent({ model, contents: prompt });
   return res.text || "";
 };
@@ -187,7 +170,6 @@ export const identifySubRegions = async (theater: string) => ["Downtown", "Busin
 export const crawlTheaterSignals = async (sector: string, signal: string) => [];
 export const extractBrandDNA = async (lead: any, url: string) => ({ colors: ["#000"], fontPairing: "Inter", archetype: "Modern", visualTone: "Clean" });
 
-/* Fix: Implemented generateFlashSparks which was missing from exports */
 export const generateFlashSparks = async (lead: Lead): Promise<string[]> => {
   const ai = getAI();
   const prompt = `Generate 6 viral content 'sparks' for ${lead.businessName}. Return JSON array of strings.`;
@@ -195,14 +177,12 @@ export const generateFlashSparks = async (lead: Lead): Promise<string[]> => {
   return JSON.parse(res);
 };
 
-/* Fix: Implemented generatePitch which was missing from exports */
 export const generatePitch = async (lead: Lead): Promise<string> => {
   const ai = getAI();
   const prompt = `Generate a pitch for ${lead.businessName}.`;
   return await loggedGenerateContent({ ai, model: 'gemini-3-flash-preview', contents: prompt, module: 'PITCH_GEN' });
 };
 
-/* Fix: Implemented architectFunnel which was missing from exports */
 export const architectFunnel = async (lead: Lead): Promise<any[]> => {
   const ai = getAI();
   const prompt = `Architect a funnel for ${lead.businessName}. Return JSON array.`;
@@ -210,7 +190,6 @@ export const architectFunnel = async (lead: Lead): Promise<any[]> => {
   return JSON.parse(res);
 };
 
-/* Fix: Implemented architectPitchDeck which was missing from exports */
 export const architectPitchDeck = async (lead: Lead): Promise<any[]> => {
   const ai = getAI();
   const prompt = `Design a pitch deck for ${lead.businessName}. Return JSON array.`;
@@ -218,14 +197,12 @@ export const architectPitchDeck = async (lead: Lead): Promise<any[]> => {
   return JSON.parse(res);
 };
 
-/* Fix: Implemented generateROIReport which was missing from exports */
 export const generateROIReport = async (ltv: number, volume: number, lift: number): Promise<string> => {
   const ai = getAI();
   const prompt = `ROI report for LTV ${ltv}, Volume ${volume}, Lift ${lift}%.`;
   return await loggedGenerateContent({ ai, model: 'gemini-3-flash-preview', contents: prompt, module: 'ROI_CALC' });
 };
 
-/* Fix: Updated generateVisual to accept editImage (3 args) and correctly handle image generation/editing */
 export const generateVisual = async (p: string, l: any, editImage?: string) => {
   const ai = getAI();
   let contents: any = p;
@@ -243,12 +220,16 @@ export const generateVisual = async (p: string, l: any, editImage?: string) => {
     model: 'gemini-2.5-flash-image',
     contents,
   });
-  /* Fix: Iterate through parts to find image data as per guidelines */
-  for (const part of response.candidates[0].content.parts) {
-    if (part.inlineData) {
-      const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-      saveAsset('IMAGE', `Visual: ${p.slice(0, 20)}`, imageUrl, 'VISUAL_STUDIO', l?.id);
-      return imageUrl;
+
+  // FIXED: Explicit checks for candidates and parts to resolve TS18048
+  const candidates = response.candidates;
+  if (candidates && candidates.length > 0 && candidates[0].content && candidates[0].content.parts) {
+    for (const part of candidates[0].content.parts) {
+      if (part.inlineData) {
+        const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+        saveAsset('IMAGE', `Visual: ${p.slice(0, 20)}`, imageUrl, 'VISUAL_STUDIO', l?.id);
+        return imageUrl;
+      }
     }
   }
   return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
@@ -256,7 +237,6 @@ export const generateVisual = async (p: string, l: any, editImage?: string) => {
 
 export const generateMockup = async (b: string, n: string, id: string) => null;
 
-/* Fix: Updated generateVideoPayload to accept 7 arguments and correctly implement Veo video generation/extension */
 export const generateVideoPayload = async (
   p: string, 
   id?: string, 
@@ -293,18 +273,20 @@ export const generateVideoPayload = async (
     };
   }
   
-  /* Fix: Correct GenerateVideos call and operation polling */
   let operation = await ai.models.generateVideos(payload);
   while (!operation.done) {
     await new Promise(r => setTimeout(r, 5000));
     operation = await ai.operations.getVideosOperation({ operation });
   }
   
-  /* Fix: Use response.generatedVideos link and append API key as per guidelines */
-  const uri = operation.response?.generatedVideos?.[0]?.video?.uri;
-  const url = `${uri}&key=${process.env.API_KEY}`;
-  saveAsset('VIDEO', `Video: ${p.slice(0, 20)}`, url, 'VIDEO_PITCH', id);
-  return url;
+  const generatedVideos = operation.response?.generatedVideos;
+  if (generatedVideos && generatedVideos.length > 0 && generatedVideos[0].video) {
+    const uri = generatedVideos[0].video.uri;
+    const url = `${uri}&key=${process.env.API_KEY}`;
+    saveAsset('VIDEO', `Video: ${p.slice(0, 20)}`, url, 'VIDEO_PITCH', id);
+    return url;
+  }
+  return null;
 };
 
 export const enhanceVideoPrompt = async (p: string) => p;
