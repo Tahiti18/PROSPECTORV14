@@ -57,31 +57,54 @@ export const saveAsset = (type: any, title: string, data: string, module?: strin
 };
 
 /**
- * MANDATORY KEY SELECTION LOGIC
+ * MANDATORY AI STUDIO KEY BRIDGE
+ * Ensures the user has selected a valid key from a paid GCP project.
  */
-const ensureKey = async () => {
-  // @ts-ignore
-  if (typeof window !== 'undefined' && window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
+const ensureKeySelected = async () => {
+  // @ts-ignore - access the AI Studio global bridge
+  if (typeof window !== 'undefined' && window.aistudio) {
     // @ts-ignore
-    await window.aistudio.openSelectKey();
+    const hasKey = await window.aistudio.hasSelectedApiKey();
+    if (!hasKey) {
+      pushLog("API_KEY_MISSING: Prompting for key selection...");
+      // @ts-ignore
+      await window.aistudio.openSelectKey();
+      // Proceed immediately as per instructions
+    }
   }
+};
+
+/**
+ * Robust instance creator
+ */
+export const getAI = async () => {
+  await ensureKeySelected();
+  // Strictly use process.env.API_KEY as required
+  return new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 };
 
 // --- CORE SERVICE FUNCTIONS ---
 
 export const generateLeads = async (region: string, niche: string, count: number) => {
-  // Instantiate right before call as per rules
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Generate ${count} B2B leads for "${niche}" in "${region}". Return JSON array. Each: businessName, websiteUrl, city, niche, leadScore (0-100), assetGrade (A/B/C), socialGap, visualProof, bestAngle, personalizedHook.`,
-    config: { responseMimeType: 'application/json' }
-  });
-  return { leads: JSON.parse(response.text || "[]"), groundingSources: [] };
+  const ai = await getAI();
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Generate ${count} B2B leads for "${niche}" in "${region}". Return JSON array. Each: businessName, websiteUrl, city, niche, leadScore (0-100), assetGrade (A/B/C), socialGap, visualProof, bestAngle, personalizedHook.`,
+      config: { responseMimeType: 'application/json' }
+    });
+    return { leads: JSON.parse(response.text || "[]"), groundingSources: [] };
+  } catch (e: any) {
+    if (e.message?.includes("Requested entity was not found")) {
+      // @ts-ignore
+      if (typeof window !== 'undefined' && window.aistudio) await window.aistudio.openSelectKey();
+    }
+    throw e;
+  }
 };
 
 export const fetchLiveIntel = async (lead: any, module: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = await getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `Analyze ${lead.websiteUrl}. Return JSON with missionSummary, visualStack[], sonicStack[], featureGap, businessModel, designSystem, deepArchitecture.`,
@@ -95,7 +118,7 @@ export const fetchLiveIntel = async (lead: any, module: string) => {
 };
 
 export const generateVisual = async (p: string, l: any, editImage?: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = await getAI();
   let contents: any = p;
   
   if (editImage) {
@@ -114,8 +137,9 @@ export const generateVisual = async (p: string, l: any, editImage?: string) => {
     contents,
   });
 
-  if (response.candidates?.[0]?.content?.parts) {
-    for (const part of response.candidates[0].content.parts) {
+  const parts = response.candidates?.[0]?.content?.parts;
+  if (parts) {
+    for (const part of parts) {
       if (part.inlineData) {
         const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
         saveAsset('IMAGE', `Visual: ${p.slice(0, 20)}`, imageUrl, 'VISUAL_STUDIO', l?.id);
@@ -135,8 +159,7 @@ export const generateVideoPayload = async (
   referenceImages?: string[],
   inputVideo?: string
 ) => {
-  await ensureKey();
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = await getAI();
   
   const videoConfig: any = {
     numberOfVideos: 1,
@@ -185,7 +208,7 @@ export const generateVideoPayload = async (
 };
 
 export const generateAudioPitch = async (text: string, voice: string, leadId?: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = await getAI();
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
     contents: [{ parts: [{ text }] }],
@@ -208,9 +231,8 @@ export const generateAudioPitch = async (text: string, voice: string, leadId?: s
 };
 
 // --- STUBS & UTILS ---
-export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 export const loggedGenerateContent = async (opts: any) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = await getAI();
   const res = await ai.models.generateContent({ model: opts.model, contents: opts.contents, config: opts.config });
   return res.text || "";
 };
@@ -246,7 +268,7 @@ export const analyzeVideoUrl = async (u: string, p: string, id?: string) => "Ana
 export const synthesizeArticle = async (s: string, m: string) => "Synthesis...";
 export const fetchTokenStats = async () => ({ recentOps: [] });
 export const testModelPerformance = async (m: string, p: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = await getAI();
   const res = await ai.models.generateContent({ model: m, contents: p });
   return res.text || "";
 };
