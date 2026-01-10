@@ -45,15 +45,12 @@ export const dossierStorage = {
       leadName: lead.businessName,
       version: nextVersion,
       timestamp: Date.now(),
-      model: 'gemini-3-flash-preview', // DOWNGRADED TO FLASH
+      model: 'gemini-3-flash-preview', 
       contextSnapshot: { assetIds },
       data: packageData
     };
 
-    // Add to beginning of array
     db.unshift(dossier);
-    
-    // Prune (Keep max 50 global dossiers for V1 storage safety)
     if (db.length > 50) db.pop();
     
     saveDb(db);
@@ -62,7 +59,6 @@ export const dossierStorage = {
 
   getByLead: (leadId: string): StrategicDossier | null => {
     const db = getDb();
-    // Return the latest version
     const matches = db.filter(d => d.leadId === leadId).sort((a, b) => b.version - a.version);
     return matches.length > 0 ? matches[0] : null;
   },
@@ -70,7 +66,7 @@ export const dossierStorage = {
   getAllByLead: (leadId: string): StrategicDossier[] => {
     return getDb()
       .filter(d => d.leadId === leadId)
-      .sort((a, b) => b.version - a.version); // Descending version
+      .sort((a, b) => b.version - a.version); 
   },
 
   exportToMarkdown: (dossier: StrategicDossier): string => {
@@ -89,7 +85,16 @@ export const dossierStorage = {
       md += `\n`;
     });
 
-    md += `## 3. OUTREACH SEQUENCE\n`;
+    if (data.visualDirection) {
+      md += `## 3. VISUAL DIRECTION\n`;
+      md += `**Brand Mood:** ${data.visualDirection.brandMood}\n\n`;
+      md += `### Color Palette\n`;
+      data.visualDirection.colorPsychology?.forEach((c: any) => md += `- ${c.color}: ${c.purpose}\n`);
+      md += `\n### AI Image Prompts\n`;
+      data.visualDirection.aiImagePrompts?.forEach((p: any) => md += `**${p.use_case}:** \`${p.prompt}\`\n\n`);
+    }
+
+    md += `## 4. OUTREACH SEQUENCE\n`;
     data.outreach?.emailSequence?.forEach((e: any, i: number) => {
       md += `### Email ${i+1}\n**Subject:** ${e.subject}\n\n${e.body}\n\n`;
     });
@@ -98,7 +103,7 @@ export const dossierStorage = {
         md += `### LinkedIn Message\n${data.outreach.linkedin}\n\n`;
     }
 
-    md += `## 4. CONTENT PACK\n`;
+    md += `## 5. CONTENT PACK\n`;
     data.contentPack?.forEach((c: any, i: number) => {
         md += `### Post ${i+1} (${c.platform})\n**Type:** ${c.type}\n**Caption:** ${c.caption}\n\n`;
     });

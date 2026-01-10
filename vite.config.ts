@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-// Mock browser globals for Node compatibility (Railway / SSR safety)
+// Mock browser globals for Node environment compatibility if needed
 if (typeof (globalThis as any).localStorage === 'undefined') {
   (globalThis as any).localStorage = {
     getItem: () => null,
@@ -19,9 +19,10 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
     try {
       const url = req.url || '';
 
-      // Only proxy Suno/KIE routes
+      // Only proxy routes under /api/kie/suno
       if (!url.startsWith('/api/kie/suno')) return next();
 
+      // Read API key from env (support both names)
       const KIE_KEY =
         process.env.KIE_KEY ||
         env.KIE_KEY ||
@@ -31,17 +32,17 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
       if (!KIE_KEY) {
         res.statusCode = 500;
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'Missing KIE API Key' }));
+        res.end(JSON.stringify({ error: 'Server configuration error: Missing KIE_KEY' }));
         return;
       }
 
-      // ✅ CORRECT upstream base (this fixed the 404s)
+      // ✅ Correct upstream base (current KIE docs)
       const KIE_GENERATE_BASE = 'https://api.kie.ai/api/v1/generate';
 
       const readBody = async () => {
-        const buffers: Buffer[] = [];
-        for await (const chunk of req) buffers.push(chunk as Buffer);
-        return Buffer.concat(buffers).toString();
+        const buffers: any[] = [];
+        for await (const chunk of req) buffers.push(chunk);
+        return (globalThis as any).Buffer.concat(buffers).toString();
       };
 
       const sendJson = (status: number, data: any) => {
@@ -50,67 +51,78 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         res.end(JSON.stringify(data));
       };
 
-      const safeJson = (raw: string) => {
+      const safeJson = (rawText: string) => {
         try {
-          return JSON.parse(raw);
+          return JSON.parse(rawText);
         } catch {
-          return { error: 'Non-JSON upstream response', raw };
+          return { error: 'Upstream returned non-JSON response', raw: rawText };
         }
       };
 
-      // ---- SUBMIT ----
+      // ✅ Submit aliases:
+      // - POST /api/kie/suno/suno_submit (old)
+      // - POST /api/kie/suno/submit      (new)
       if (
         req.method === 'POST' &&
-        (url.includes('/suno_submit') || url.endsWith('/submit'))
+        (url.includes('/suno_submit') || url.endsWith('/submit') || url.includes('/submit?'))
       ) {
-        const body = await readBody();
+        const bodyStr = await readBody();
+        const upstreamUrl = `${KIE_GENERATE_BASE}`;
 
-        const upstreamRes = await fetch(KIE_GENERATE_BASE, {
+        const upstreamRes = await fetch(upstreamUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${KIE_KEY}`
+            'Authorization': `Bearer ${KIE_KEY}`
           },
-          body
+          body: bodyStr
         });
 
-        const raw = await upstreamRes.text();
-        return sendJson(upstreamRes.status, safeJson(raw));
+        const rawText = await upstreamRes.text();
+        const parsed = safeJson(rawText);
+return sendJson(upstreamRes.status, {
+  _debug_upstreamStatus: upstreamRes.status,
+  _debug_upstreamUrl: upstreamUrl,
+  _debug_raw: rawText,
+  ...parsed
+});
       }
 
-      // ---- STATUS / RECORD INFO ----
+      // ✅ Status aliases:
+      // - GET /api/kie/suno/status/:id
+      // - GET /api/kie/suno/record-info?taskId=...
       if (
         req.method === 'GET' &&
-        (url.includes('/status/') || url.includes('/record-info'))
+        (url.includes('/status/') || url.startsWith('/api/kie/suno/record-info'))
       ) {
         let taskId = '';
 
         if (url.includes('/status/')) {
-          taskId = url.split('/').pop() || '';
+          const parts = url.split('/');
+          taskId = parts[parts.length - 1] || '';
         } else {
           const u = new URL(`http://local${url}`);
           taskId = u.searchParams.get('taskId') || '';
         }
 
-        if (!taskId) {
-          return sendJson(400, { error: 'Missing taskId' });
-        }
+        if (!taskId) return sendJson(400, { error: 'Missing taskId' });
 
         const upstreamUrl = `${KIE_GENERATE_BASE}/record-info?taskId=${encodeURIComponent(taskId)}`;
 
         const upstreamRes = await fetch(upstreamUrl, {
-          headers: { Authorization: `Bearer ${KIE_KEY}` }
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${KIE_KEY}` }
         });
 
-        const raw = await upstreamRes.text();
-        return sendJson(upstreamRes.status, safeJson(raw));
+        const rawText = await upstreamRes.text();
+        return sendJson(upstreamRes.status, safeJson(rawText));
       }
 
-      return sendJson(404, { error: 'KIE proxy route not found' });
-    } catch (err: any) {
+      return sendJson(404, { error: 'Route not found in KIE Proxy', path: url });
+    } catch (e: any) {
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
-      res.end(JSON.stringify({ error: err?.message || 'Proxy error' }));
+      res.end(JSON.stringify({ error: e?.message || 'Internal Proxy Error' }));
     }
   };
 };
@@ -122,7 +134,7 @@ export default defineConfig(() => {
     plugins: [
       react(),
       {
-        name: 'kie-proxy',
+        name: 'kie-proxy-server',
         configureServer(server) {
           server.middlewares.use(createKieProxyMiddleware(env as Record<string, string>));
         },
@@ -131,20 +143,15 @@ export default defineConfig(() => {
         }
       }
     ],
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || ''),
-      'process.env.KIE_KEY': JSON.stringify(env.KIE_KEY || ''),
-      'process.env.KIE_API_KEY': JSON.stringify(env.KIE_API_KEY || '')
-    },
     server: {
       host: '0.0.0.0',
       port: Number(process.env.PORT) || 5173,
-      allowedHosts: ['.railway.app', '.sandbox.novita.ai', 'localhost']
+      allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost']
     },
     preview: {
       host: '0.0.0.0',
       port: Number(process.env.PORT) || 4173,
-      allowedHosts: ['.railway.app', '.sandbox.novita.ai', 'localhost']
+      allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost']
     }
   };
 });

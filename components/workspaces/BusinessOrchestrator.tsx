@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Lead, MainMode, SubModule } from '../../types';
 import { SESSION_ASSETS, orchestrateBusinessPackage, saveAsset, AssetRecord } from '../../services/geminiService';
@@ -18,7 +19,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   const [currentDossier, setCurrentDossier] = useState<StrategicDossier | null>(null);
   const [history, setHistory] = useState<StrategicDossier[]>([]);
   const [isOrchestrating, setIsOrchestrating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'strategy' | 'narrative' | 'content' | 'outreach'>('strategy');
+  const [activeTab, setActiveTab] = useState<'strategy' | 'narrative' | 'content' | 'outreach' | 'visual'>('strategy');
   const [isOutreachOpen, setIsOutreachOpen] = useState(false);
   
   // Vault Injection State
@@ -113,7 +114,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       await navigator.clipboard.writeText(md);
       alert("Full dossier markdown copied to clipboard.");
     } catch (e) {
-      // Fallback
       alert("Copy failed. Please export instead.");
     }
   };
@@ -130,7 +130,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     if (!targetLead) return;
     onLockLead(targetLead.id);
     
-    // Determine the correct MainMode for the requested module
     let targetMode: MainMode = 'CREATE';
     if (['VIDEO_PITCH', 'SONIC_STUDIO', 'MOTION_LAB', 'LIVE_SCRIBE', 'CINEMA_INTEL', 'VIDEO_AI'].includes(module)) {
         targetMode = 'STUDIO';
@@ -190,7 +189,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   return (
     <div className="max-w-[1600px] mx-auto py-8 space-y-10 animate-in fade-in duration-700">
       
-      {/* HEADER */}
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
           <h1 className="text-4xl font-bold uppercase tracking-tight text-white leading-none">
@@ -205,7 +203,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
              <div className="bg-emerald-900/20 border border-emerald-500/20 px-6 py-2 rounded-xl flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                 <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                  LOADED: V{currentDossier.version} ({new Date(currentDossier.timestamp).toLocaleTimeString()})
+                  LOADED: V{currentDossier.version}
                 </span>
              </div>
            )}
@@ -215,10 +213,8 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
         </div>
       </div>
 
-      {/* CONTROL PANEL */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* LEFT: SELECTION & ASSET MONITOR */}
         <div className="lg:col-span-4 space-y-6">
            <div className="bg-[#0b1021] border border-slate-800 rounded-[40px] p-10 shadow-2xl space-y-8">
               <div className="space-y-2">
@@ -228,7 +224,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                    onChange={(e) => setSelectedLeadId(e.target.value)}
                    className="w-full bg-[#020617] border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 cursor-pointer appearance-none uppercase"
                  >
-                    <option value="">-- SELECT LEAD FROM LEDGER --</option>
+                    <option value="">-- SELECT LEAD --</option>
                     {leads.map(l => (
                       <option key={l.id} value={l.id}>{l.businessName}</option>
                     ))}
@@ -237,7 +233,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
               {targetLead && (
                 <div className="space-y-6 animate-in slide-in-from-left-4">
-                   {/* History Selector */}
                    {history.length > 0 && (
                      <div className="space-y-2">
                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">VERSION HISTORY</label>
@@ -286,16 +281,12 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                       {leadAssets.map(a => (
                         <div key={a.id} className="text-[9px] font-bold text-slate-400 truncate bg-slate-950 px-3 py-2 rounded-lg border border-slate-800/50 flex justify-between">
                            <span className="truncate max-w-[180px]">{a.title}</span>
-                           <div className="flex items-center gap-2">
-                              {a.leadId === targetLead.id && <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1.5 rounded">LINKED</span>}
-                              <span className="text-emerald-600 ml-2">{a.module?.split('_')[0]}</span>
-                           </div>
+                           <span className="text-emerald-600 ml-2">{a.module?.split('_')[0]}</span>
                         </div>
                       ))}
-                      {leadAssets.length === 0 && <p className="text-[9px] text-rose-500 font-bold uppercase tracking-widest text-center py-4">NO ASSETS FOUND IN LIBRARY</p>}
+                      {leadAssets.length === 0 && <p className="text-[9px] text-rose-500 font-bold uppercase tracking-widest text-center py-4">NO ASSETS FOUND</p>}
                    </div>
 
-                   {/* VAULT INJECTOR */}
                    <div className="pt-2">
                       <input 
                         type="file" 
@@ -308,7 +299,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                         onClick={() => fileInputRef.current?.click()}
                         className="w-full bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all mb-2 flex items-center justify-center gap-2"
                       >
-                        <span>⬆️</span> QUICK UPLOAD ASSET
+                        <span>⬆️</span> QUICK UPLOAD
                       </button>
                       
                       {uploadStatus && <div className="text-[9px] text-emerald-400 font-bold text-center mb-2 animate-pulse">{uploadStatus}</div>}
@@ -327,7 +318,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
            </div>
         </div>
 
-        {/* RIGHT: OUTPUT DOSSIER */}
         <div className="lg:col-span-8">
            <div className="bg-[#0b1021] border border-slate-800 rounded-[48px] min-h-[700px] flex flex-col shadow-2xl relative overflow-hidden">
               
@@ -335,17 +325,17 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                  <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20 text-center space-y-6">
                     <span className="text-8xl grayscale">📁</span>
                     <h3 className="text-4xl font-bold uppercase tracking-tight text-slate-700">WAITING FOR INPUT</h3>
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">SELECT A LEAD AND BUILD STRATEGY</p>
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">BUILD STRATEGY TO VIEW DOSSIER</p>
                  </div>
               ) : (
                  <div className="flex flex-col h-full animate-in zoom-in-95 duration-500">
-                    {/* TABS */}
                     <div className="flex border-b border-slate-800 bg-[#0b1021]">
                        {[
                          { id: 'strategy', label: 'STRATEGY DECK' },
                          { id: 'narrative', label: 'PITCH SCRIPT' },
                          { id: 'content', label: 'CONTENT PACK' },
-                         { id: 'outreach', label: 'OUTREACH SEQ' }
+                         { id: 'outreach', label: 'OUTREACH SEQ' },
+                         { id: 'visual', label: 'VISUAL DIRECTION' }
                        ].map(tab => (
                          <button
                            key={tab.id}
@@ -361,7 +351,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                        ))}
                     </div>
 
-                    {/* CONTENT AREA */}
                     <div className="flex-1 p-12 overflow-y-auto custom-scrollbar relative bg-[#020617]">
                        
                        {activeTab === 'strategy' && (
@@ -392,6 +381,62 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                                      </div>
                                   </div>
                                 ))}
+                             </div>
+                          </div>
+                       )}
+
+                       {activeTab === 'visual' && packageData.visualDirection && (
+                          <div className="space-y-12 animate-in fade-in duration-500">
+                             <div className="bg-slate-900 border border-slate-800 p-10 rounded-[40px] shadow-xl space-y-6">
+                                <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">BRAND MOOD</h3>
+                                <p className="text-xl font-black italic text-white leading-relaxed uppercase tracking-tight">
+                                   "{packageData.visualDirection.brandMood}"
+                                </p>
+                             </div>
+
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-6">
+                                   <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">COLOR PSYCHOLOGY</h4>
+                                   <div className="space-y-4">
+                                      {packageData.visualDirection.colorPsychology.map((cp: any, i: number) => (
+                                        <div key={i} className="flex items-center gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                                           <div className="w-10 h-10 rounded-full border border-white/10 shadow-lg" style={{ backgroundColor: cp.color }}></div>
+                                           <div>
+                                              <p className="text-[10px] font-black text-white uppercase">{cp.color}</p>
+                                              <p className="text-[9px] text-slate-500 font-bold uppercase">{cp.purpose}</p>
+                                           </div>
+                                        </div>
+                                      ))}
+                                   </div>
+                                </div>
+                                <div className="space-y-6">
+                                   <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">VISUAL THEMES</h4>
+                                   <div className="space-y-2">
+                                      {packageData.visualDirection.visualThemes.map((theme: string, i: number) => (
+                                        <div key={i} className="p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-[10px] font-bold text-slate-300 uppercase italic">
+                                           {theme}
+                                        </div>
+                                      ))}
+                                   </div>
+                                </div>
+                             </div>
+
+                             <div className="space-y-8">
+                                <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">AI GENERATION PROMPTS</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                   {packageData.visualDirection.aiImagePrompts.map((p: any, i: number) => (
+                                      <div key={i} className="bg-slate-950 border border-slate-800 p-6 rounded-[32px] space-y-4">
+                                         <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">IMAGE: {p.use_case}</span>
+                                         <p className="text-[11px] text-slate-400 font-mono italic leading-relaxed">"{p.prompt}"</p>
+                                      </div>
+                                   ))}
+                                   {packageData.visualDirection.aiVideoPrompts.map((p: any, i: number) => (
+                                      <div key={i} className="bg-slate-950 border border-slate-800 p-6 rounded-[32px] space-y-4">
+                                         <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">VIDEO: {p.use_case}</span>
+                                         <p className="text-[11px] text-slate-400 font-mono italic leading-relaxed">"{p.prompt}"</p>
+                                      </div>
+                                   ))}
+                                </div>
                              </div>
                           </div>
                        )}
@@ -450,7 +495,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
                     </div>
 
-                    {/* Footer Actions */}
                     <div className="border-t border-slate-800 p-6 flex justify-between items-center bg-[#05091a]">
                        <div className="flex gap-4">
                           <button 

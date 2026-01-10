@@ -57,6 +57,7 @@ import { BrandDNA } from './components/workspaces/BrandDNA';
 import { SmokeTest } from './components/SmokeTest';
 import { ToastContainer } from './components/ToastContainer';
 import { db } from './services/automation/db';
+import { VerificationNode } from './components/workspaces/VerificationNode';
 
 const STORAGE_KEY_LEADS = 'prospector_os_leads_v14_final';
 const STORAGE_KEY_THEATER = 'prospector_os_theater_v1';
@@ -212,6 +213,7 @@ const App: React.FC = () => {
         case 'TASKS': return <TasksNode lead={lockedLead} />;
         case 'THEME': return <ThemeNode />;
         case 'TOKENS': return <TokenNode />;
+        case 'MODEL_TEST': return <VerificationNode />;
         default: return <ControlWorkspace activeModule={activeModule} />;
       }
     }

@@ -107,43 +107,12 @@ const upsertGalleryTracks = (newTracks: PersistedSunoTrack[]) => {
 };
 
 export const kieSunoService = {
-  // UI helper
+  // Optional helper for UI later (not required, but useful)
   getPersistedGallery: (): PersistedSunoTrack[] => loadGalleryCache(),
 
   /**
-   * Overwrite persisted gallery cache.
-   * Used by UI Import flows.
-   */
-  setPersistedGallery: (tracks: PersistedSunoTrack[]) => {
-    const safe = Array.isArray(tracks)
-      ? tracks
-          .filter(t => t && typeof (t as any).url === 'string')
-          .map(t => ({
-            id: String((t as any).id || (t as any).url),
-            url: String((t as any).url),
-            title: String((t as any).title || 'SUNO_TRACK'),
-            image_url: (t as any).image_url,
-            duration: typeof (t as any).duration === 'number' ? (t as any).duration : undefined,
-            createdAt: typeof (t as any).createdAt === 'number' ? (t as any).createdAt : Date.now(),
-            promptSignature: (t as any).promptSignature,
-            instrumental: (t as any).instrumental
-          }))
-      : [];
-
-    writeGalleryCache(safe);
-
-    try {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('suno:gallery_updated', { detail: { tracks: safe } }));
-      }
-    } catch {
-      // ignore
-    }
-  },
-
-  /**
    * Submit generation (via proxy)
-   * Keep signature backward-compatible with SonicStudio.tsx calls
+   * Keep signature backward-compatible with SonicStudio.tsx
    */
   generateMusic: async (
     prompt: string,
@@ -344,9 +313,8 @@ export const kieSunoService = {
 
   /**
    * Orchestrator:
-   * - saves to in-memory vault via saveAsset()
-   * - persists locally so tracks don't disappear (Suno gallery cache)
-   * IMPORTANT: Wide signature to match SonicStudio.tsx calls
+   * - saves to backend via saveAsset()
+   * - persists locally so tracks don't disappear
    */
   runFullCycle: async (
     prompt: string,
@@ -364,7 +332,7 @@ export const kieSunoService = {
 
     const persisted: PersistedSunoTrack[] = [];
 
-    // IMPORTANT: use for..of so we can await saveAsset if it's async later
+    // IMPORTANT: use for..of so we can await saveAsset if it's async
     for (let i = 0; i < clips.length; i++) {
       const clip = clips[i];
       const displayTitle = clip.title || `SUNO_TRACK_${i + 1}`;
@@ -381,7 +349,7 @@ export const kieSunoService = {
         instrumental
       });
 
-      // 2) Save to your Vault (SESSION_ASSETS)
+      // 2) Save to your Assets/Vault (server-side) if saveAsset is wired
       try {
         const maybePromise = saveAsset(
           'AUDIO',
@@ -398,6 +366,7 @@ export const kieSunoService = {
           }
         );
 
+        // If saveAsset returns a promise, wait for it
         if (maybePromise && typeof (maybePromise as any).then === 'function') {
           await maybePromise;
         }
@@ -405,7 +374,7 @@ export const kieSunoService = {
         urls.push(clip.url);
       } catch (err: any) {
         console.error('Failed to save asset for clip', clip, err);
-        // Still keep URL even if saving fails
+        // Still keep URL (it exists) even if saving fails
         urls.push(clip.url);
       }
     }

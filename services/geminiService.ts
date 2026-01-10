@@ -644,7 +644,12 @@ export const orchestrateBusinessPackage = async (lead: Lead, existingAssets: Ass
   const ai = getAI();
   const assetsSummary = existingAssets.map(a => a.type).join(', ');
   const prompt = `Orchestrate a full business package for ${lead.businessName}. Assets available: ${assetsSummary}.
-  Return JSON with: narrative, presentation: {title, slides: [{title, bullets: [], visualRef}]}, outreach: {emailSequence: [{subject, body}], linkedin}, contentPack: [{platform, type, caption, assetRef}]`;
+  Return JSON with: 
+  - narrative: executive summary
+  - presentation: {title, slides: [{title, bullets: [], visualRef}]}
+  - outreach: {emailSequence: [{subject, body}], linkedin}
+  - contentPack: [{platform, type, caption, assetRef}]
+  - visualDirection: {brandMood, colorPsychology: [{color, purpose}], visualThemes: [], shotLists: {website: [], social: [], ads: []}, aiImagePrompts: [], aiVideoPrompts: []}`;
   
   const res = await loggedGenerateContent({
       ai, module: 'BUSINESS_ORCHESTRATOR', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'HIGH', isClientFacing: true,

@@ -1,126 +1,277 @@
-
 import { Lead } from '../../types';
 import { loggedGenerateContent, getAI } from '../geminiService';
+import { safeJsonParse, validateKeys } from './jsonGuard';
+
+/**
+ * PROSPECTOR OS VERSION 3
+ * Intelligence Agent Protocols - HARDENED JSON + SAFETY GUARDRAILS
+ */
+
+export interface RunContext {
+  identity_strict: boolean;
+  compliance_mode: 'standard' | 'regulated';
+  lead_evidence_level: 'high' | 'low';
+}
+
+const getSafetyInstruction = (ctx: RunContext) => `
+${ctx.identity_strict ? 'STRICT IDENTITY MODE ENABLED: Business identity is NOT fully confirmed. You MUST forbid making definitive claims. Require "inference labeling" for all output (e.g. "Projected", "Likely", "Assumed").' : ''}
+${ctx.compliance_mode === 'regulated' ? 'REGULATED COMPLIANCE MODE ENABLED: Target is in a sensitive industry (Medical/Health/Legal/Finance). You MUST avoid any health claims, clinical promises, or financial guarantees. Focus exclusively on technical marketing infrastructure and efficiency.' : ''}
+${ctx.lead_evidence_level === 'low' ? 'LOW EVIDENCE WARNING: Source data is extremely sparse. Prioritize factual discovery and "probabilistic outreach" over specific strategic claims.' : ''}
+`;
+
+const SYSTEM_BOOTSTRAP = `
+You are Prospector OS Version 3.
+You are not a chatbot. You are an intelligence engine.
+
+GLOBAL RULES:
+- Output ONLY valid JSON.
+- No markdown, commentary, or summaries.
+- Separate FACT from INFERENCE.
+- If data is missing, infer cautiously and label it.
+- Do not invent sources or URLs.
+`;
+
+/**
+ * HARDENED HELPER: Executes a prompt with a Retry-Repair-Fail loop.
+ */
+async function guardedGenerate<T>(
+  module: string,
+  model: string,
+  prompt: string,
+  requiredKeys: string[],
+  ctx: RunContext,
+  reasoning: 'LOW' | 'MEDIUM' | 'HIGH' = 'MEDIUM',
+  tools: any[] = []
+): Promise<{ data: T; raw: string }> {
+  const ai = getAI();
+  let lastRaw = "";
+
+  const finalPrompt = `${getSafetyInstruction(ctx)}\n\n${prompt}`;
+
+  // ATTEMPT 1: Normal execution
+  try {
+    lastRaw = await loggedGenerateContent({
+      ai, module, model, modelClass: model.includes('pro') ? 'PRO' : 'FLASH',
+      reasoningDepth: reasoning, isClientFacing: false,
+      contents: finalPrompt,
+      config: { systemInstruction: SYSTEM_BOOTSTRAP, responseMimeType: 'application/json', tools }
+    });
+    const parsed = safeJsonParse<T>(lastRaw);
+    if (parsed.ok) {
+      const validation = validateKeys(parsed.value, requiredKeys);
+      if (validation.ok) return { data: parsed.value!, raw: lastRaw };
+    }
+  } catch (e) {}
+
+  // ATTEMPT 2: Instruction-heavy retry
+  try {
+    lastRaw = await loggedGenerateContent({
+      ai, module: `${module}_RETRY`, model, modelClass: model.includes('pro') ? 'PRO' : 'FLASH',
+      reasoningDepth: reasoning, isClientFacing: false,
+      contents: `${finalPrompt}\n\nIMPORTANT: RETURN JSON ONLY. DO NOT INCLUDE ANY OTHER TEXT OR NARRATION.`,
+      config: { systemInstruction: SYSTEM_BOOTSTRAP, responseMimeType: 'application/json', tools }
+    });
+    const parsed = safeJsonParse<T>(lastRaw);
+    if (parsed.ok) {
+      const validation = validateKeys(parsed.value, requiredKeys);
+      if (validation.ok) return { data: parsed.value!, raw: lastRaw };
+    }
+  } catch (e) {}
+
+  // ATTEMPT 3: Specific repair prompt
+  const repairPrompt = `Fix the following output to match the required JSON schema exactly. Return JSON only.
+  
+  REQUIRED KEYS: [${requiredKeys.join(', ')}]
+  
+  FAULTY OUTPUT:
+  ${lastRaw}
+  
+  RETURN REPAIRED JSON ONLY:`;
+
+  try {
+    lastRaw = await loggedGenerateContent({
+      ai, module: `${module}_REPAIR`, model: 'gemini-3-flash-preview', modelClass: 'FLASH',
+      reasoningDepth: 'LOW', isClientFacing: false,
+      contents: repairPrompt,
+      config: { systemInstruction: SYSTEM_BOOTSTRAP, responseMimeType: 'application/json' }
+    });
+
+    const finalParsed = safeJsonParse<T>(lastRaw);
+    if (finalParsed.ok) {
+      const validation = validateKeys(finalParsed.value, requiredKeys);
+      if (validation.ok) {
+        return { data: finalParsed.value!, raw: lastRaw };
+      } else {
+        throw { stepId: module, missingKeys: validation.missing, rawOutput: lastRaw, error: 'Validation failed after repair' };
+      }
+    }
+  } catch (e: any) {
+    if (e.stepId) throw e;
+  }
+
+  // Final failure fallback
+  const finalCheck = safeJsonParse<T>(lastRaw);
+  throw {
+    stepId: module,
+    missingKeys: finalCheck.ok ? validateKeys(finalCheck.value, requiredKeys).missing : ['MALFORMED_JSON_STRUCTURE'],
+    rawOutput: lastRaw,
+    error: 'Exhausted all recovery attempts'
+  };
+}
 
 export const Steps = {
-  enrichLead: async (lead: Lead): Promise<string> => {
-    const ai = getAI();
-    const prompt = `
-      Act as a Lead Enrichment Specialist.
-      Target: ${lead.businessName} (${lead.websiteUrl}) in ${lead.city}.
-      
-      Task: Provide a comprehensive but concise enrichment summary.
-      1. What exact industry/sub-niche are they in?
-      2. What is their likely revenue tier based on "high-ticket" signals?
-      3. Identify 3 key decision-maker titles to target.
-      
-      Output JSON only: { "industry": "...", "revenue_tier": "...", "targets": ["...", "...", "..."], "summary": "..." }
-    `;
+  resolveLead: async (lead: Lead, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Lead Resolution Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: Normalize lead identity. INPUT: ${JSON.stringify(lead)}. OUTPUT: JSON { "resolved_lead": { "business_name": "", "business_confirmed": boolean, ... }, "fact_vs_inference": { ... } }`;
+    return guardedGenerate('RESOLVE_LEAD', 'gemini-3-pro-preview', prompt, ['resolved_lead.business_confirmed'], ctx);
+  },
+
+  deepResearch: async (resolvedData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Deep Research Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: Factual discovery and business confirmation. INPUT: ${JSON.stringify(resolvedData)}. OUTPUT: JSON { "identity_resolution": { "business_confirmed": boolean }, "digital_footprint": { ... }, "reviews": { ... }, "competitors": [] }`;
+    return guardedGenerate('DEEP_RESEARCH', 'gemini-3-pro-preview', prompt, ['identity_resolution.business_confirmed', 'digital_footprint'], ctx, 'HIGH', [{ googleSearch: {} }]);
+  },
+
+  generateDeepResearchLite: async (resolvedData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Deep Research Agent (LITE MODE).
+    TASK: Compact factual discovery and business confirmation for high-velocity scale.
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
     
-    return await loggedGenerateContent({
-      ai,
-      module: 'AUTO_ENRICH',
-      model: 'gemini-3-flash-preview',
-      modelClass: 'FLASH',
-      reasoningDepth: 'LOW',
-      isClientFacing: false,
-      contents: prompt,
-      config: { responseMimeType: 'application/json', tools: [{ googleSearch: {} }] }
-    });
+    CONSTRAINTS for LITE MODE:
+    - Max 2 competitors
+    - Max 3 market context bullets
+    - Max 5 evidence items
+    - NO long quotes or exhaustive narratives
+    - NO downstream asset generation instructions
+    - Text and facts ONLY.
+    - Output must be compact and JSON only.
+    
+    INPUT: ${JSON.stringify(resolvedData)}
+    OUTPUT: JSON { 
+      "identity_resolution": { "business_confirmed": boolean }, 
+      "digital_footprint": { 
+        "market_context": ["short bullet 1", "short bullet 2", "short bullet 3"], 
+        "evidence": ["fact 1", "fact 2", "fact 3", "fact 4", "fact 5"] 
+      }, 
+      "competitors": ["competitor name 1", "competitor name 2"] 
+    }`;
+    return guardedGenerate('DEEP_RESEARCH_LITE', 'gemini-3-flash-preview', prompt, ['identity_resolution.business_confirmed', 'digital_footprint.market_context', 'competitors'], ctx, 'LOW', [{ googleSearch: {} }]);
   },
 
-  generateICP: async (lead: Lead, enrichmentData: any): Promise<string> => {
-    const ai = getAI();
-    const prompt = `
-      Generate an Ideal Customer Profile (ICP) Analysis for ${lead.businessName}.
-      Enrichment Context: ${JSON.stringify(enrichmentData)}
-      
-      Define:
-      1. Their Pains (3 bullet points)
-      2. Their Desires (3 bullet points)
-      3. The specific "Trigger Event" that makes them buy AI services now.
-      
-      Output JSON only.
-    `;
-    return await loggedGenerateContent({
-      ai,
-      module: 'ICP_GEN',
-      model: 'gemini-3-flash-preview',
-      modelClass: 'FLASH',
-      reasoningDepth: 'MEDIUM',
-      isClientFacing: false,
-      contents: prompt,
-      config: { responseMimeType: 'application/json' }
-    });
+  extractSignals: async (researchData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Signal Extraction Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: Extract leverage. INPUT: ${JSON.stringify(researchData)}. OUTPUT: JSON { "signals": { "pain_signals": [], "opportunity_signals": [] }, "top_10_leverage_insights": [] }`;
+    return guardedGenerate('EXTRACT_SIGNALS', 'gemini-3-pro-preview', prompt, ['signals.pain_signals', 'top_10_leverage_insights'], ctx);
   },
 
-  generateOffer: async (lead: Lead, icp: any): Promise<string> => {
-    const ai = getAI();
-    const prompt = `
-      Create 2 High-Ticket Offer Angles for ${lead.businessName}.
-      ICP Context: ${JSON.stringify(icp)}
-      
-      Angle 1: "Efficiency/Cost Cutting"
-      Angle 2: "Growth/Revenue Expansion"
-      
-      For each, write a 1-sentence "Hook" and a 1-sentence "Value Prop".
-      Output JSON only.
-    `;
-    return await loggedGenerateContent({
-      ai,
-      module: 'OFFER_GEN',
-      model: 'gemini-3-flash-preview',
-      modelClass: 'FLASH',
-      reasoningDepth: 'MEDIUM',
-      isClientFacing: false,
-      contents: prompt,
-      config: { responseMimeType: 'application/json' }
-    });
+  governDecision: async (researchData: any, signalsData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Decision Governor. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: Arbitrate truth. INPUT: Research: ${JSON.stringify(researchData)}, Signals: ${JSON.stringify(signalsData)}. OUTPUT: JSON { "validated_intelligence": { "key_facts": [] }, "scores": { ... } }`;
+    return guardedGenerate('DECISION_GOVERNOR', 'gemini-3-pro-preview', prompt, ['validated_intelligence.key_facts', 'scores'], ctx, 'HIGH');
   },
 
-  generateOutreach: async (lead: Lead, offer: any): Promise<string> => {
-    const ai = getAI();
-    const prompt = `
-      Write a complete outreach suite for ${lead.businessName} based on this offer: ${JSON.stringify(offer)}.
-      
-      Required:
-      1. Cold Email (Subject + Body) - Keep it under 100 words.
-      2. LinkedIn Connection Note (max 300 chars).
-      3. Cold Call Opener (2 sentences).
-      
-      Output JSON only.
-    `;
-    return await loggedGenerateContent({
-      ai,
-      module: 'OUTREACH_GEN',
-      model: 'gemini-3-flash-preview',
-      modelClass: 'FLASH',
-      reasoningDepth: 'MEDIUM',
-      isClientFacing: false,
-      contents: prompt,
-      config: { responseMimeType: 'application/json' }
-    });
+  synthesizeIntelligence: async (governorData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Intelligence Synthesis Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: Commercial dossier. INPUT: ${JSON.stringify(governorData)}. OUTPUT: JSON { "dossier": { "lead_readiness_score_0_100": 0, "pain_points": {}, "opportunities": {} } }`;
+    return guardedGenerate('INTEL_SYNTHESIS', 'gemini-3-pro-preview', prompt, ['dossier.lead_readiness_score_0_100', 'dossier.pain_points'], ctx);
+  },
+
+  generateStrategy: async (dossierData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Strategy Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: Marketing blueprint. INPUT: ${JSON.stringify(dossierData)}. OUTPUT: JSON { "positioning": { ... }, "funnel": { ... }, "campaign_architecture": { ... } }`;
+    return guardedGenerate('GENERATE_STRATEGY', 'gemini-3-pro-preview', prompt, ['positioning', 'funnel', 'campaign_architecture'], ctx, 'HIGH');
+  },
+
+  generateTextAssets: async (strategyData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Text Production Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: Deployable copy. INPUT: ${JSON.stringify(strategyData)}. OUTPUT: JSON { "text_assets": { "website": {}, "google_ads": {}, "meta_ads": {} } }`;
+    return guardedGenerate('GENERATE_TEXT_ASSETS', 'gemini-3-pro-preview', prompt, ['text_assets.website', 'text_assets.meta_ads'], ctx);
+  },
+
+  generateSocialAssets: async (strategyData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Social Content Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: 30-day calendar. INPUT: ${JSON.stringify(strategyData)}. OUTPUT: JSON { "social_assets": { "30_day_calendar": [] } }`;
+    return guardedGenerate('GENERATE_SOCIAL_ASSETS', 'gemini-3-pro-preview', prompt, ['social_assets.30_day_calendar'], ctx);
+  },
+
+  generateVideoScripts: async (strategyData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Video Script Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: Production scripts. INPUT: ${JSON.stringify(strategyData)}. OUTPUT: JSON { "video_assets": { "short_form": [], "ad_videos": [] } }`;
+    return guardedGenerate('GENERATE_VIDEO_SCRIPTS', 'gemini-3-pro-preview', prompt, ['video_assets.short_form', 'video_assets.ad_videos'], ctx);
+  },
+
+  generateAudioAssets: async (strategyData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Audio Script Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: Voiceover scripts. INPUT: ${JSON.stringify(strategyData)}. OUTPUT: JSON { "audio_assets": { "voiceovers": [], "audio_ads": [] } }`;
+    return guardedGenerate('GENERATE_AUDIO_ASSETS', 'gemini-3-pro-preview', prompt, ['audio_assets.voiceovers', 'audio_assets.audio_ads'], ctx);
+  },
+
+  generateVisualAssets: async (strategyData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Visual Direction Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: Art direction. INPUT: ${JSON.stringify(strategyData)}. OUTPUT: JSON { "visual_direction": { "brand_mood": "", "ai_image_prompts": [] } }`;
+    return guardedGenerate('GENERATE_VISUAL_ASSETS', 'gemini-3-pro-preview', prompt, ['visual_direction.brand_mood', 'visual_direction.ai_image_prompts'], ctx);
+  },
+
+  assembleRun: async (context: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `ROLE: Orchestration Agent. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    TASK: OS Run assembly. INPUT: ${JSON.stringify(context)}. OUTPUT: JSON { "media_vault": [], "execution_sequence": [], "outreach_plan": {} }`;
+    return guardedGenerate('ASSEMBLE_RUN', 'gemini-3-pro-preview', prompt, ['media_vault', 'execution_sequence', 'outreach_plan'], ctx, 'HIGH');
+  },
+
+  generateICP: async (lead: Lead, strategyData: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `Generate ICP for ${lead.businessName}. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    Strategy: ${JSON.stringify(strategyData)}. Output JSON { "icp": {} }`;
+    return guardedGenerate('ICP_GEN', 'gemini-3-flash-preview', prompt, ['icp'], ctx);
+  },
+
+  generateOffer: async (lead: Lead, icp: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `Create Offer for ${lead.businessName}. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    ICP: ${JSON.stringify(icp)}. Output JSON { "offer": {} }`;
+    return guardedGenerate('OFFER_GEN', 'gemini-3-flash-preview', prompt, ['offer'], ctx);
+  },
+
+  generateOutreach: async (lead: Lead, offer: any, ctx: RunContext): Promise<{ data: any; raw: string }> => {
+    const prompt = `Generate Outreach Suite for ${lead.businessName}. 
+    Lead evidence level: ${ctx.lead_evidence_level}
+    Compliance mode: ${ctx.compliance_mode}
+    Offer: ${JSON.stringify(offer)}. Output JSON { "outreach": {} }`;
+    return guardedGenerate('OUTREACH_GEN', 'gemini-3-flash-preview', prompt, ['outreach'], ctx);
   },
 
   generateFinalReport: async (lead: Lead, allData: any): Promise<string> => {
     const ai = getAI();
-    const prompt = `
-      Compile a "Final Strategic Package" Executive Summary for ${lead.businessName}.
-      Data: ${JSON.stringify(allData)}
-      
-      Format as clean, professional Markdown.
-      Include:
-      - Executive Summary
-      - Recommended Strategy
-      - Immediate Next Steps
-    `;
+    const prompt = `Compile Final Report for ${lead.businessName}. Data: ${JSON.stringify(allData)}. Format as Markdown.`;
     return await loggedGenerateContent({
-      ai,
-      module: 'REPORT_GEN',
-      model: 'gemini-3-flash-preview',
-      modelClass: 'FLASH',
-      reasoningDepth: 'LOW',
-      isClientFacing: true,
+      ai, module: 'REPORT_GEN', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
       contents: prompt
     });
   }

@@ -62,80 +62,6 @@ const ModeIcon = ({ id, active }: { id: MainMode, active: boolean }) => {
   }
 }
 
-const MODULE_ICONS: Record<string, React.ReactNode> = {
-  // OPERATE
-  COMMAND: <><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="5" /><rect x="14" y="12" width="7" height="9" /><rect x="3" y="16" width="7" height="5" /></>,
-  RADAR_RECON: <><circle cx="12" cy="12" r="10" /><path d="M16.2 7.8l-2.4 6 3.2 3.2" /><path d="M12 12v-6" /><path d="M12 2v4" /><path d="M12 18v4" /><path d="M4.93 4.93l2.83 2.83" /><path d="M16.24 16.24l2.83 2.83" /></>,
-  AUTO_CRAWL: <><path d="M12 2c-3 0-5 2-5 5v2h10V7c0-3-2-5-5-5z" /><path d="M7 9h10v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9z" /><path d="M3 13h4" /><path d="M17 13h4" /><path d="M5 7l2 3" /><path d="M19 7l-2 3" /></>,
-  TARGET_LIST: <><path d="M8 6h13" /><path d="M8 12h13" /><path d="M8 18h13" /><path d="M3 6h.01" /><path d="M3 12h.01" /><path d="M3 18h.01" /></>,
-  PIPELINE: <><rect x="2" y="4" width="6" height="16" rx="1" /><rect x="10" y="4" width="6" height="16" rx="1" /><rect x="18" y="4" width="4" height="16" rx="1" /></>,
-  WAR_ROOM: <><circle cx="12" cy="12" r="10" /><line x1="22" y1="12" x2="18" y2="12" /><line x1="6" y1="12" x2="2" y2="12" /><line x1="12" y1="6" x2="12" y2="2" /><line x1="12" y1="22" x2="12" y2="18" /><circle cx="12" cy="12" r="2" /></>,
-  DEEP_LOGIC: <><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z" /><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z" /></>,
-  WORKSPACE: <><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></>,
-  VIRAL_PULSE: <><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></>,
-  VISION_LAB: <><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></>,
-  ARTICLE_INTEL: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><line x1="10" y1="9" x2="8" y2="9" /></>,
-  BENCHMARK: <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>,
-  ANALYTICS: <><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></>,
-  ANALYTICS_HUB: <><circle cx="12" cy="12" r="3" /><path d="M12 9V5" /><path d="M12 19v-4" /><path d="M19 12h-4" /><path d="M5 12h4" /><path d="m16.5 16.5-2-2" /><path d="m9.5 9.5-2-2" /><path d="m16.5 7.5-2 2" /><path d="m9.5 14.5-2 2" /></>,
-  HEATMAP: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /><path d="M3 15h18" /><path d="M9 3v18" /><path d="M15 3v18" /></>,
-  PROMPT_AI: <><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></>,
-  MODEL_TEST: <><path d="M9 3h6" /><path d="M10 3v4a3 3 0 0 0-3 3v7a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3v-7a3 3 0 0 0-3-3V3" /><path d="m8 13 8 4" /></>,
-  FACT_CHECK: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></>,
-  TRANSLATOR: <><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></>,
-
-  // CREATE
-  VISUAL_STUDIO: <><path d="m9.06 11.9 8.07-8.06a2.85 2.85 0 1 1 4.03 4.03l-8.06 8.08" /><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-1.33 2.69-1.33 2.69s1.36-1.33 2.69-1.33c1.67 0 3.01-1.35 3.01-3.02" /></>,
-  MOCKUPS_4K: <><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /><path d="m9 10 2 2 4-4" /></>,
-  PRODUCT_SYNTH: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></>,
-  FLASH_SPARK: <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></>,
-  MEDIA_VAULT: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
-  BRAND_DNA: <><path d="M2 15c6.667-6 13.333 0 20-6" /><path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993" /><path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993" /><path d="m17 6-2.5-2.5" /><path d="m14 8-1-1" /><path d="m7 18 2.5 2.5" /><path d="m3.5 14.5.5.5" /><path d="m20 9 .5.5" /><path d="m6.5 12.5 1 1" /><path d="m16.5 10.5 1 1" /><path d="m10 16 1.5 1.5" /></>,
-
-  // STUDIO
-  VIDEO_PITCH: <><path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14v-4z" /><rect x="3" y="6" width="12" height="12" rx="2" /></>,
-  VIDEO_AI: <><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" /><line x1="7" y1="2" x2="7" y2="22" /><line x1="17" y1="2" x2="17" y2="22" /><line x1="2" y1="12" x2="22" y2="12" /><line x1="2" y1="7" x2="7" y2="7" /><line x1="2" y1="17" x2="7" y2="17" /><line x1="17" y1="17" x2="22" y2="17" /><line x1="17" y1="7" x2="22" y2="7" /></>,
-  CINEMA_INTEL: <><path d="M20.2 6 3 11l-.9-2.4c-.5-1.1.2-2.4 1.3-2.9L13.8 2c1.1-.5 2.4.2 2.9 1.3z" /><path d="m6.2 5.3 3.1 3.9" /><path d="m12.4 3.4 3.1 4" /><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" /></>,
-  MOTION_LAB: <><path d="M12 2v4" /><path d="m16.2 7.8 2.9-2.9" /><path d="M18 12h4" /><path d="m16.2 16.2 2.9 2.9" /><path d="M12 18v4" /><path d="m4.9 19.1 2.9-2.9" /><path d="M2 12h4" /><path d="m4.9 4.9 2.9 2.9" /></>,
-  SONIC_STUDIO: <><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></>,
-  LIVE_SCRIBE: <><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></>,
-
-  // SELL
-  BUSINESS_ORCHESTRATOR: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></>,
-  PROPOSALS: <><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></>,
-  ROI_CALC: <><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="M16 10h.01" /><path d="M12 10h.01" /><path d="M8 10h.01" /><path d="M12 14h.01" /><path d="M8 14h.01" /><path d="M12 18h.01" /><path d="M8 18h.01" /></>,
-  SEQUENCER: <><line x1="6" y1="3" x2="6" y2="21" /><circle cx="6" cy="3" r="3" /><circle cx="6" cy="21" r="3" /><path d="M22 6H9" /><path d="M22 18H9" /><path d="M16 12H9" /></>,
-  DECK_ARCH: <><rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></>,
-  DEMO_SANDBOX: <><path d="M12 8V4H8" /><rect x="4" y="8" width="16" height="12" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></>,
-  DRAFTING: <><path d="m15 15 6 6" /><path d="M4 4 15 15" /><path d="M4 20h16" /><path d="m20 4-5 5" /><path d="m4 20 5-5" /></>,
-  VOICE_STRAT: <><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></>,
-  AI_CONCIERGE: <><rect x="3" y="11" width="18" height="10" rx="2" /><circle cx="12" cy="5" r="2" /><path d="M12 7v4" /><line x1="8" y1="16" x2="8" y2="16" /><line x1="16" y1="16" x2="16" y2="16" /></>,
-  PITCH_GEN: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /><path d="M8 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" /><path d="M12 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" /><path d="M16 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" /></>,
-  FUNNEL_MAP: <><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></>,
-
-  // CONTROL
-  PLAYBOOK: <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></>,
-  BILLING: <><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></>,
-  AFFILIATE: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></>,
-  IDENTITY: <><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>,
-  OS_FORGE: <><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></>,
-  EXPORT_DATA: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>,
-  CALENDAR: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>,
-  PROD_LOG: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14 2z" /><polyline points="14 2 14 8 20 8" /><line x1="12" y1="18" x2="12" y2="12" /><line x1="9" y1="15" x2="15" y2="15" /></>,
-  SETTINGS: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></>,
-  NEXUS_GRAPH: <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></>,
-  CHRONOS: <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>,
-  TASKS: <><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" /><path d="m9 12 2 2 4-4" /></>,
-  THEME: <><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></>,
-  TOKENS: <><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 10.5h20" /><path d="M2 21v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8" /><path d="M18 11V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v5" /><path d="M6 11V6" /><path d="M18 11V6" /></>
-};
-
-const ModuleIcon = ({ id, className }: { id: string, className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    {MODULE_ICONS[id] || <circle cx="12" cy="12" r="10" />}
-  </svg>
-);
-
 const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: string; desc: string }[]>> = {
   OPERATE: {
     "Research": [
@@ -224,6 +150,7 @@ const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: str
         { id: 'CHRONOS', label: 'Chronos', desc: 'Timeline view' },
         { id: 'NEXUS_GRAPH', label: 'Nexus Graph', desc: 'Entity relationship view' },
         { id: 'TASKS', label: 'Tasks', desc: 'Mission checklist' },
+        { id: 'MODEL_TEST', label: 'Logic Verifier', desc: 'Stress test orchestrator logic' },
     ]
   }
 };
@@ -234,6 +161,68 @@ const MODE_CONFIG: Record<MainMode, any> = {
   STUDIO: { color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
   SELL: { color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
   CONTROL: { color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+};
+
+const ModuleIcon = ({ id, className }: { id: string, className?: string }) => {
+  const paths: Record<string, React.ReactNode> = {
+    'COMMAND': <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM9 22V12h6v10" />,
+    'RADAR_RECON': <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm0-14a2 2 0 1 0 2 2 2 2 0 0 0-2-2z" />,
+    'AUTO_CRAWL': <path d="M21 11a9 9 0 0 0-9-9 9.7 9.7 0 0 0-6.74 2.74L3 7m0 0V3m0 4h4m14 6a9 9 0 0 1-9 9 9.7 9.7 0 0 1-6.74-2.74L3 17m0 0v4m0-4h4" />,
+    'VIRAL_PULSE': <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />,
+    'TARGET_LIST': <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 16a6 6 0 1 1 6-6 6 6 0 0 1-6 6zm0-10a4 4 0 1 0 4 4 4 4 0 0 0-4-4z" />,
+    'WAR_ROOM': <path d="M14.5 17.5L3 6V3h3l11.5 11.5M10.5 13.5l1.5-1.5M13.5 10.5l1.5-1.5" />,
+    'PIPELINE': <path d="M4 6h16M4 12h16M4 18h16" />,
+    'ANALYTICS_HUB': <path d="M12 20V10M18 20V4M6 20v-4" />,
+    'BENCHMARK': <path d="M2 12h20M2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6M2 12V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6" />,
+    'VISION_LAB': <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z" />,
+    'DEEP_LOGIC': <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />,
+    'ARTICLE_INTEL': <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />,
+    'WORKSPACE': <path d="M3 3h18v18H3z" />,
+    'PROMPT_AI': <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />,
+    'MODEL_TEST': <path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.641.32a2 2 0 01-1.76 0l-.641-.32a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547V18a2 2 0 002 2h12a2 2 0 002-2v-2.572zM12 11V3.5l3 3m-3-3l-3 3" />,
+    'TRANSLATOR': <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zM12 6v6l4 2" />,
+    'VISUAL_STUDIO': <path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l5 5" />,
+    'BRAND_DNA': <path d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" />,
+    'MOCKUPS_4K': <path d="M2 13h20M2 13v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6M2 13V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8" />,
+    'PRODUCT_SYNTH': <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />,
+    'FLASH_SPARK': <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />,
+    'MEDIA_VAULT': <path d="M12 2a10 10 0 0110 10v8H2v-8A10 10 0 0112 2z" />,
+    'VIDEO_PITCH': <path d="M23 7l-7 5 7 5V7z" />,
+    'VIDEO_AI': <path d="M4 2v20h16V2H4zm0 4h16" />,
+    'CINEMA_INTEL': <path d="M4 2v20h16V2H4zm0 4h16M4 18h16" />,
+    'MOTION_LAB': <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />,
+    'SONIC_STUDIO': <path d="M9 18V5l12-2v13" />,
+    'LIVE_SCRIBE': <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />,
+    'BUSINESS_ORCHESTRATOR': <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 4.5A2.5 2.5 0 0 1 6.5 7H20v10H6.5" />,
+    'DECK_ARCH': <path d="M2 22v-8h8v8H2zm12 0v-8h8v8h-8zM2 10V2h8v8H2zm12 0V2h8v8h-8z" />,
+    'FUNNEL_MAP': <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />,
+    'PROPOSALS': <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />,
+    'SEQUENCER': <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />,
+    'PITCH_GEN': <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />,
+    'VOICE_STRAT': <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />,
+    'ROI_CALC': <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />,
+    'DEMO_SANDBOX': <path d="M12 2L2 7l10 5 10-5-10-5z" />,
+    'AI_CONCIERGE': <path d="M12 2a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-2H8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2V4a2 2 0 0 1 2-2z" />,
+    'PLAYBOOK': <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />,
+    'IDENTITY': <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />,
+    'BILLING': <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />,
+    'AFFILIATE': <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5" />,
+    'SETTINGS': <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />,
+    'OS_FORGE': <path d="M2 12h20" />,
+    'THEME': <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+    'TOKENS': <path d="M3 6v12h18V6H3zm9 10a2 2 0 100-4 2 2 0 000 4z" />,
+    'EXPORT_DATA': <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />,
+    'PROD_LOG': <path d="M3 6h18M3 12h18M3 18h18" />,
+    'CHRONOS': <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />,
+    'NEXUS_GRAPH': <path d="M4 4h16v16H4z" />,
+    'TASKS': <path d="M9 11l3 3L22 4" />
+  };
+
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {paths[id] || <circle cx="12" cy="12" r="10" />}
+    </svg>
+  );
 };
 
 export const LayoutZenith: React.FC<LayoutProps> = ({ 

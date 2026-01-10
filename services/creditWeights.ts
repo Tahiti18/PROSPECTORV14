@@ -1,3 +1,4 @@
+
 export const CREDIT_WEIGHTS: Record<string, number> = {
   // Tier A — Closers
   PROPOSALS: 13,
@@ -17,6 +18,7 @@ export const CREDIT_WEIGHTS: Record<string, number> = {
   WORKSPACE: 5,
   VIDEO_AI: 5,
   CINEMA_INTEL: 5,
+  GENERATE_VISUAL_ASSETS: 5,
 
   // Tier D
   VISION_LAB: 3,
