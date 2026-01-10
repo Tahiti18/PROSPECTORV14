@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { generateLeads } from '../../services/geminiService';
@@ -15,10 +14,6 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
   const [leadCount, setLeadCount] = useState(6);
 
   const handleScan = async () => {
-    if (!process.env.API_KEY) {
-      alert("SYSTEM ERROR: API Key is missing.");
-      return;
-    }
     setLoading(true);
     try {
       const [result] = await Promise.all([
@@ -40,9 +35,9 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
         groundingSources: result.groundingSources || []
       }));
       onLeadsGenerated(formattedLeads);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert(`Discovery failed.`);
+      alert(`Discovery failed: ${e.message || 'Check connection'}`);
     } finally {
       setLoading(false);
     }

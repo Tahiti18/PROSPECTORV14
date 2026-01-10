@@ -1,6 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Lead } from '../types';
-import { logAiOperation, uuidLike } from './usageLogger';
 
 // --- TYPES ---
 export interface BenchmarkReport {
@@ -26,7 +25,6 @@ export interface AssetRecord {
   metadata?: any;
 }
 
-// Added VeoConfig for video generation
 export interface VeoConfig {
   aspectRatio: '16:9' | '9:16';
   resolution: '720p' | '1080p';
@@ -41,7 +39,6 @@ const assetListeners = new Set<(assets: AssetRecord[]) => void>();
 export const pushLog = (msg: string) => {
   PRODUCTION_LOGS.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
   if (PRODUCTION_LOGS.length > 200) PRODUCTION_LOGS.pop();
-  console.log(`[SYSTEM] ${msg}`);
 };
 
 export const subscribeToAssets = (listener: (assets: AssetRecord[]) => void) => {
@@ -50,17 +47,17 @@ export const subscribeToAssets = (listener: (assets: AssetRecord[]) => void) => 
   return () => { assetListeners.delete(listener); };
 };
 
+const uuidLike = () => Math.random().toString(36).substring(2, 15);
+
 export const saveAsset = (type: any, title: string, data: string, module?: string, leadId?: string, metadata?: any) => {
   const asset: AssetRecord = { id: uuidLike(), type, title, data, module, leadId, timestamp: Date.now(), metadata };
   SESSION_ASSETS.unshift(asset);
   assetListeners.forEach(l => l([...SESSION_ASSETS]));
-  pushLog(`ASSET SAVED: ${title}`);
   return asset;
 };
 
 /**
  * MANDATORY KEY SELECTION LOGIC
- * For high-quality/Veo models, user must have selected a paid key.
  */
 const ensureKey = async () => {
   // @ts-ignore
@@ -70,13 +67,11 @@ const ensureKey = async () => {
   }
 };
 
-// Added getAI to centralize GoogleGenAI initialization
-export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 // --- CORE SERVICE FUNCTIONS ---
 
 export const generateLeads = async (region: string, niche: string, count: number) => {
-  const ai = getAI();
+  // Instantiate right before call as per rules
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `Generate ${count} B2B leads for "${niche}" in "${region}". Return JSON array. Each: businessName, websiteUrl, city, niche, leadScore (0-100), assetGrade (A/B/C), socialGap, visualProof, bestAngle, personalizedHook.`,
@@ -86,7 +81,7 @@ export const generateLeads = async (region: string, niche: string, count: number
 };
 
 export const fetchLiveIntel = async (lead: any, module: string) => {
-  const ai = getAI();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: `Analyze ${lead.websiteUrl}. Return JSON with missionSummary, visualStack[], sonicStack[], featureGap, businessModel, designSystem, deepArchitecture.`,
@@ -100,7 +95,7 @@ export const fetchLiveIntel = async (lead: any, module: string) => {
 };
 
 export const generateVisual = async (p: string, l: any, editImage?: string) => {
-  const ai = getAI();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   let contents: any = p;
   
   if (editImage) {
@@ -119,9 +114,8 @@ export const generateVisual = async (p: string, l: any, editImage?: string) => {
     contents,
   });
 
-  const candidates = response.candidates;
-  if (candidates && candidates.length > 0 && candidates[0].content && candidates[0].content.parts) {
-    for (const part of candidates[0].content.parts) {
+  if (response.candidates?.[0]?.content?.parts) {
+    for (const part of response.candidates[0].content.parts) {
       if (part.inlineData) {
         const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
         saveAsset('IMAGE', `Visual: ${p.slice(0, 20)}`, imageUrl, 'VISUAL_STUDIO', l?.id);
@@ -132,7 +126,6 @@ export const generateVisual = async (p: string, l: any, editImage?: string) => {
   return null;
 };
 
-// Updated generateVideoPayload to handle extension, multi-ref, and correct model selection
 export const generateVideoPayload = async (
   prompt: string, 
   id?: string, 
@@ -143,7 +136,7 @@ export const generateVideoPayload = async (
   inputVideo?: string
 ) => {
   await ensureKey();
-  const ai = getAI();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const videoConfig: any = {
     numberOfVideos: 1,
@@ -152,13 +145,11 @@ export const generateVideoPayload = async (
   };
 
   const isMultiRef = referenceImages && referenceImages.length > 0;
-  const isExtension = !!inputVideo;
-
-  const model = isMultiRef || isExtension ? 'veo-3.1-generate-preview' : (config?.modelStr || 'veo-3.1-fast-generate-preview');
+  const model = isMultiRef ? 'veo-3.1-generate-preview' : (config?.modelStr || 'veo-3.1-fast-generate-preview');
 
   const payload: any = {
-    model: model,
-    prompt: prompt,
+    model,
+    prompt,
     config: videoConfig
   };
 
@@ -167,29 +158,6 @@ export const generateVideoPayload = async (
       imageBytes: startImg.includes(',') ? startImg.split(',')[1] : startImg, 
       mimeType: startImg.includes(';') ? startImg.split(';')[0].split(':')[1] : 'image/png' 
     };
-  }
-
-  if (endImg) {
-    payload.config.lastFrame = {
-      imageBytes: endImg.includes(',') ? endImg.split(',')[1] : endImg,
-      mimeType: endImg.includes(';') ? endImg.split(';')[0].split(':')[1] : 'image/png'
-    };
-  }
-
-  if (isMultiRef) {
-    payload.config.referenceImages = referenceImages!.map(img => ({
-      image: {
-        imageBytes: img.includes(',') ? img.split(',')[1] : img,
-        mimeType: img.includes(';') ? img.split(';')[0].split(':')[1] : 'image/png'
-      },
-      referenceType: 'ASSET'
-    }));
-    payload.config.resolution = '720p';
-    payload.config.aspectRatio = '16:9';
-  }
-
-  if (isExtension) {
-    // inputVideo is assumed to be base64 for simulation, or the URI/object if implemented fully
   }
 
   try {
@@ -216,9 +184,8 @@ export const generateVideoPayload = async (
   return null;
 };
 
-// Added generateAudioPitch for TTS support
 export const generateAudioPitch = async (text: string, voice: string, leadId?: string) => {
-  const ai = getAI();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-preview-tts",
     contents: [{ parts: [{ text }] }],
@@ -232,70 +199,19 @@ export const generateAudioPitch = async (text: string, voice: string, leadId?: s
     },
   });
   const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-  const base64Audio = part?.inlineData?.data;
-  if (base64Audio) {
-    const audioUrl = `data:audio/pcm;base64,${base64Audio}`;
+  if (part?.inlineData?.data) {
+    const audioUrl = `data:audio/pcm;base64,${part.inlineData.data}`;
     saveAsset('AUDIO', `Audio: ${text.slice(0, 20)}`, audioUrl, 'SONIC_STUDIO', leadId);
     return audioUrl;
   }
   return null;
 };
 
-// Added generateLyrics for creative audio support
-export const generateLyrics = async (lead: Lead, prompt: string, type: string) => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Write lyrics/script for a ${type} for ${lead.businessName}. Style: ${prompt}.`,
-  });
-  return response.text || "";
-};
-
-// Added generateSonicPrompt for audio strategy
-export const generateSonicPrompt = async (lead: Lead) => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Generate a sonic brand prompt for ${lead.businessName} (${lead.niche}). Return only the prompt string.`,
-  });
-  return response.text || "";
-};
-
-// Added enhanceVideoPrompt for director console
-export const enhanceVideoPrompt = async (prompt: string) => {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Enhance this video generation prompt for cinematic quality: "${prompt}". Return only the enhanced prompt string.`,
-  });
-  return response.text || "";
-};
-
-// Added generateMockup for 4K Mockups module
-export const generateMockup = async (businessName: string, niche: string, leadId?: string) => {
-  const ai = getAI();
-  const prompt = `A professional 4k photorealistic mockup of a brand package for ${businessName} in the ${niche} industry. High resolution, studio lighting.`;
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: prompt,
-  });
-  const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-  if (part?.inlineData) {
-    const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-    saveAsset('IMAGE', `Mockup: ${businessName}`, imageUrl, 'MOCKUPS_4K', leadId);
-    return imageUrl;
-  }
-  return null;
-};
-
-// --- STUBS FOR OTHER APP FUNCTIONALITY ---
+// --- STUBS & UTILS ---
+export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 export const loggedGenerateContent = async (opts: any) => {
-  const ai = getAI();
-  const res = await ai.models.generateContent({ 
-    model: opts.model, 
-    contents: opts.contents, 
-    config: opts.config
-  });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const res = await ai.models.generateContent({ model: opts.model, contents: opts.contents, config: opts.config });
   return res.text || "";
 };
 
@@ -330,10 +246,14 @@ export const analyzeVideoUrl = async (u: string, p: string, id?: string) => "Ana
 export const synthesizeArticle = async (s: string, m: string) => "Synthesis...";
 export const fetchTokenStats = async () => ({ recentOps: [] });
 export const testModelPerformance = async (m: string, p: string) => {
-  const ai = getAI();
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const res = await ai.models.generateContent({ model: m, contents: p });
   return res.text || "";
 };
+export const enhanceVideoPrompt = async (p: string) => p;
+export const generateLyrics = async (l: any, p: string, t: string) => "Lyrics...";
+export const generateSonicPrompt = async (l: any) => "Sonic prompt...";
+export const generateMockup = async (b: string, n: string, id?: string) => null;
 export const deleteAsset = (id: string) => {};
 export const clearVault = () => {};
 export const importVault = (a: any) => 0;
