@@ -28,8 +28,8 @@ export class AutomationOrchestrator {
       const leads = db.getLeads();
       let selectedLead = targetLeadId ? leads.find(l => l.id === targetLeadId) : leads.filter(l => !l.locked && l.status !== 'won').sort((a, b) => b.leadScore - a.leadScore)[0];
       
-      if (!selectedLead) throw new Error("No eligible lead.");
-      if (selectedLead.locked) throw new Error("Lead locked.");
+      if (!selectedLead) throw new Error("No eligible lead found in database. Search for leads first.");
+      if (selectedLead.locked) throw new Error("This lead is currently being processed by another task.");
 
       const now = Date.now();
       const updatedLeads = leads.map(l => l.id === selectedLead!.id ? { ...l, locked: true, lockedAt: now, lockedByRunId: runId, lockExpiresAt: now + (30 * 60 * 1000) } : l);
@@ -99,7 +99,7 @@ export class AutomationOrchestrator {
       }
 
       const targetLead = db.getLeads().find(l => l.id === run!.leadId);
-      if (!targetLead) throw new Error("Lead missing from database.");
+      if (!targetLead) throw new Error("Target lead disconnected from session.");
 
       const runMode = (run as any).mode || 'full';
 
@@ -215,7 +215,7 @@ export class AutomationOrchestrator {
 
             case 'GenerateVideoScripts':
               result = await Steps.generateVideoScripts(context.strategy, runCtx);
-              context.videoScripts = result.data;
+              context.videoScripts = result.data; // FIXED ASSIGNMENT
               this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
               break;
 
@@ -281,11 +281,10 @@ export class AutomationOrchestrator {
           step.completedAt = Date.now();
         } catch (e: any) {
           step.status = 'failed';
-          // Ensure we extract the most useful error message
           const finalErr = e.message || e.error || (typeof e === 'string' ? e : "Internal Orchestration Error");
           step.error = finalErr;
           run.status = 'failed';
-          run.errorSummary = `Step '${step.name}' failed: ${finalErr}`;
+          run.errorSummary = `Protocol terminated at '${step.name}': ${finalErr}`;
           db.saveRun(run);
           return;
         }
