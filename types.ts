@@ -67,7 +67,7 @@ export interface BrandIdentity {
 export interface CreativeAsset {
   id: string;
   type: 'static' | 'motion';
-  angle: 'PURIST' | 'STORY' | 'VALUE' | 'ABSTRACT';
+  angle: 'PURIST' | 'STORY' | 'VALUE' | 'ABSTRACT' | 'PRODUCT' | 'LIFESTYLE';
   imageUrl: string;
   videoUrl?: string;
   headline: string;

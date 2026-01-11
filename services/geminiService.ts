@@ -1,9 +1,10 @@
+
 import { Lead } from '../types';
 
 // --- CONFIGURATION: OPENROUTER HARD-LOCK ---
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-// Gemini 3.0 Flash is the absolute speed king for Prospector OS
-const PRIMARY_MODEL = "google/gemini-3-flash-preview"; 
+// Gemini 2.0 Flash is the industry leader for "Next-Gen" latency performance
+const PRIMARY_MODEL = "google/gemini-2.0-flash-001"; 
 
 // --- TYPES ---
 export interface AssetRecord {
@@ -83,15 +84,19 @@ const extractJson = (text: string) => {
 
 /**
  * OPENROUTER REST GATEWAY
- * Uses standard fetch to ensure zero cookie dependency for Railway/Cloud compatibility.
- * Fixed 401 by targeting OPENROUTER_API_KEY explicitly.
+ * Fixed 401 error by validating the API Key existence before the request.
+ * Uses process.env.OPENROUTER_API_KEY injected during build.
  */
 export const openRouterChat = async (prompt: string, system?: string) => {
   const systemInstruction = system || "You are the Prospector OS Intel Engine. Focus on high-ticket B2B growth. Output raw, valid JSON ONLY.";
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
+  
+  // Robust key retrieval from the injected process.env object
+  const apiKey = (process.env.OPENROUTER_API_KEY || process.env.API_KEY || "").trim();
 
-  if (!apiKey || apiKey === "undefined") {
-    throw new Error("Missing OpenRouter API Key in environment.");
+  if (!apiKey || apiKey === "undefined" || apiKey.length < 5) {
+    const faultMsg = "Authentication failed: API Key missing or incorrectly injected into Railway bundle.";
+    pushLog(`AUTH_CRITICAL: ${faultMsg}`);
+    throw new Error(faultMsg);
   }
 
   try {
@@ -114,7 +119,8 @@ export const openRouterChat = async (prompt: string, system?: string) => {
 
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(`OpenRouter Error (${response.status}): ${err.error?.message || 'Unauthorized'}`);
+        const statusMsg = err.error?.message || response.statusText || 'Unauthorized';
+        throw new Error(`OpenRouter Error (${response.status}): ${statusMsg}`);
     }
 
     const data = await response.json();
@@ -136,7 +142,7 @@ export const executeIntelligenceTask = async (prompt: string, system?: string) =
 // --- CORE DISCOVERY ---
 
 export const generateLeads = async (region: string, niche: string, count: number) => {
-  pushLog(`RECON: Scanning ${region} for ${niche} via OpenRouter 3.0 Flash Tier...`);
+  pushLog(`RECON: Scanning ${region} for ${niche} via OpenRouter 2.0 Flash Tier...`);
   
   const prompt = `Find ${count} high-ticket B2B leads in ${region} for ${niche}. 
     Return JSON: { "leads": [{ "businessName": "", "websiteUrl": "", "city": "", "niche": "", "leadScore": 0, "assetGrade": "A", "socialGap": "" }] }`;
@@ -146,7 +152,7 @@ export const generateLeads = async (region: string, niche: string, count: number
     const parsed = JSON.parse(jsonStr);
     return { leads: parsed.leads || [], groundingSources: [] };
   } catch (e: any) {
-    console.error("Discovery Sync Error:", e);
+    console.error("Discovery Engine Sync Failure:", e);
     throw new Error(`Lead stream synchronization failure: ${e.message}`);
   }
 };
@@ -330,7 +336,6 @@ export const generateMotionLabConcept = async (lead: Lead) => {
 
 export const generateVisual = async (prompt: string, lead: any, editImage?: string) => {
   pushLog(`VISUAL: Initiating NKIE Visual Synthesis for ${prompt.slice(0, 20)}...`);
-  // Routed to KIE visual engine via production proxy
   return null; 
 };
 
@@ -343,14 +348,12 @@ export const generateVideoPayload = async (
   referenceImages?: string[],
   inputVideo?: string
 ) => {
-  pushLog(`VIDEO: Initiating NKIE Video Protocol (VEO 3.1 Tier)...`);
-  // Proxied to /api/kie/video
+  pushLog(`VIDEO: Initiating NKIE Video Protocol...`);
   return null;
 };
 
 export const generateAudioPitch = async (text: string, voice: string, leadId?: string) => {
     pushLog(`AUDIO: Initiating KIE Suno V4.5 Protocol...`);
-    // Routes to suno via proxy
     return null;
 };
 
@@ -358,7 +361,6 @@ export const generateMockup = async (name: string, niche: string, leadId?: strin
   return await generateVisual(`4K Billboard mockup for ${name}`, { id: leadId });
 };
 
-// SDK COMPLETELY PURGED TO FIX RAILWAY BUILD
 export const getAI = () => null; 
 
 export const deleteAsset = (id: string) => {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead, CreativeAsset, Campaign, BrandIdentity } from '../../types';
 import { extractBrandDNA, generateVisual, saveAsset, generateVideoPayload, loggedGenerateContent, getAI } from '../../services/geminiService';
@@ -140,7 +141,7 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
       setView('CAMPAIGN');
 
       const timestamp = Date.now();
-      const angles = ['STORY', 'PRODUCT', 'LIFESTYLE', 'ABSTRACT'];
+      const angles: Array<CreativeAsset['angle']> = ['STORY', 'PRODUCT', 'LIFESTYLE', 'ABSTRACT'];
       
       try {
           const promises = angles.map(async (angle, idx) => {
@@ -149,21 +150,21 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
               
               if (!imgUrl) return null;
 
-              return {
+              const asset: CreativeAsset = {
                   id: `creative-${timestamp}-${idx}`,
-                  type: 'static' as const,
-                  angle: angle as any,
+                  type: 'static',
+                  angle: angle,
                   imageUrl: imgUrl,
                   headline: idx === 0 ? concept.title : activeEntity.businessName,
                   subhead: concept.hook.slice(0, 40) + "...",
                   cta: "Shop Now",
-                  status: 'ready' as const
+                  status: 'ready'
               };
+              return asset;
           });
 
           const results = await Promise.all(promises);
-          // Using type assertion after filtering to resolve incompatibility between the inferred result type and CreativeAsset
-          const validAssets = results.filter((r) => r !== null) as CreativeAsset[];
+          const validAssets = results.filter((r): r is CreativeAsset => r !== null);
 
           const newCampaign: Campaign = {
               id: `camp-${timestamp}`,

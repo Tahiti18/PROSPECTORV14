@@ -1,3 +1,4 @@
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -24,15 +25,15 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
 
       // Read API key from env (support both names)
       const KIE_KEY =
-        process.env.KIE_KEY ||
-        env.KIE_KEY ||
         process.env.KIE_API_KEY ||
-        env.KIE_API_KEY;
+        env.KIE_API_KEY ||
+        process.env.KIE_KEY ||
+        env.KIE_KEY;
 
       if (!KIE_KEY) {
         res.statusCode = 500;
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'Server configuration error: Missing KIE_KEY' }));
+        res.end(JSON.stringify({ error: 'Server configuration error: Missing KIE_API_KEY' }));
         return;
       }
 
@@ -79,7 +80,6 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return sendJson(upstreamRes.status, {
           _debug_upstreamStatus: upstreamRes.status,
           _debug_upstreamUrl: upstreamUrl,
-          _debug_raw: rawText,
           ...parsed
         });
       }
@@ -137,9 +137,15 @@ export default defineConfig(() => {
       }
     ],
     define: {
-      'process.env.OPENROUTER_API_KEY': JSON.stringify(process.env.OPENROUTER_API_KEY || process.env.API_KEY),
-      'process.env.KIE_API_KEY': JSON.stringify(process.env.KIE_API_KEY || process.env.KIE_KEY),
-      'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
+      'process.env.OPENROUTER_API_KEY': JSON.stringify(env.OPENROUTER_API_KEY || env.API_KEY || ""),
+      'process.env.KIE_API_KEY': JSON.stringify(env.KIE_API_KEY || env.KIE_KEY || ""),
+      'process.env.API_KEY': JSON.stringify(env.API_KEY || ""),
+      // Fallback object to prevent property access errors
+      'process.env': JSON.stringify({
+        OPENROUTER_API_KEY: env.OPENROUTER_API_KEY || env.API_KEY || "",
+        KIE_API_KEY: env.KIE_API_KEY || env.KIE_KEY || "",
+        API_KEY: env.API_KEY || ""
+      })
     },
     server: {
       host: '0.0.0.0',
