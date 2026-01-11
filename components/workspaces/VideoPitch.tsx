@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Lead } from '../../types';
 import { generateVideoPayload, enhanceVideoPrompt, VeoConfig, subscribeToAssets, AssetRecord, deleteAsset } from '../../services/geminiService';
@@ -114,12 +115,21 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
         return;
     }
     
+    // Check for API Key as per guidelines for Veo models
+    // @ts-ignore
+    const hasKey = await window.aistudio.hasSelectedApiKey();
+    if (!hasKey) {
+        // @ts-ignore
+        await window.aistudio.openSelectKey();
+        // Proceeding assuming user selecting a key successfully (mitigating race condition)
+    }
+
     setIsGenerating(true);
     setVideoUrl(null);
     setError(null);
     
     try {
-      // Direct call to KIE-powered function
+      // Direct call to updated signature (Fixes argument mismatch error 129)
       const url = await generateVideoPayload(
         prompt, 
         lead?.id, 
@@ -144,8 +154,15 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
       console.error(e);
       // Display detailed error in UI
       const msg = e.message || "Unknown error occurred.";
-      setError(msg);
-      alert(`Generation Failed: ${msg}`);
+      
+      // Handle "Requested entity was not found" by prompting key selection as per guidelines
+      if (msg.includes("Requested entity was not found.")) {
+          // @ts-ignore
+          await window.aistudio.openSelectKey();
+      } else {
+          setError(msg);
+          alert(`Generation Failed: ${msg}`);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -222,6 +239,20 @@ export const VideoPitch: React.FC<VideoPitchProps> = ({ lead }) => {
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-3 italic">
             {lead ? `TARGET: ${lead.businessName} • AI DIRECTOR` : 'SANDBOX MODE • CREATIVE SUITE'}
           </p>
+        </div>
+        
+        {/* Billing link as per guidelines */}
+        <div className="flex items-center gap-4">
+            <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors">
+                Billing Docs
+            </a>
+            <button 
+                // @ts-ignore
+                onClick={() => window.aistudio.openSelectKey()} 
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border border-slate-700"
+            >
+                Switch API Key
+            </button>
         </div>
       </div>
 
