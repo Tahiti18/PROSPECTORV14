@@ -163,7 +163,7 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
                   id: `creative-${timestamp}-${idx}`,
                   type: 'static',
                   angle: angle,
-                  imageUrl: imgUrl,
+                  imageUrl: imgUrl || 'https://via.placeholder.com/1080x1920/6366f1/ffffff?text=Visual+Generation+Coming+Soon',
                   headline: idx === 0 ? concept.title : (idx === 1 ? "Discover." : (idx === 2 ? "The New Standard." : activeEntity.businessName)),
                   subhead: concept.hook.slice(0, 40) + "...",
                   cta: "Shop Now",
