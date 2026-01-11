@@ -1,4 +1,5 @@
-import { defineConfig } from 'vite';
+
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'http';
 
@@ -18,16 +19,9 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     try {
       const url = req.url || '';
-
-      // Only proxy routes under /api/kie/suno
       if (!url.startsWith('/api/kie/suno')) return next();
 
-      // Read API key from env (support both names)
-      const KIE_KEY =
-        process.env.KIE_API_KEY ||
-        env.KIE_API_KEY ||
-        process.env.KIE_KEY ||
-        env.KIE_KEY;
+      const KIE_KEY = env.KIE_API_KEY || env.KIE_KEY || process.env.KIE_API_KEY;
 
       if (!KIE_KEY) {
         res.statusCode = 500;
@@ -37,7 +31,6 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
       }
 
       const KIE_GENERATE_BASE = 'https://api.kie.ai/api/v1/generate';
-
       const readBody = async () => {
         const buffers: any[] = [];
         for await (const chunk of req) buffers.push(chunk);
@@ -50,22 +43,9 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         res.end(JSON.stringify(data));
       };
 
-      const safeJson = (rawText: string) => {
-        try {
-          return JSON.parse(rawText);
-        } catch {
-          return { error: 'Upstream returned non-JSON response', raw: rawText };
-        }
-      };
-
-      if (
-        req.method === 'POST' &&
-        (url.includes('/suno_submit') || url.endsWith('/submit') || url.includes('/submit?'))
-      ) {
+      if (req.method === 'POST' && (url.includes('/suno_submit') || url.endsWith('/submit'))) {
         const bodyStr = await readBody();
-        const upstreamUrl = `${KIE_GENERATE_BASE}`;
-
-        const upstreamRes = await fetch(upstreamUrl, {
+        const upstreamRes = await fetch(KIE_GENERATE_BASE, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -73,54 +53,34 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
           },
           body: bodyStr
         });
-
-        const rawText = await upstreamRes.text();
-        const parsed = safeJson(rawText);
-        return sendJson(upstreamRes.status, {
-          _debug_upstreamStatus: upstreamRes.status,
-          _debug_upstreamUrl: upstreamUrl,
-          ...parsed
-        });
+        const parsed = await upstreamRes.json().catch(() => ({}));
+        return sendJson(upstreamRes.status, parsed);
       }
 
-      if (
-        req.method === 'GET' &&
-        (url.includes('/status/') || url.startsWith('/api/kie/suno/record-info'))
-      ) {
-        let taskId = '';
-
-        if (url.includes('/status/')) {
-          const parts = url.split('/');
-          taskId = parts[parts.length - 1] || '';
-        } else {
-          const u = new URL(`http://local${url}`);
-          taskId = u.searchParams.get('taskId') || '';
-        }
-
-        if (!taskId) return sendJson(400, { error: 'Missing taskId' });
-
-        const upstreamUrl = `${KIE_GENERATE_BASE}/record-info?taskId=${encodeURIComponent(taskId)}`;
-
+      if (req.method === 'GET' && (url.includes('/status/') || url.includes('/record-info'))) {
+        const u = new URL(req.url!, `http://${req.headers.host}`);
+        const taskId = u.pathname.split('/').pop() || u.searchParams.get('taskId');
+        const upstreamUrl = `${KIE_GENERATE_BASE}/record-info?taskId=${encodeURIComponent(taskId || '')}`;
         const upstreamRes = await fetch(upstreamUrl, {
-          method: 'GET',
           headers: { 'Authorization': `Bearer ${KIE_KEY}` }
         });
-
-        const rawText = await upstreamRes.text();
-        return sendJson(upstreamRes.status, safeJson(rawText));
+        const parsed = await upstreamRes.json().catch(() => ({}));
+        return sendJson(upstreamRes.status, parsed);
       }
 
-      return sendJson(404, { error: 'Route not found in KIE Proxy', path: url });
+      return sendJson(404, { error: 'Route not found in KIE Proxy' });
     } catch (e: any) {
       res.statusCode = 500;
-      res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify({ error: e?.message || 'Internal Proxy Error' }));
     }
   };
 };
 
-export default defineConfig(() => {
-  const env = process.env;
+export default defineConfig(({ mode }) => {
+  // Load env file based on `mode` in the current working directory.
+  // Set the third parameter to '' to load all envs regardless of the `VITE_` prefix.
+  // Fix: Cast process to any to resolve 'cwd' not existing on type 'Process' in certain TypeScript environments.
+  const env = loadEnv(mode, (process as any).cwd(), '');
 
   return {
     plugins: [
@@ -128,15 +88,14 @@ export default defineConfig(() => {
       {
         name: 'kie-proxy-server',
         configureServer(server) {
-          server.middlewares.use(createKieProxyMiddleware(env as Record<string, string>));
+          server.middlewares.use(createKieProxyMiddleware(env));
         },
         configurePreviewServer(server) {
-          server.middlewares.use(createKieProxyMiddleware(env as Record<string, string>));
+          server.middlewares.use(createKieProxyMiddleware(env));
         }
       }
     ],
     define: {
-      // EXPLICIT BAKE: Ensures these are injected directly into the JS bundle at build time
       'process.env.OPENROUTER_API_KEY': JSON.stringify(env.OPENROUTER_API_KEY || env.API_KEY || ""),
       'process.env.KIE_API_KEY': JSON.stringify(env.KIE_API_KEY || env.KIE_KEY || ""),
       'process.env.API_KEY': JSON.stringify(env.API_KEY || ""),
