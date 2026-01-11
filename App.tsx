@@ -4,10 +4,6 @@ import { Layout } from './components/Layout';
 import { LayoutCommandCenter } from './components/LayoutCommandCenter';
 import { LayoutZenith } from './components/LayoutZenith';
 import { MissionControl } from './components/workspaces/MissionControl';
-import { ScoringRubricView } from './components/workspaces/ScoringRubricView';
-import { CreateWorkspace } from './components/workspaces/CreateWorkspace';
-import { SellWorkspace } from './components/workspaces/SellWorkspace';
-import { ControlWorkspace } from './components/workspaces/ControlWorkspace';
 import { RadarRecon } from './components/workspaces/RadarRecon';
 import { TargetList } from './components/workspaces/TargetList';
 import { WarRoom } from './components/workspaces/WarRoom';
@@ -73,10 +69,8 @@ const App: React.FC = () => {
   const [lockedLeadId, setLockedLeadId] = useState<string | null>(null);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [compute, setCompute] = useState<ComputeStats | null>(null);
+  const [isArmed, setIsArmed] = useState(() => !!getStoredKeys().openRouter);
   
-  const [isGatewayArmed, setIsGatewayArmed] = useState(() => !!getStoredKeys().openRouter);
-
   // --- SMOKE TEST INTERCEPT ---
   if (typeof window !== 'undefined' && window.location.pathname === '/__smoketest_phase1') {
     return <SmokeTest />;
@@ -93,10 +87,8 @@ const App: React.FC = () => {
     } catch (e) { console.error("Hydration failed", e); }
     setIsHydrated(true);
 
-    const unsubCompute = subscribeToCompute((s) => setCompute(s));
     const unsubDb = db.subscribe((newLeads) => { setLeads(newLeads); });
-
-    return () => { unsubCompute(); unsubDb(); };
+    return () => { unsubDb(); };
   }, []);
 
   useEffect(() => {
@@ -121,8 +113,8 @@ const App: React.FC = () => {
 
   const navigate = (mode: MainMode, mod: SubModule) => { setActiveMode(mode); setActiveModule(mod); };
 
-  if (!isGatewayArmed) {
-    return <SecurityGateway onArmed={() => setIsGatewayArmed(true)} />;
+  if (!isArmed) {
+    return <SecurityGateway onArmed={() => setIsArmed(true)} />;
   }
 
   const renderContent = () => {
@@ -158,7 +150,7 @@ const App: React.FC = () => {
         case 'FLASH_SPARK': return <FlashSpark lead={lockedLead} />;
         case 'MEDIA_VAULT': return <MediaVault />;
         case 'BRAND_DNA': return <BrandDNA lead={lockedLead} onUpdateLead={handleUpdateLead} />;
-        default: return <CreateWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
+        default: return <MissionControl leads={leads} theater={theater} onNavigate={navigate} />;
       }
     }
     if (activeMode === 'STUDIO') {
@@ -176,11 +168,10 @@ const App: React.FC = () => {
       if (activeModule === 'BUSINESS_ORCHESTRATOR') {
         return <BusinessOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={setLockedLeadId} onUpdateLead={handleUpdateLead} />;
       }
-      return <SellWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
+      return <MissionControl leads={leads} theater={theater} onNavigate={navigate} />;
     }
     if (activeMode === 'CONTROL') {
       switch (activeModule) {
-        case 'PLAYBOOK': return <ScoringRubricView />;
         case 'BILLING': return <BillingNode />;
         case 'AFFILIATE': return <AffiliateNode />;
         case 'IDENTITY': return <IdentityNode />;
@@ -195,7 +186,7 @@ const App: React.FC = () => {
         case 'THEME': return <ThemeNode />;
         case 'TOKENS': return <TokenNode />;
         case 'MODEL_TEST': return <VerificationNode />;
-        default: return <ControlWorkspace activeModule={activeModule} />;
+        default: return <SettingsNode />;
       }
     }
     return null;
@@ -217,8 +208,8 @@ const App: React.FC = () => {
         {renderContent()}
         <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme="dark" />
         <footer className="fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t border-slate-800/50 px-10 py-2 flex justify-between items-center z-[100] bg-[#020617]/80 text-[9px] font-black uppercase tracking-widest text-slate-600 pointer-events-none">
-            <div className="flex gap-4"><span>SYSTEM: ONLINE</span><span>V14.3.0 (PERSISTENT)</span></div>
-            <div className="flex gap-4"><span>LATENCY: 12ms</span><span>MEM: 45MB</span></div>
+            <div className="flex gap-4"><span>SYSTEM: ONLINE</span><span>V14.3.2 (PERSISTENT)</span></div>
+            <div className="flex gap-4"><span>ENGINE: OPENROUTER</span><span>MEM: 45MB</span></div>
         </footer>
       </LayoutComponent>
       <ToastContainer />
