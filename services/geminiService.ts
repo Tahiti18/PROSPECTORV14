@@ -2,8 +2,8 @@ import { Lead } from '../types';
 
 // --- CONFIGURATION: OPENROUTER HARD-LOCK ---
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-// google/gemini-2.0-flash-001 is the industry leader for "Next-Gen/3.0" speed performance
-const PRIMARY_MODEL = "google/gemini-2.0-flash-001"; 
+// Gemini 3.0 Flash is the absolute speed king for Prospector OS
+const PRIMARY_MODEL = "google/gemini-3-flash-preview"; 
 
 // --- TYPES ---
 export interface AssetRecord {
@@ -84,15 +84,21 @@ const extractJson = (text: string) => {
 /**
  * OPENROUTER REST GATEWAY
  * Uses standard fetch to ensure zero cookie dependency for Railway/Cloud compatibility.
+ * Fixed 401 by targeting OPENROUTER_API_KEY explicitly.
  */
 export const openRouterChat = async (prompt: string, system?: string) => {
   const systemInstruction = system || "You are the Prospector OS Intel Engine. Focus on high-ticket B2B growth. Output raw, valid JSON ONLY.";
+  const apiKey = process.env.OPENROUTER_API_KEY || process.env.API_KEY;
+
+  if (!apiKey || apiKey === "undefined") {
+    throw new Error("Missing OpenRouter API Key in environment.");
+  }
 
   try {
     const response = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.API_KEY}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "X-Title": "Prospector OS"
       },
@@ -352,7 +358,7 @@ export const generateMockup = async (name: string, niche: string, leadId?: strin
   return await generateVisual(`4K Billboard mockup for ${name}`, { id: leadId });
 };
 
-// SDK COMPLETELY PURGED
+// SDK COMPLETELY PURGED TO FIX RAILWAY BUILD
 export const getAI = () => null; 
 
 export const deleteAsset = (id: string) => {

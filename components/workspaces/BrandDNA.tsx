@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead, CreativeAsset, Campaign, BrandIdentity } from '../../types';
 import { extractBrandDNA, generateVisual, saveAsset, generateVideoPayload, loggedGenerateContent, getAI } from '../../services/geminiService';
@@ -103,7 +102,6 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
   const generateConcepts = async () => {
     setIsGeneratingConcepts(true);
     try {
-        const ai = getAI();
         const prompt = `
             Analyze the brand "${activeEntity.businessName}" (${activeIdentity?.visualTone}).
             Generate 3 distinct, high-end social media campaign concepts.
@@ -111,16 +109,15 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
             Return JSON:
             [
                 { 
-                    "title": "Campaign Title (e.g. A Love That Endures)", 
-                    "hook": "Emotional or logical hook description", 
-                    "visualDirection": "Specific visual style instructions for this campaign" 
+                    "title": "Campaign Title", 
+                    "hook": "Emotional hook description", 
+                    "visualDirection": "Visual style instructions" 
                 }
             ]
         `;
         
         const response = await loggedGenerateContent({
-            ai, module: 'BRAND_DNA', model: 'gemini-3-flash-preview', modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
-            contents: prompt,
+            module: 'BRAND_DNA', contents: prompt,
             config: { responseMimeType: 'application/json' }
         });
 
@@ -140,39 +137,33 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
   const handleSelectConcept = async (concept: CampaignConcept) => {
       setSelectedConcept(concept);
       setIsGeneratingCreatives(true);
-      setView('CAMPAIGN'); // Move to campaign view, show loading state
+      setView('CAMPAIGN');
 
       const timestamp = Date.now();
       const angles = ['STORY', 'PRODUCT', 'LIFESTYLE', 'ABSTRACT'];
       
       try {
-          // Generate 4 assets in parallel based on the selected concept
           const promises = angles.map(async (angle, idx) => {
-              const prompt = `
-                  Create a vertical (9:16) social media image for "${activeEntity.businessName}".
-                  Campaign Theme: "${concept.title}".
-                  Visual Direction: ${concept.visualDirection}.
-                  Angle: ${angle}.
-                  Brand Colors: ${activeIdentity?.colors.join(', ')}.
-                  Style: High-end, photorealistic, ${activeIdentity?.visualTone}.
-              `;
-              
+              const prompt = `Vertical 9:16 social for ${activeEntity.businessName}. Theme: ${concept.title}. Angle: ${angle}. Colors: ${activeIdentity?.colors.join(', ')}.`;
               const imgUrl = await generateVisual(prompt, activeEntity);
               
+              if (!imgUrl) return null;
+
               return {
                   id: `creative-${timestamp}-${idx}`,
-                  type: 'static',
-                  angle: angle,
+                  type: 'static' as const,
+                  angle: angle as any,
                   imageUrl: imgUrl,
-                  headline: idx === 0 ? concept.title : (idx === 1 ? "Discover." : (idx === 2 ? "The New Standard." : activeEntity.businessName)),
+                  headline: idx === 0 ? concept.title : activeEntity.businessName,
                   subhead: concept.hook.slice(0, 40) + "...",
                   cta: "Shop Now",
-                  status: 'ready'
-              } as CreativeAsset;
+                  status: 'ready' as const
+              };
           });
 
           const results = await Promise.all(promises);
-          const validAssets = results.filter(r => r.imageUrl) as CreativeAsset[];
+          // Using type assertion after filtering to resolve incompatibility between the inferred result type and CreativeAsset
+          const validAssets = results.filter((r) => r !== null) as CreativeAsset[];
 
           const newCampaign: Campaign = {
               id: `camp-${timestamp}`,
@@ -210,17 +201,16 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
       setAnimatingAssetId(asset.id);
       try {
           const videoUrl = await generateVideoPayload(
-              `Cinematic slow motion animation of ${asset.angle} shot, ${activeIdentity?.visualTone}, ${selectedConcept?.visualDirection}`, 
+              `Cinematic animation of ${asset.angle} shot`, 
               activeEntity.id, 
               asset.imageUrl 
           );
           
           if (videoUrl && activeCampaign) {
               const updatedCreatives = activeCampaign.creatives.map(c => 
-                  c.id === asset.id ? { ...c, type: 'motion', videoUrl: videoUrl } : c
+                  c.id === asset.id ? { ...c, type: 'motion' as const, videoUrl: videoUrl } : c
               );
-              // @ts-ignore
-              setActiveCampaign(prev => ({ ...prev!, creatives: updatedCreatives }));
+              setActiveCampaign({ ...activeCampaign, creatives: updatedCreatives });
           }
       } catch (e) {
           console.error(e);
@@ -303,7 +293,6 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                   {/* Left Column: Identity Info */}
                   <div className="lg:col-span-5 space-y-6">
-                      {/* Identity Card */}
                       <div className="bg-[#1a1a1a] rounded-[32px] p-10 border border-slate-800 flex flex-col justify-between min-h-[300px] relative overflow-hidden">
                           <div className="relative z-10">
                               <h2 className="text-4xl font-serif text-white mb-2">{activeEntity.businessName}</h2>
@@ -339,7 +328,6 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
                       </div>
                   </div>
 
-                  {/* Right Column: Visual Grid */}
                   <div className="lg:col-span-7 bg-[#1a1a1a] rounded-[32px] p-8 border border-slate-800">
                       <div className="flex justify-between items-center mb-6">
                           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">DETECTED ASSETS</h3>
@@ -412,7 +400,6 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
       );
   }
 
-  // Final Campaign View (The 4 generated cards)
   if (view === 'CAMPAIGN' || view === 'EDITOR') {
       return (
           <div className="h-screen bg-[#0b0c0f] flex flex-col overflow-hidden">
@@ -421,7 +408,7 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
                       ← Back to Concepts
                   </button>
                   <h2 className="font-serif text-white italic text-xl">{activeCampaign?.name || 'New Campaign'}</h2>
-                  <div className="w-20"></div> {/* Spacer */}
+                  <div className="w-20"></div>
               </header>
 
               <div className="flex-1 overflow-y-auto p-12 bg-[#0b0c0f]">
