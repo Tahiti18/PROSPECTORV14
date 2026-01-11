@@ -22,24 +22,27 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
       // Only proxy routes under /api/kie/suno
       if (!url.startsWith('/api/kie/suno')) return next();
 
-      // Read KIE API key from env
-      const KIE_API_KEY =
-        process.env.KIE_API_KEY ||
-        env.KIE_API_KEY;
+      const KIE_API_KEY = process.env.KIE_API_KEY || env.KIE_API_KEY;
 
       if (!KIE_API_KEY) {
         res.statusCode = 500;
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'Server configuration error: Missing KIE_API_KEY in .env file' }));
+        res.end(
+          JSON.stringify({
+            error: 'Server configuration error: Missing KIE_API_KEY in .env file'
+          })
+        );
         return;
       }
 
-      const KIE_GENERATE_BASE = 'https://api.kie.ai/api/v1/generate';
+      // IMPORTANT: Must include `/api/` in KIE base URL
+      const KIE_API_BASE = 'https://api.kie.ai/api/v1';
 
       const readBody = async () => {
         const buffers: any[] = [];
         for await (const chunk of req) buffers.push(chunk);
-        return (globalThis as any).Buffer.concat(buffers).toString();
+        // Buffer exists in Node; no import needed
+        return Buffer.concat(buffers).toString();
       };
 
       const sendJson = (status: number, data: any) => {
@@ -56,32 +59,58 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         }
       };
 
+      const doFetch = async (upstreamUrl: string, init: RequestInit) => {
+        const upstreamRes = await fetch(upstreamUrl, init);
+        const rawText = await upstreamRes.text();
+        return {
+          status: upstreamRes.status,
+          rawText,
+          parsed: safeJson(rawText),
+          upstreamUrl
+        };
+      };
+
+      // -------------------------
+      // SUBMIT (POST)
+      // -------------------------
       if (
         req.method === 'POST' &&
         (url.includes('/suno_submit') || url.endsWith('/submit') || url.includes('/submit?'))
       ) {
         const bodyStr = await readBody();
-        const upstreamUrl = `${KIE_GENERATE_BASE}`;
 
-        const upstreamRes = await fetch(upstreamUrl, {
+        // Primary (some KIE setups use /generate)
+        const primaryUrl = `${KIE_API_BASE}/generate`;
+        // Fallback (some KIE setups use /suno/submit)
+        const fallbackUrl = `${KIE_API_BASE}/suno/submit`;
+
+        const init: RequestInit = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${KIE_API_KEY}`
+            Authorization: `Bearer ${KIE_API_KEY}`
           },
           body: bodyStr
-        });
+        };
 
-        const rawText = await upstreamRes.text();
-        const parsed = safeJson(rawText);
-        return sendJson(upstreamRes.status, {
-          _debug_upstreamStatus: upstreamRes.status,
-          _debug_upstreamUrl: upstreamUrl,
-          _debug_raw: rawText,
-          ...parsed
+        let r = await doFetch(primaryUrl, init);
+
+        // If KIE responds 404, retry the alternate endpoint (prevents “wrong base path” dead-ends)
+        if (r.status === 404) {
+          r = await doFetch(fallbackUrl, init);
+        }
+
+        return sendJson(r.status, {
+          _debug_upstreamStatus: r.status,
+          _debug_upstreamUrl: r.upstreamUrl,
+          _debug_raw: r.rawText,
+          ...r.parsed
         });
       }
 
+      // -------------------------
+      // STATUS / RECORD-INFO (GET)
+      // -------------------------
       if (
         req.method === 'GET' &&
         (url.includes('/status/') || url.startsWith('/api/kie/suno/record-info'))
@@ -98,15 +127,24 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
 
         if (!taskId) return sendJson(400, { error: 'Missing taskId' });
 
-        const upstreamUrl = `${KIE_GENERATE_BASE}/record-info?taskId=${encodeURIComponent(taskId)}`;
+        const primaryUrl = `${KIE_API_BASE}/generate/record-info?taskId=${encodeURIComponent(taskId)}`;
+        const fallbackUrl = `${KIE_API_BASE}/suno/record-info?taskId=${encodeURIComponent(taskId)}`;
 
-        const upstreamRes = await fetch(upstreamUrl, {
+        const init: RequestInit = {
           method: 'GET',
-          headers: { 'Authorization': `Bearer ${KIE_API_KEY}` }
-        });
+          headers: { Authorization: `Bearer ${KIE_API_KEY}` }
+        };
 
-        const rawText = await upstreamRes.text();
-        return sendJson(upstreamRes.status, safeJson(rawText));
+        let r = await doFetch(primaryUrl, init);
+        if (r.status === 404) {
+          r = await doFetch(fallbackUrl, init);
+        }
+
+        return sendJson(r.status, {
+          _debug_upstreamStatus: r.status,
+          _debug_upstreamUrl: r.upstreamUrl,
+          ...r.parsed
+        });
       }
 
       return sendJson(404, { error: 'Route not found in KIE Proxy', path: url });
@@ -136,7 +174,7 @@ export default defineConfig(() => {
     ],
     define: {
       'process.env.OPENROUTER_API_KEY': JSON.stringify(process.env.OPENROUTER_API_KEY),
-      'process.env.KIE_API_KEY': JSON.stringify(process.env.KIE_API_KEY),
+      'process.env.KIE_API_KEY': JSON.stringify(process.env.KIE_API_KEY)
     },
     server: {
       host: '0.0.0.0',
