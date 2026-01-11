@@ -1,4 +1,3 @@
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -137,7 +136,7 @@ export default defineConfig(() => {
       }
     ],
     define: {
-      // EXPLICIT INJECTION: Ensures variables are baked into the browser bundle at build time
+      // EXPLICIT BAKE: Ensures these are injected directly into the JS bundle at build time
       'process.env.OPENROUTER_API_KEY': JSON.stringify(env.OPENROUTER_API_KEY || env.API_KEY || ""),
       'process.env.KIE_API_KEY': JSON.stringify(env.KIE_API_KEY || env.KIE_KEY || ""),
       'process.env.API_KEY': JSON.stringify(env.API_KEY || ""),

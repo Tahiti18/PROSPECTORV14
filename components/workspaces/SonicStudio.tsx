@@ -286,16 +286,17 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ lead }) => {
   const handleGenerateCover = async () => {
     setIsGeneratingCover(true);
     try {
+        // FIX: Ensure lead is not undefined for the generator, fallback to sandbox ID for asset tracking
         const url = await generateVisual(
             `Album cover for ${lead?.businessName || 'Brand'}, ${musicPrompt}, minimal high design`, 
-            lead || {} 
+            lead || { id: 'sandbox' } as Lead
         );
         if (url) {
             setCoverImage(url);
             toast.success("Cover Art Generated");
         }
     } catch (e) {
-        console.error("Cover Gen Error:", e);
+        console.error(e);
         toast.error("Failed to generate cover art");
     } finally {
         setIsGeneratingCover(false);

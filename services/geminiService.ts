@@ -1,11 +1,10 @@
-
 import { Lead, BrandIdentity } from '../types';
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { deductCost } from './computeTracker';
 
 // --- CONFIGURATION: OPENROUTER HARD-LOCK ---
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-// Gemini 2.0 Flash is the high-performance lead discovery engine
+// Gemini 2.0 Flash is the absolute speed leader for real-time lead streams
 const PRIMARY_MODEL = "google/gemini-2.0-flash-001"; 
 
 // --- TYPES ---
@@ -106,7 +105,7 @@ const extractJson = (text: string) => {
 };
 
 /* --- GenAI SDK Integration --- */
-export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 
 export interface LoggedGenerateParams {
   module: string;
@@ -118,9 +117,6 @@ export interface LoggedGenerateParams {
   config?: any;
 }
 
-/**
- * FIXED: Exported loggedGenerateContent for use in automation steps.
- */
 export const loggedGenerateContent = async (params: LoggedGenerateParams): Promise<string> => {
   const ai = getAI();
   const model = params.model || 'gemini-3-flash-preview';
@@ -134,8 +130,6 @@ export const loggedGenerateContent = async (params: LoggedGenerateParams): Promi
     });
     
     const text = response.text || '';
-    const latency = Date.now() - start;
-    
     deductCost(model, (typeof params.contents === 'string' ? params.contents.length : 1000) + text.length);
     
     return text;
@@ -147,16 +141,17 @@ export const loggedGenerateContent = async (params: LoggedGenerateParams): Promi
 
 /**
  * OPENROUTER REST GATEWAY
- * Fixed 401 error by ensuring Bearer token is strictly valid and not string "undefined"
+ * Hardened to prevent 401 errors by performing strict local key validation
  */
 export const openRouterChat = async (prompt: string, system?: string) => {
   const systemInstruction = system || "You are the Prospector OS Intel Engine. Focus on high-ticket B2B growth. Output raw, valid JSON ONLY.";
   
-  // Robust key check: Prioritize OpenRouter specific key, then fallback to general API_KEY
+  // Robust key retrieval from the bundle
   const apiKey = (process.env.OPENROUTER_API_KEY || process.env.API_KEY || "").trim();
 
+  // PRE-FLIGHT VALIDATION: Prevent sending "Bearer undefined" to OpenRouter
   if (!apiKey || apiKey === "undefined" || apiKey.length < 10) {
-    const errorMsg = "CRITICAL AUTH FAILURE: Valid API Key not found in bundle. Check Railway environment variables.";
+    const errorMsg = "CRITICAL AUTH FAILURE: Valid API Key not detected in deployment environment. Verify OPENROUTER_API_KEY in Railway Variables.";
     pushLog(errorMsg);
     throw new Error(errorMsg);
   }
@@ -181,7 +176,7 @@ export const openRouterChat = async (prompt: string, system?: string) => {
 
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(`OpenRouter Error (${response.status}): ${err.error?.message || 'Unauthorized - Check API Key'}`);
+        throw new Error(`OpenRouter (${response.status}): ${err.error?.message || 'Neural Link Interrupted'}`);
     }
 
     const data = await response.json();
@@ -218,11 +213,11 @@ export const generateLeads = async (region: string, niche: string, count: number
   }
 };
 
-// --- UTILITIES (REMAINING STUBS FOR COMPATIBILITY) ---
+// --- UTILITIES ---
 
 export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
   pushLog(`FORGE: Orchestrating campaign for ${lead.businessName}...`);
-  const prompt = `Create outreach assets for ${lead.businessName}. Return JSON with presentation, narrative, outreach, and visualDirection.`;
+  const prompt = `Create outreach assets for ${lead.businessName}. Return JSON with presentation, narrative, outreach, and visual direction.`;
   const jsonStr = await executeIntelligenceTask(prompt);
   return JSON.parse(jsonStr);
 };
@@ -240,9 +235,6 @@ export const generateProposalDraft = async (lead: Lead) => {
   return await executeIntelligenceTask(`Proposal draft for ${lead.businessName}. Focus on AI ROI.`);
 };
 
-/**
- * FIXED: generateOutreachSequence was truncated.
- */
 export const generateOutreachSequence = async (lead: Lead) => {
   const prompt = `Create a 5-day multi-channel outreach sequence for ${lead.businessName} (${lead.niche}). 
   Return JSON: [{ "day": 1, "channel": "Email", "content": "...", "purpose": "..." }]`;
@@ -250,17 +242,12 @@ export const generateOutreachSequence = async (lead: Lead) => {
   return JSON.parse(jsonStr);
 };
 
-/* --- MISSING FUNCTIONS IMPLEMENTATION --- */
-
 export const generatePlaybookStrategy = async (niche: string) => {
     const prompt = `Generate a high-ticket agency playbook strategy for ${niche}. Return JSON: { "strategyName": "", "steps": [{ "title": "", "tactic": "" }] }`;
     const json = await executeIntelligenceTask(prompt);
     return JSON.parse(json);
 };
 
-/**
- * FIXED: generateAudioPitch implemented using gemini-2.5-flash-preview-tts
- */
 export const generateAudioPitch = async (text: string, voiceName: string = 'Kore', leadId?: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
@@ -289,9 +276,6 @@ export const generateLyrics = async (lead: Lead, theme: string, type: string) =>
   return await executeIntelligenceTask(`Write ${type} lyrics for ${lead.businessName} theme ${theme}. Return raw text.`);
 };
 
-/**
- * FIXED: generateVisual implemented using gemini-2.5-flash-image
- */
 export const generateVisual = async (prompt: string, lead: Lead, base64Image?: string) => {
   const ai = getAI();
   const parts: any[] = [{ text: prompt }];
@@ -323,9 +307,6 @@ export const generateSonicPrompt = async (lead: Lead) => {
     return await executeIntelligenceTask(`Generate a detailed music generation prompt for ${lead.businessName} brand identity. Return only the prompt string.`);
 };
 
-/**
- * FIXED: analyzeVisual implemented using gemini-3-flash-preview (Vision)
- */
 export const analyzeVisual = async (base64: string, mimeType: string, prompt: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
@@ -356,9 +337,6 @@ export const analyzeLedger = async (leads: Lead[]) => {
     return JSON.parse(json);
 };
 
-/**
- * FIXED: generateVideoPayload implemented using veo-3.1-fast-generate-preview
- */
 export const generateVideoPayload = async (
     prompt: string, 
     leadId?: string, 
@@ -387,11 +365,6 @@ export const generateVideoPayload = async (
   if (endImageBase64) {
     payload.lastFrame = { imageBytes: endImageBase64.split(',')[1], mimeType: 'image/png' };
   }
-  if (inputVideoBase64) {
-    // Note: in a real app, you might need a way to pass the actual Video object if extending
-    // but the SDK examples use the video from a previousOperation response. 
-    // Here we simulate for the UI flow.
-  }
 
   let operation = await ai.models.generateVideos(payload);
   while (!operation.done) {
@@ -417,9 +390,6 @@ export const generateMockup = async (businessName: string, niche: string, leadId
     return await generateVisual(prompt, { businessName, id: leadId } as Lead);
 };
 
-/**
- * FIXED: performFactCheck implemented using googleSearch grounding
- */
 export const performFactCheck = async (lead: Lead, claim: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
@@ -507,9 +477,6 @@ export const fetchViralPulseData = async (niche: string) => {
     return JSON.parse(json);
 };
 
-/**
- * FIXED: queryRealtimeAgent implemented using googleSearch grounding
- */
 export const queryRealtimeAgent = async (query: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
@@ -536,9 +503,6 @@ export const synthesizeArticle = async (source: string, mode: string) => {
     return await executeIntelligenceTask(`Synthesize this article into mode ${mode}: ${source}`);
 };
 
-/**
- * FIXED: analyzeVideoUrl implemented using googleSearch grounding (for YouTube context)
- */
 export const analyzeVideoUrl = async (url: string, prompt: string, leadId?: string) => {
   const ai = getAI();
   const response = await ai.models.generateContent({
@@ -557,9 +521,6 @@ export const generateROIReport = async (ltv: number, leads: number, conv: number
     return await executeIntelligenceTask(`Generate an AI ROI report for LTV ${ltv}, leads ${leads}, conv lift ${conv}.`);
 };
 
-/**
- * FIXED: extractBrandDNA implemented using gemini-3-flash-preview (Vision/Search)
- */
 export const extractBrandDNA = async (lead: Partial<Lead>, websiteUrl: string): Promise<BrandIdentity> => {
   const ai = getAI();
   const prompt = `Research ${websiteUrl} and extract brand identity. Return JSON: { "colors": ["#hex", ...], "fontPairing": "", "archetype": "", "visualTone": "", "extractedImages": ["url", ...] }`;
