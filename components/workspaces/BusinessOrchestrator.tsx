@@ -66,19 +66,23 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       setPackageData(result);
       setCurrentDossier(saved);
       setHistory(prev => [saved, ...prev]);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Orchestration failed. Check OpenRouter Gateway.");
+      alert(`Forge Interrupted: ${e.message || "Model timeout. Please retry."}`);
     } finally {
       setIsOrchestrating(false);
     }
   };
 
-  const handleGenerateShortcut = (module: SubModule) => {
-    if (!targetLead) return;
-    onLockLead(targetLead.id);
-    onNavigate('STUDIO', module);
-  };
+  const EmptyState = ({ section }: { section: string }) => (
+    <div className="py-20 flex flex-col items-center justify-center opacity-30 border border-dashed border-slate-800 rounded-[32px] text-center px-10">
+       <span className="text-4xl mb-4 grayscale">📦</span>
+       <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">{section} STAGING</h4>
+       <p className="text-[10px] font-bold uppercase tracking-widest mt-2 max-w-xs leading-relaxed">
+          THE NEURAL CORE HAS RESERVED THIS SPACE. RE-FORGE TO ATTEMPT ASSET POPULATION.
+       </p>
+    </div>
+  );
 
   return (
     <div className="max-w-[1600px] mx-auto py-8 space-y-10 animate-in fade-in duration-700">
@@ -89,7 +93,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
             CAMPAIGN <span className="text-emerald-500">BUILDER</span>
           </h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">
-            SECURED OPENROUTER GATEWAY
+            SECURED OPENROUTER FLASH CORE
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -152,7 +156,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">INITIATE FORGE TO LOAD DATA</p>
                  </div>
               ) : (
-                 <div className="flex flex-col h-full">
+                 <div className="flex flex-col h-full animate-in fade-in duration-500">
                     <div className="flex border-b border-slate-800 bg-[#0b1021]">
                        {[
                          { id: 'strategy', label: 'STRATEGY' },
@@ -178,86 +182,109 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                     <div className="flex-1 p-12 overflow-y-auto custom-scrollbar relative bg-[#020617]">
                        {activeTab === 'strategy' && (
                           <div className="space-y-12">
-                             <h2 className="text-3xl font-bold text-white uppercase">{packageData?.presentation?.title || "STRATEGY Blueprint"}</h2>
-                             <div className="grid gap-6">
-                                {(packageData?.presentation?.slides || []).map((slide: any, i: number) => (
-                                  <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] group">
-                                     <h3 className="text-xl font-bold text-white uppercase mb-4">#{i+1}: {slide?.title}</h3>
-                                     <ul className="space-y-2 mb-4">
-                                        {(slide?.bullets || []).map((b: string, j: number) => (
-                                          <li key={j} className="text-sm text-slate-400 pl-4 border-l-2 border-slate-700">{b}</li>
-                                        ))}
-                                     </ul>
-                                     <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">VISUAL_ASSET: {slide?.visualRef}</p>
-                                  </div>
-                                ))}
-                             </div>
+                             {packageData?.presentation?.slides?.length > 0 ? (
+                                <>
+                                   <h2 className="text-3xl font-bold text-white uppercase">{packageData?.presentation?.title || "STRATEGY Blueprint"}</h2>
+                                   <div className="grid gap-6">
+                                      {packageData.presentation.slides.map((slide: any, i: number) => (
+                                        <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] group hover:border-emerald-500/30 transition-all">
+                                           <h3 className="text-xl font-bold text-white uppercase mb-4">#{i+1}: {slide?.title}</h3>
+                                           <ul className="space-y-2 mb-4">
+                                              {(slide?.bullets || []).map((b: string, j: number) => (
+                                                <li key={j} className="text-sm text-slate-400 pl-4 border-l-2 border-slate-700 font-medium italic">{b}</li>
+                                              ))}
+                                           </ul>
+                                           {slide?.visualRef && <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest pt-4 border-t border-slate-800">VISUAL_ASSET: {slide.visualRef}</p>}
+                                        </div>
+                                      ))}
+                                   </div>
+                                </>
+                             ) : <EmptyState section="STRATEGY" />}
                           </div>
                        )}
 
                        {activeTab === 'visual' && (
                           <div className="space-y-12">
-                             <div className="bg-slate-900 p-10 rounded-[40px] border border-slate-800">
-                                <h3 className="text-[10px] font-black text-emerald-500 uppercase mb-4">BRAND_MOOD</h3>
-                                <p className="text-2xl font-black italic text-white uppercase italic">"{packageData?.visualDirection?.brandMood}"</p>
-                             </div>
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                   <h4 className="text-[10px] font-black text-slate-500 uppercase">COLOR_PSYCH</h4>
-                                   {(packageData?.visualDirection?.colorPsychology || []).map((cp: any, i: number) => (
-                                      <div key={i} className="flex items-center gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                         <div className="w-8 h-8 rounded-full border border-white/10" style={{ backgroundColor: cp?.color }}></div>
-                                         <div>
-                                            <p className="text-[10px] font-black text-white">{cp?.color}</p>
-                                            <p className="text-[8px] text-slate-600 font-bold uppercase">{cp?.purpose}</p>
-                                         </div>
+                             {packageData?.visualDirection ? (
+                                <>
+                                   <div className="bg-slate-900 p-10 rounded-[40px] border border-slate-800 shadow-xl">
+                                      <h3 className="text-[10px] font-black text-emerald-500 uppercase mb-4 tracking-widest">BRAND_MOOD</h3>
+                                      <p className="text-2xl font-black italic text-white uppercase italic tracking-tight">"{packageData.visualDirection.brandMood}"</p>
+                                   </div>
+                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                      <div className="space-y-6">
+                                         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">COLOR_PSYCH</h4>
+                                         {(packageData.visualDirection.colorPsychology || []).map((cp: any, i: number) => (
+                                            <div key={i} className="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                                               <div className="w-8 h-8 rounded-full border border-white/10 shadow-lg" style={{ backgroundColor: cp?.color }}></div>
+                                               <div>
+                                                  <p className="text-[10px] font-black text-white">{cp?.color}</p>
+                                                  <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">{cp?.purpose}</p>
+                                               </div>
+                                            </div>
+                                         ))}
                                       </div>
-                                   ))}
-                                </div>
-                                <div className="space-y-4">
-                                   <h4 className="text-[10px] font-black text-slate-500 uppercase">AI_PROMPTS</h4>
-                                   {(packageData?.visualDirection?.aiImagePrompts || []).map((p: any, i: number) => (
-                                      <div key={i} className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                                         <p className="text-[10px] font-bold text-slate-400 italic">"{p?.prompt}"</p>
+                                      <div className="space-y-6">
+                                         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">NEURAL_PROMPTS</h4>
+                                         {(packageData.visualDirection.aiImagePrompts || []).map((p: any, i: number) => (
+                                            <div key={i} className="bg-slate-950 p-5 rounded-2xl border border-slate-800">
+                                               <p className="text-[10px] font-black text-emerald-600 uppercase mb-2">{p?.use_case}</p>
+                                               <p className="text-[10px] font-bold text-slate-400 italic">"{p?.prompt}"</p>
+                                            </div>
+                                         ))}
                                       </div>
-                                   ))}
-                                </div>
-                             </div>
+                                   </div>
+                                </>
+                             ) : <EmptyState section="VISUAL_DNA" />}
                           </div>
                        )}
 
                        {activeTab === 'narrative' && (
-                          <div className="bg-slate-900 p-12 rounded-[40px] border border-slate-800">
-                             <h3 className="text-[10px] font-black text-emerald-500 uppercase mb-6">EXECUTIVE_NARRATIVE</h3>
-                             <p className="text-lg text-slate-300 leading-relaxed font-serif italic whitespace-pre-wrap">{packageData?.narrative}</p>
+                          <div className="bg-slate-900 p-12 rounded-[40px] border border-slate-800 shadow-xl">
+                             <h3 className="text-[10px] font-black text-emerald-500 uppercase mb-8 tracking-widest flex items-center gap-3">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                EXECUTIVE_NARRATIVE
+                             </h3>
+                             <p className="text-xl text-slate-300 leading-relaxed font-serif italic whitespace-pre-wrap">{packageData?.narrative || "Narrative synthesis pending re-generation..."}</p>
                           </div>
                        )}
 
                        {activeTab === 'content' && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             {(packageData?.contentPack || []).map((post: any, i: number) => (
-                               <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4">
-                                  <span className="px-3 py-1 bg-white text-black rounded-lg text-[9px] font-black uppercase">{post?.platform}</span>
-                                  <p className="text-sm text-slate-200 font-medium italic">"{post?.caption}"</p>
-                               </div>
-                             ))}
+                             {packageData?.contentPack?.length > 0 ? (
+                                packageData.contentPack.map((post: any, i: number) => (
+                                  <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4 hover:border-emerald-500/30 transition-all">
+                                     <div className="flex justify-between items-center">
+                                        <span className="px-3 py-1 bg-white text-black rounded-lg text-[9px] font-black uppercase tracking-widest">{post?.platform}</span>
+                                        <span className="text-[9px] font-black text-slate-600 uppercase">{post?.type}</span>
+                                     </div>
+                                     <p className="text-sm text-slate-200 font-medium italic leading-relaxed">"{post?.caption}"</p>
+                                  </div>
+                                ))
+                             ) : <EmptyState section="SOCIAL_CONTENT" />}
                           </div>
                        )}
 
                        {activeTab === 'outreach' && (
                           <div className="space-y-8">
-                             {(packageData?.outreach?.emailSequence || []).map((email: any, i: number) => (
-                               <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px]">
-                                  <p className="text-sm font-bold text-white mb-4 uppercase">SUBJECT: {email?.subject}</p>
-                                  <p className="text-xs text-slate-400 whitespace-pre-wrap font-mono bg-black/20 p-6 rounded-2xl">{email?.body}</p>
-                               </div>
-                             ))}
-                             {packageData?.outreach?.linkedin && (
-                                <div className="bg-emerald-900/10 border border-emerald-500/20 p-8 rounded-[32px]">
-                                    <h3 className="text-[10px] font-black text-emerald-400 uppercase mb-4">LINKEDIN_CONNECT</h3>
-                                    <p className="text-sm text-slate-300 italic">"{packageData.outreach.linkedin}"</p>
-                                </div>
-                             )}
+                             {packageData?.outreach?.emailSequence?.length > 0 ? (
+                                <>
+                                   {packageData.outreach.emailSequence.map((email: any, i: number) => (
+                                     <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] shadow-lg">
+                                        <p className="text-sm font-bold text-white mb-4 uppercase tracking-tight flex items-center gap-3">
+                                           <span className="text-slate-500">SUBJECT:</span> {email?.subject}
+                                        </p>
+                                        <p className="text-xs text-slate-400 whitespace-pre-wrap font-mono bg-black/20 p-6 rounded-2xl border border-slate-800/50 leading-relaxed">{email?.body}</p>
+                                     </div>
+                                   ))}
+                                   {packageData?.outreach?.linkedin && (
+                                      <div className="bg-emerald-900/10 border border-emerald-500/20 p-10 rounded-[32px] shadow-inner">
+                                          <h3 className="text-[10px] font-black text-emerald-400 uppercase mb-4 tracking-widest">LINKEDIN_CONNECT</h3>
+                                          <p className="text-sm text-slate-200 italic font-medium leading-relaxed">"{packageData.outreach.linkedin}"</p>
+                                      </div>
+                                   )}
+                                </>
+                             ) : <EmptyState section="OUTREACH_SEQUENCE" />}
                           </div>
                        )}
                     </div>

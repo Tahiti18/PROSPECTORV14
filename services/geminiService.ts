@@ -1,13 +1,10 @@
 
 import { Lead } from '../types';
-// Fixed: Use @google/genai SDK instead of hardcoded OpenRouter implementation
-import { GoogleGenAI, Modality, Type } from "@google/genai";
+// Add correct SDK imports according to guidelines
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 
-// Removed hardcoded sk-or key for security compliance
-// Using process.env.API_KEY exclusively as per guidelines
-
-// Hard-locked to Gemini 3 series for primary reasoning
-const PRIMARY_MODEL = "gemini-3-flash-preview"; 
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const PRIMARY_MODEL = "google/gemini-3-flash-preview"; 
 
 // --- TYPES ---
 export interface AssetRecord {
@@ -33,7 +30,6 @@ export interface BenchmarkReport {
   sources: Array<{ title: string; uri: string }>;
 }
 
-// Fixed: Export VeoConfig to resolve build error in VideoPitch.tsx
 export interface VeoConfig {
   aspectRatio: '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
   resolution: '720p' | '1080p';
@@ -58,7 +54,8 @@ export const subscribeToAssets = (listener: (assets: AssetRecord[]) => void) => 
 
 const uuidLike = () => Math.random().toString(36).substring(2, 15);
 
-export const saveAsset = (type: any, title: string, data: string, module?: string, leadId?: string, metadata?: any) => {
+// FIX: Updated saveAsset parameter type for strict safety
+export const saveAsset = (type: AssetRecord['type'], title: string, data: string, module?: string, leadId?: string, metadata?: any) => {
   const asset: AssetRecord = { id: uuidLike(), type, title, data, module, leadId, timestamp: Date.now(), metadata };
   SESSION_ASSETS.unshift(asset);
   assetListeners.forEach(l => l([...SESSION_ASSETS]));
@@ -66,55 +63,58 @@ export const saveAsset = (type: any, title: string, data: string, module?: strin
 };
 
 /**
- * NEURAL PARSER
- * Aggressively extracts JSON blocks from conversational responses.
+ * NEURAL CLEANER
+ * Extracts valid JSON blocks even if the model surrounds them with conversational noise.
  */
 const extractJson = (text: string) => {
   if (!text) return "";
-  const match = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-  return match ? match[0] : text;
+  try {
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1) {
+      return text.substring(start, end + 1);
+    }
+  } catch (e) {}
+  return text;
 };
 
 /**
- * GEMINI GENERIC INTERFACE
- * Standardized wrapper for generateContent using @google/genai SDK.
- * Note: Tools like googleSearch disable responseMimeType: "application/json".
+ * OPENROUTER REST INTERFACE
+ * Standardized for Gemini 3 Flash.
  */
 export const openRouterChat = async (prompt: string, systemInstruction?: string, tools?: any[], imageData?: { data: string, mimeType: string }) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const systemText = systemInstruction || "You are the Executive Director of Prospector OS. Strictly output strategic analysis in JSON format.";
+  const systemText = systemInstruction || "You are the Lead Strategist. Always output valid JSON. No conversational filler.";
   
-  let contents: any = prompt;
-  if (imageData) {
-    contents = {
-      parts: [
-        { text: prompt },
-        { inlineData: imageData }
-      ]
-    };
-  }
-
-  const config: any = {
-    systemInstruction: systemText,
-  };
-
-  // Grounding tools prevent JSON forced output at SDK level
-  if (tools && tools.length > 0) {
-    config.tools = tools;
-  } else {
-    config.responseMimeType = "application/json";
-  }
+  const messages: any[] = [
+    { role: "system", content: systemText },
+    { role: "user", content: prompt }
+  ];
 
   try {
-    const response = await ai.models.generateContent({
-      model: PRIMARY_MODEL,
-      contents,
-      config
+    const response = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.API_KEY}`,
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "Prospector OS",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: PRIMARY_MODEL,
+        messages: messages,
+        response_format: { type: "json_object" }
+      })
     });
 
-    return extractJson(response.text || "");
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error?.message || "Gateway Denied Request");
+    }
+
+    const result = await response.json();
+    return extractJson(result.choices?.[0]?.message?.content || "");
   } catch (e: any) {
-    pushLog(`NEURAL_FAULT: ${e.message}`);
+    pushLog(`REST_FAULT: ${e.message}`);
     throw e;
   }
 };
@@ -122,296 +122,350 @@ export const openRouterChat = async (prompt: string, systemInstruction?: string,
 // --- CORE DISCOVERY ---
 
 export const generateLeads = async (region: string, niche: string, count: number) => {
-  pushLog(`LEAD_ENGINE: Initiating scan in ${region}...`);
-  const prompt = `MISSION: Find ${count} B2B leads for "${niche}" in "${region}". Return ONLY a JSON array of objects with businessName, websiteUrl, city, niche, leadScore (0-100), assetGrade (A/B/C), socialGap.`;
-  
-  // Lead discovery requires search grounding
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: PRIMARY_MODEL,
-    contents: prompt,
-    config: {
-      tools: [{ googleSearch: {} }]
-    }
-  });
-
-  const text = extractJson(response.text || "");
-  const groundingSources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((chunk: any) => ({
-    title: chunk.web?.title,
-    uri: chunk.web?.uri
-  })) || [];
-
-  return { leads: JSON.parse(text || "[]"), groundingSources };
+  pushLog(`SCANNER: Probing ${region} for ${niche} signals...`);
+  const prompt = `Find ${count} high-ticket B2B leads in ${region} for ${niche}. 
+    Return a JSON array of objects with keys: businessName, websiteUrl, city, niche, leadScore (0-100), assetGrade (A/B/C), socialGap.`;
+  const text = await openRouterChat(prompt, "Output ONLY a raw JSON array.");
+  try {
+    const leads = JSON.parse(text);
+    return { leads: Array.isArray(leads) ? leads : [], groundingSources: [] };
+  } catch (e) {
+    return { leads: [], groundingSources: [] };
+  }
 };
 
 /**
- * STRATEGIC ORCHESTRATOR
+ * CAMPAIGN ORCHESTRATOR
+ * Optimized prompt to prevent Flash truncation.
  */
 export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
-  pushLog(`ORCHESTRATOR: Constructing strategy for ${lead.businessName}...`);
-  
-  const prompt = `TASK: Orchestrate a comprehensive marketing campaign for ${lead.businessName}.
-    CONTEXT: ${lead.niche} in ${lead.city}. Gaps identified: ${lead.socialGap}.
-    
-    YOU MUST RETURN A SINGLE JSON OBJECT WITH THESE EXACT TOP-LEVEL KEYS:
-    {
-      "presentation": {
-        "title": "A Bold Strategy Title",
-        "slides": [
-          {"title": "Mission Overview", "bullets": ["Point A", "Point B"], "visualRef": "Image description"}
-        ]
-      },
-      "narrative": "A long-form executive sales narrative (min 500 words).",
-      "contentPack": [
-        {"platform": "Instagram", "type": "Reel", "caption": "Caption text", "assetRef": "visual-ref"}
-      ],
-      "outreach": {
-        "emailSequence": [
-          {"subject": "The Hook", "body": "Full email text"}
-        ],
-        "linkedin": "A connection message"
-      },
-      "visualDirection": {
-        "brandMood": "Elegant, Tech-forward, Premium",
-        "colorPsychology": [{"color": "#10b981", "purpose": "Growth/Trust"}],
-        "visualThemes": ["Dark UI", "Neon Accents"],
-        "aiImagePrompts": [{"use_case": "Main Hero", "prompt": "4k realistic interior"}],
-        "aiVideoPrompts": [{"use_case": "Logo intro", "prompt": "3d metallic motion"}]
-      }
-    }`;
+  pushLog(`FORGE: Synthesizing campaign for ${lead.businessName}...`);
+  const prompt = `Architect a multi-channel campaign for ${lead.businessName}. 
+    MANDATORY JSON KEYS: 
+    "presentation" (title, slides array with title/bullets), 
+    "narrative" (long string), 
+    "contentPack" (array with platform, caption), 
+    "outreach" (emailSequence array with subject/body, linkedin string), 
+    "visualDirection" (brandMood, colorPsychology array, aiImagePrompts array).
+    CONTEXT: ${lead.niche} in ${lead.city}. Gaps: ${lead.socialGap}.`;
 
   const text = await openRouterChat(prompt);
   try {
     return JSON.parse(text);
   } catch (e) {
-    pushLog("ORCHESTRATOR_FAULT: Malformed JSON returned.");
-    throw new Error("ORCHESTRATOR_FAULT: Data corrupted during transit.");
+    pushLog("FORGE_ERROR: AI result was not valid JSON.");
+    throw new Error("RETRY: Model failed to produce valid campaign data.");
   }
 };
 
-// --- MISC UTILITIES ---
+// --- UTILITIES ---
 
 export const identifySubRegions = async (theater: string) => {
-  const text = await openRouterChat(`Identify 5 districts in "${theater}". Return JSON array of strings.`);
-  return JSON.parse(text || "[]");
+  const text = await openRouterChat(`List 5 business districts in ${theater}. JSON array of strings.`);
+  try { return JSON.parse(text); } catch { return []; }
 };
 
 export const crawlTheaterSignals = async (region: string, signal: string) => {
-  const text = await openRouterChat(`Find 3 businesses in ${region} with signal: "${signal}". Return JSON array.`);
-  return JSON.parse(text || "[]");
+  const text = await openRouterChat(`Find leads in ${region} exhibiting ${signal}. JSON array.`);
+  try { return JSON.parse(text); } catch { return []; }
 };
 
 export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> => {
-    const text = await openRouterChat(`Benchmark for ${lead.websiteUrl}. Return JSON: { entityName, missionSummary, visualStack: [], sonicStack: [], featureGap, businessModel, designSystem, deepArchitecture }.`, undefined, [{ googleSearch: {} }]);
-    return { ...JSON.parse(text || "{}"), sources: [] };
-};
-
-export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
-  return await fetchBenchmarkData(lead);
+    const text = await openRouterChat(`Audit ${lead.websiteUrl}. JSON: { entityName, missionSummary, visualStack: [], sonicStack: [], featureGap, businessModel, designSystem, deepArchitecture }.`);
+    const parsed = JSON.parse(text || "{}");
+    return { ...parsed, sources: [] };
 };
 
 export const generateProposalDraft = async (lead: Lead) => {
-  return await openRouterChat(`Write a proposal for ${lead.businessName}. Return UI_BLOCKS format.`);
+  return await openRouterChat(`Write a proposal for ${lead.businessName}. Focus on AI ROI.`);
 };
 
 export const generateOutreachSequence = async (lead: Lead) => {
-  const text = await openRouterChat(`5-day sequence for ${lead.businessName}. Return JSON array.`);
-  return JSON.parse(text || "[]");
+  const text = await openRouterChat(`5-step email sequence for ${lead.businessName}. JSON array.`);
+  try { return JSON.parse(text); } catch { return []; }
 };
 
 export const analyzeLedger = async (leads: Lead[]) => {
-  const text = await openRouterChat(`Analyze these leads: ${JSON.stringify(leads)}. Return JSON: { risk, opportunity }.`);
-  return JSON.parse(text || "{}");
+  const text = await openRouterChat(`Analyze market risk/opportunity for these leads: ${JSON.stringify(leads)}. JSON: { risk, opportunity }.`);
+  try { return JSON.parse(text); } catch { return { risk: "N/A", opportunity: "N/A" }; }
 };
 
 export const performFactCheck = async (lead: Lead, claim: string) => {
-  const text = await openRouterChat(`Fact check: "${claim}" for ${lead.businessName}. Return JSON: { status, evidence, sources: [] }.`, undefined, [{ googleSearch: {} }]);
-  return JSON.parse(text || "{}");
+  const text = await openRouterChat(`Verify claim: "${claim}" for ${lead.businessName}. JSON: { status, evidence, sources: [] }.`);
+  try { return JSON.parse(text); } catch { return { status: "Unknown", evidence: "N/A" }; }
 };
 
 export const generatePlaybookStrategy = async (niche: string) => {
-  const text = await openRouterChat(`Playbook for ${niche}. Return JSON: { strategyName, steps: [] }.`);
-  return JSON.parse(text || "{}");
+  const text = await openRouterChat(`Steps to dominate ${niche}. JSON: { strategyName, steps: [] }.`);
+  try { return JSON.parse(text); } catch { return { strategyName: "Standard Ops", steps: [] }; }
 };
 
 export const architectFunnel = async (lead: Lead) => {
-  const text = await openRouterChat(`Funnel for ${lead.businessName}. Return JSON array.`);
-  return JSON.parse(text || "[]");
+  const text = await openRouterChat(`Conversion funnel for ${lead.businessName}. JSON array.`);
+  try { return JSON.parse(text); } catch { return []; }
 };
 
 export const architectPitchDeck = async (lead: Lead) => {
-  const text = await openRouterChat(`Pitch deck slides for ${lead.businessName}. Return JSON array.`);
-  return JSON.parse(text || "[]");
+  const text = await openRouterChat(`Pitch deck outline for ${lead.businessName}. JSON array.`);
+  try { return JSON.parse(text); } catch { return []; }
 };
 
 export const generateTaskMatrix = async (lead: Lead) => {
-  const text = await openRouterChat(`Tasks for ${lead.businessName}. Return JSON array.`);
-  return JSON.parse(text || "[]");
+  const text = await openRouterChat(`Action items for ${lead.businessName}. JSON array.`);
+  try { return JSON.parse(text); } catch { return []; }
 };
 
 export const generateNurtureDialogue = async (lead: Lead, scenario: string) => {
-  const text = await openRouterChat(`Dialogue for ${lead.businessName}: ${scenario}. Return JSON array.`);
-  return JSON.parse(text || "[]");
+  const text = await openRouterChat(`Chat simulation for ${lead.businessName}: ${scenario}. JSON array of {role, text}.`);
+  try { return JSON.parse(text); } catch { return []; }
 };
 
 export const extractBrandDNA = async (lead: any, url: string) => {
-  const text = await openRouterChat(`Brand DNA for ${url}. Return JSON: { colors: [], fontPairing, archetype, visualTone, tagline, brandValues, logoUrl, extractedImages }.`, undefined, [{ googleSearch: {} }]);
-  return JSON.parse(text || "{}");
+  const text = await openRouterChat(`Extract brand DNA from ${url}. JSON: { colors: [], fontPairing, archetype, visualTone, tagline, manifesto, extractedImages: [] }.`);
+  try { return JSON.parse(text); } catch { return {}; }
 };
 
 export const synthesizeProduct = async (lead: Lead) => {
-  const text = await openRouterChat(`Offer design for ${lead.businessName}. Return JSON.`);
-  return JSON.parse(text || "{}");
+  const text = await openRouterChat(`New AI product offer for ${lead.businessName}. JSON: { productName, tagline, pricePoint, features: [] }.`);
+  try { return JSON.parse(text); } catch { return {}; }
 };
 
 export const generateFlashSparks = async (lead: Lead) => {
-  const text = await openRouterChat(`5 viral sparks for ${lead.businessName}. Return JSON array of strings.`);
-  return JSON.parse(text || "[]");
+  const text = await openRouterChat(`5 viral hooks for ${lead.businessName}. JSON array of strings.`);
+  try { return JSON.parse(text); } catch { return []; }
 };
 
 export const generatePitch = async (lead: Lead) => {
-  const text = await openRouterChat(`Elevator pitch for ${lead.businessName}. Return JSON: { "pitch": "..." }.`);
-  try { return JSON.parse(text).pitch || text; } catch(e) { return text; }
-};
-
-export const generateMotionLabConcept = async (lead: Lead) => {
-  const text = await openRouterChat(`Motion storyboard for ${lead.businessName}. Return JSON.`);
-  return JSON.parse(text || "{}");
+  const text = await openRouterChat(`Elevator pitch for ${lead.businessName}. JSON: { "pitch": "..." }.`);
+  try { return JSON.parse(text).pitch || text; } catch { return text; }
 };
 
 export const simulateSandbox = async (lead: Lead, ltv: number, volume: number) => {
-  return await openRouterChat(`Simulation for ${lead.businessName}. LTV: ${ltv}, Vol: ${volume}. Return UI_BLOCKS.`);
-};
-
-export const analyzeVisual = async (data: string, mime: string, p: string) => {
-  return await openRouterChat(p, undefined, undefined, { data, mimeType: mime });
-};
-
-export const analyzeVideoUrl = async (u: string, p: string, id?: string) => {
-  return await openRouterChat(`Grounded video audit: ${u}. Mission: ${p}. Use UI_BLOCKS format.`, undefined, [{ googleSearch: {} }]);
+  return await openRouterChat(`Projected growth for ${lead.businessName}. LTV: ${ltv}, Vol: ${volume}. Output marketing report.`);
 };
 
 export const synthesizeArticle = async (s: string, m: string) => {
-  return await openRouterChat(`Article synthesis: ${s}. Mode: ${m}. Return UI_BLOCKS.`, undefined, [{ googleSearch: {} }]);
+  return await openRouterChat(`Synthesize source: ${s} as ${m}.`);
 };
 
 export const loggedGenerateContent = async (opts: any) => {
-  let prompt = opts.contents;
-  if (Array.isArray(prompt)) prompt = prompt.map((p: any) => p.text || p).join('\n');
-  if (typeof prompt === 'object' && prompt.parts) prompt = prompt.parts.map((p: any) => p.text || p).join('\n');
-  return await openRouterChat(prompt, opts.config?.systemInstruction, opts.config?.tools);
+  const prompt = Array.isArray(opts.contents) ? opts.contents.map((c:any)=>c.text||c).join(' ') : opts.contents;
+  return await openRouterChat(prompt, opts.config?.systemInstruction);
 };
 
 export const generateLyrics = async (l: any, p: string, t: string) => {
-  return await openRouterChat(`Lyrics for ${l.businessName}. Context: ${p}.`, "Return plain text lyrics.");
+  return await openRouterChat(`Commercial lyrics for ${l.businessName}. Style: ${p}. Type: ${t}. Return plain text lyrics.`);
 };
 
 export const generateSonicPrompt = async (l: any) => {
-  const text = await openRouterChat(`Sonic description for ${l.businessName}. Return JSON: { "prompt": "..." }.`);
-  try { return JSON.parse(text).prompt; } catch(e) { return "Corporate ambient."; }
+  const text = await openRouterChat(`Musical description for ${l.businessName} jingle. JSON: { "prompt": "..." }.`);
+  try { return JSON.parse(text).prompt || "Corporate ambient"; } catch { return "Corporate ambient"; }
 };
 
 export const enhanceVideoPrompt = async (p: string) => {
-  const text = await openRouterChat(`Enhance video prompt: "${p}". Return JSON: { "enhanced": "..." }.`);
-  try { return JSON.parse(text).enhanced; } catch(e) { return p; }
+  const text = await openRouterChat(`Make this video prompt cinematic: "${p}". JSON: { "enhanced": "..." }.`);
+  try { return JSON.parse(text).enhanced || p; } catch { return p; }
 };
 
 export const enhanceStrategicPrompt = async (p: string) => {
-  const text = await openRouterChat(`Expand strategic directive: "${p}". Return JSON: { "enhanced": "..." }.`);
-  try { return JSON.parse(text).enhanced; } catch(e) { return p; }
-};
-
-export const testModelPerformance = async (m: string, p: string) => {
-  return await openRouterChat(p);
+  const text = await openRouterChat(`Deepen this strategic instruction: "${p}". JSON: { "enhanced": "..." }.`);
+  try { return JSON.parse(text).enhanced || p; } catch { return p; }
 };
 
 export const generateAgencyIdentity = async (niche: string, region: string) => {
-  const text = await openRouterChat(`Agency identity for ${niche} in ${region}. Return JSON.`);
-  return JSON.parse(text || "{}");
+  const text = await openRouterChat(`Brand for an agency in ${region} serving ${niche}. JSON: { name, tagline, manifesto, colors: [] }.`);
+  try { return JSON.parse(text); } catch { return {}; }
 };
 
 export const generateAffiliateProgram = async (niche: string) => {
-  const text = await openRouterChat(`Affiliate program for ${niche}. Return JSON.`);
-  return JSON.parse(text || "{}");
+  const text = await openRouterChat(`Affiliate structure for ${niche}. JSON: { programName, tiers: [], recruitScript }.`);
+  try { return JSON.parse(text); } catch { return {}; }
 };
 
 export const critiqueVideoPresence = async (lead: Lead) => {
-  return await openRouterChat(`Critique video presence for ${lead.businessName}. Use UI_BLOCKS.`, undefined, [{ googleSearch: {} }]);
+  return await openRouterChat(`Audit video content for ${lead.businessName}.`);
 };
 
 export const translateTactical = async (text: string, lang: string) => {
-  const res = await openRouterChat(`Translate to ${lang}: "${text}". Return JSON: { "translated": "..." }.`);
-  try { return JSON.parse(res).translated; } catch(e) { return res; }
+  const res = await openRouterChat(`Translate to ${lang}: "${text}". JSON: { "translated": "..." }.`);
+  try { return JSON.parse(res).translated || res; } catch { return res; }
 };
 
 export const fetchViralPulseData = async (niche: string) => {
-  const text = await openRouterChat(`Pulse for ${niche}. Return JSON array.`, undefined, [{ googleSearch: {} }]);
-  return JSON.parse(text || "[]");
+  const text = await openRouterChat(`Viral trends in ${niche}. JSON array: [ { label, val, type: 'up'|'down' } ].`);
+  try { return JSON.parse(text); } catch { return []; }
 };
 
 export const queryRealtimeAgent = async (q: string) => {
-  const text = await openRouterChat(q, "Use UI_BLOCKS format.", [{ googleSearch: {} }]);
+  const text = await openRouterChat(q);
   return { text, sources: [] };
 };
 
 export const generateROIReport = async (ltv: number, vol: number, conv: number) => {
-  return await openRouterChat(`ROI Report: LTV ${ltv}, Vol ${vol}, Conv ${conv}. Use UI_BLOCKS.`);
+  return await openRouterChat(`ROI calculation: LTV ${ltv}, Vol ${vol}, Conv-Lift ${conv}%.`);
 };
 
-export const fetchTokenStats = async () => ({ recentOps: [{ op: 'Google_Link', id: 'GEMINI_V3', cost: '0.0001' }] });
+export const fetchTokenStats = async () => ({ recentOps: [{ op: 'REST_LINK', id: 'GEMINI_FLASH_V3', cost: '0.0001' }] });
 
-// --- GATED ASSETS (GEMINI SDK IMPLEMENTATION) ---
+// --- SDK IMPLEMENTATIONS (FIX ERRORS) ---
 
+// Fix error: Module '"../../services/geminiService"' has no exported member 'analyzeVisual'.
 /**
- * NANO BANANA IMAGE GENERATION
+ * VISION ANALYSIS
+ * Preferred for high-fidelity optic deconstruction.
  */
-export const generateVisual = async (p: string, l: any, e?: string) => {
+export const analyzeVisual = async (base64: string, mimeType: string, prompt: string) => {
+  pushLog(`VISION: Analyzing neural plate...`);
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
-  const contents: any = {
-    parts: [
-      e ? { inlineData: { data: e.split(',')[1], mimeType: e.split(';')[0].split(':')[1] } } : null,
-      { text: p }
-    ].filter(Boolean) as any
-  };
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents,
-      config: {
-        imageConfig: { aspectRatio: "1:1" }
-      }
-    });
-
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        const url = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-        saveAsset('IMAGE', p.slice(0, 30), url, 'CREATIVE_STUDIO', l?.id);
-        return url;
-      }
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-image',
+    contents: {
+      parts: [
+        { inlineData: { mimeType, data: base64 } },
+        { text: prompt }
+      ]
     }
-  } catch (err: any) {
-    pushLog(`IMAGE_GEN_FAULT: ${err.message}`);
+  });
+  return response.text || "No analysis generated.";
+};
+
+// Fix error: Module '"../../services/geminiService"' has no exported member 'fetchLiveIntel'.
+/**
+ * LIVE INTEL (SEARCH GROUNDED)
+ * Performs real-time audit via Google Search Grounding.
+ */
+export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
+  pushLog(`INTEL: Scouring grounded vectors for ${lead.businessName}...`);
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Audit the business at ${lead.websiteUrl} for ${module}. Provide a technical benchmark report.`,
+    config: {
+      tools: [{ googleSearch: {} }],
+      responseMimeType: "application/json"
+    }
+  });
+
+  const text = extractJson(response.text || "{}");
+  try {
+    const parsed = JSON.parse(text);
+    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((c: any) => ({
+      title: c.web?.title || 'Intelligence Node',
+      uri: c.web?.uri || ''
+    })) || [];
+    return { 
+      entityName: lead.businessName,
+      missionSummary: "Grounded analysis complete.",
+      visualStack: [], 
+      sonicStack: [], 
+      featureGap: "N/A", 
+      businessModel: "N/A", 
+      designSystem: "N/A", 
+      deepArchitecture: "N/A", 
+      ...parsed, 
+      sources 
+    };
+  } catch (e) {
+    return {
+      entityName: lead.businessName,
+      missionSummary: "Parsing failure on intel stream.",
+      visualStack: [],
+      sonicStack: [],
+      featureGap: "N/A",
+      businessModel: "N/A",
+      designSystem: "N/A",
+      deepArchitecture: "N/A",
+      sources: []
+    };
+  }
+};
+
+// Fix error: Module '"../../services/geminiService"' has no exported member 'testModelPerformance'.
+/**
+ * MODEL PERFORMANCE TEST
+ */
+export const testModelPerformance = async (model: string, prompt: string) => {
+  pushLog(`BENCHMARK: Stress testing ${model}...`);
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: model as any,
+    contents: prompt
+  });
+  return response.text || "No response from neural core.";
+};
+
+// Fix error: Module '"../../services/geminiService"' has no exported member 'generateMotionLabConcept'.
+/**
+ * MOTION LAB CONCEPT
+ * Generates cinematic storyboards.
+ */
+export const generateMotionLabConcept = async (lead: Lead) => {
+  pushLog(`MOTION: Storyboarding for ${lead.businessName}...`);
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Create a cinematic motion graphics concept for ${lead.businessName}. Return JSON with fields: title, hook, scenes (array of {time, visual, text}).`,
+    config: { responseMimeType: "application/json" }
+  });
+  return JSON.parse(extractJson(response.text || "{}"));
+};
+
+// Fix error: Module '"../../services/geminiService"' has no exported member 'analyzeVideoUrl'.
+/**
+ * VIDEO URL ANALYSIS (SEARCH GROUNDED)
+ */
+export const analyzeVideoUrl = async (url: string, prompt: string, leadId?: string) => {
+  pushLog(`CINEMA: Decoding temporal stream ${url}...`);
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Analyze this video: ${url}. Mission: ${prompt}`,
+    config: { tools: [{ googleSearch: {} }] }
+  });
+  return response.text || "Analysis offline.";
+};
+
+// Fix: Implement visual generation using Nano Banana
+export const generateVisual = async (prompt: string, lead: any, editImageBase64?: string) => {
+  pushLog(`FORGE: Synthesizing visual asset...`);
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const parts: any[] = [{ text: prompt }];
+  
+  if (editImageBase64) {
+    const data = editImageBase64.split(',')[1] || editImageBase64;
+    const mimeType = editImageBase64.split(';')[0].split(':')[1] || 'image/png';
+    parts.unshift({ inlineData: { mimeType, data } });
+  }
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-image',
+    contents: { parts }
+  });
+
+  // Iterating parts to find image content according to guidelines
+  for (const part of response.candidates?.[0]?.content?.parts || []) {
+    if (part.inlineData) {
+      const url = `data:image/png;base64,${part.inlineData.data}`;
+      saveAsset('IMAGE', `VISUAL: ${prompt.slice(0, 30)}`, url, 'VISUAL_STUDIO', lead?.id);
+      return url;
+    }
   }
   return null;
 };
 
-/**
- * VEO 3.1 VIDEO GENERATION
- */
+// Fix: Implement video generation using Veo
 export const generateVideoPayload = async (
   prompt: string, 
   leadId?: string, 
   startImage?: string, 
   endImage?: string, 
-  config?: VeoConfig,
-  referenceImages?: string[],
-  inputVideo?: any
+  config?: VeoConfig, 
+  referenceImages?: string[], 
+  inputVideo?: string
 ) => {
+  pushLog(`VEO: Initializing video render...`);
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  const model = config?.modelStr || 'veo-3.1-fast-generate-preview';
   const videoConfig: any = {
     numberOfVideos: 1,
     resolution: config?.resolution || '720p',
@@ -419,90 +473,78 @@ export const generateVideoPayload = async (
   };
 
   const payload: any = {
-    model,
+    model: config?.modelStr || 'veo-3.1-fast-generate-preview',
     prompt,
     config: videoConfig
   };
 
   if (startImage) {
     payload.image = {
-      imageBytes: startImage.includes(',') ? startImage.split(',')[1] : startImage,
-      mimeType: startImage.includes(';') ? startImage.split(';')[0].split(':')[1] : 'image/png'
+      imageBytes: startImage.split(',')[1] || startImage,
+      mimeType: 'image/png'
     };
   }
 
   if (endImage) {
-    payload.lastFrame = {
-      imageBytes: endImage.includes(',') ? endImage.split(',')[1] : endImage,
-      mimeType: endImage.includes(';') ? endImage.split(';')[0].split(':')[1] : 'image/png'
+    payload.config.lastFrame = {
+      imageBytes: endImage.split(',')[1] || endImage,
+      mimeType: 'image/png'
     };
   }
 
-  if (referenceImages && referenceImages.length > 0) {
-    payload.model = 'veo-3.1-generate-preview';
-    payload.config.referenceImages = referenceImages.map(img => ({
-      image: {
-        imageBytes: img.split(',')[1],
-        mimeType: img.split(';')[0].split(':')[1]
-      },
-      referenceType: 'ASSET'
-    }));
+  let operation = await ai.models.generateVideos(payload);
+  while (!operation.done) {
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    operation = await ai.operations.getVideosOperation({ operation });
   }
 
-  try {
-    let operation = await ai.models.generateVideos(payload);
-    while (!operation.done) {
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      operation = await ai.operations.getVideosOperation({ operation: operation });
-    }
-
-    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    const finalUrl = `${downloadLink}&key=${process.env.API_KEY}`;
-    
-    saveAsset('VIDEO', prompt.slice(0, 40), finalUrl, 'VIDEO_STUDIO', leadId);
-    return finalUrl;
-  } catch (e: any) {
-    pushLog(`VEO_FAULT: ${e.message}`);
-    throw e;
-  }
+  const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+  const videoRes = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+  const blob = await videoRes.blob();
+  return new Promise<string>((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      saveAsset('VIDEO', `VEO_CLIP: ${prompt.slice(0, 30)}`, base64, 'VIDEO_STUDIO', leadId);
+      resolve(base64);
+    };
+    reader.readAsDataURL(blob);
+  });
 };
 
-/**
- * GEMINI TTS GENERATION
- */
-export const generateAudioPitch = async (t: string, v: string, l?: string) => {
+// Fix: Implement speech generation using Gemini TTS
+export const generateAudioPitch = async (text: string, voice: string, leadId?: string) => {
+  pushLog(`SONIC: Synthesizing voice profile...`);
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text: t }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: v },
-          },
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash-preview-tts",
+    contents: [{ parts: [{ text }] }],
+    config: {
+      responseModalities: [Modality.AUDIO],
+      speechConfig: {
+        voiceConfig: {
+          prebuiltVoiceConfig: { voiceName: voice || 'Kore' },
         },
       },
-    });
+    },
+  });
 
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (base64Audio) {
-      const url = `data:audio/pcm;base64,${base64Audio}`;
-      saveAsset('AUDIO', t.slice(0, 30), url, 'SONIC_STUDIO', l);
-      return url;
-    }
-  } catch (err: any) {
-    pushLog(`TTS_FAULT: ${err.message}`);
+  const base64Audio = response.candidates?.[0]?.content?.parts[0]?.inlineData?.data;
+  if (base64Audio) {
+    const url = `data:audio/pcm;base64,${base64Audio}`;
+    saveAsset('AUDIO', `PITCH: ${text.slice(0, 20)}...`, url, 'SONIC_STUDIO', leadId);
+    return url;
   }
   return null;
 };
 
-export const generateMockup = async (b: string, n: string, id?: string) => {
-  const p = `High-end 4k commercial mockup for ${b}, a ${n} business. Professional product photography, studio lighting, clean background.`;
-  return await generateVisual(p, { id });
+// Fix: Implement mockup generation using the existing visual engine
+export const generateMockup = async (businessName: string, niche: string, leadId?: string) => {
+  const prompt = `Premium 4K product mockup for ${businessName} in the ${niche} industry. High resolution, professional studio lighting, depth of field.`;
+  return await generateVisual(prompt, { id: leadId });
 };
 
+// Fix: Correct AI instance retrieval
 export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const deleteAsset = (id: string) => {
