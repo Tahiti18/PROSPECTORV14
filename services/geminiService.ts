@@ -1,4 +1,3 @@
-
 import { Lead } from '../types';
 
 // --- TYPES ---
@@ -79,40 +78,41 @@ const extractJson = (text: string) => {
  * NO GOOGLE APIS - NO PRO MODELS - ONLY FLASH
  */
 export const openRouterChat = async (prompt: string, systemInstruction?: string) => {
-  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+  // IMPORTANT: Never call OpenRouter directly from the browser.
+  // This must go through the server route (/api/openrouter/chat) so the Bearer key stays server-side.
   
-  if (!OPENROUTER_API_KEY) {
-    throw new Error('OPENROUTER_API_KEY is not configured in .env file');
-  }
-
   const defaultSystem = `You are a Senior B2B Sales Strategist for a high-end AI Transformation Agency. 
 Your goal is to help your agency close specific business targets. 
 NEVER mention "Prospector OS", "The Engine", or your own internal software in your outreach. 
 You work for the user. Always output raw valid JSON. No conversational filler.`;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('/api/openrouter/chat', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': typeof window !== 'undefined' ? window.location.href : 'https://prospector-os.app',
-        'X-Title': 'Prospector OS V14'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp:free',
-        messages: [
-          {
-            role: 'system',
-            content: systemInstruction || defaultSystem
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.3,
-        response_format: { type: 'json_object' }
+        prompt,
+        systemInstruction: systemInstruction || defaultSystem
       })
     });
 
