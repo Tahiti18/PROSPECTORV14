@@ -22,7 +22,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   const [isOutreachOpen, setIsOutreachOpen] = useState(false);
   
   const [refreshKey, setRefreshKey] = useState(0); 
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const targetLead = leads.find(l => l.id === selectedLeadId);
   
@@ -62,6 +61,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     setIsOrchestrating(true);
     try {
       const result = await orchestrateBusinessPackage(targetLead, leadAssets);
+      if (!result) throw new Error("Empty orchestration result.");
       const saved = dossierStorage.save(targetLead, result, leadAssets.map(a => a.id));
       setPackageData(result);
       setCurrentDossier(saved);
@@ -93,7 +93,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
             CAMPAIGN <span className="text-emerald-500">BUILDER</span>
           </h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">
-            SECURED OPENROUTER FLASH CORE
+            SECURED NEURAL CORE GATEWAY
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -182,13 +182,13 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                     <div className="flex-1 p-12 overflow-y-auto custom-scrollbar relative bg-[#020617]">
                        {activeTab === 'strategy' && (
                           <div className="space-y-12">
-                             {packageData?.presentation?.slides?.length > 0 ? (
+                             {(packageData?.presentation?.slides?.length ?? 0) > 0 ? (
                                 <>
                                    <h2 className="text-3xl font-bold text-white uppercase">{packageData?.presentation?.title || "STRATEGY Blueprint"}</h2>
                                    <div className="grid gap-6">
                                       {packageData.presentation.slides.map((slide: any, i: number) => (
                                         <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] group hover:border-emerald-500/30 transition-all">
-                                           <h3 className="text-xl font-bold text-white uppercase mb-4">#{i+1}: {slide?.title}</h3>
+                                           <h3 className="text-xl font-bold text-white uppercase mb-4">#{i+1}: {slide?.title || 'Segment'}</h3>
                                            <ul className="space-y-2 mb-4">
                                               {(slide?.bullets || []).map((b: string, j: number) => (
                                                 <li key={j} className="text-sm text-slate-400 pl-4 border-l-2 border-slate-700 font-medium italic">{b}</li>
@@ -209,14 +209,14 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                                 <>
                                    <div className="bg-slate-900 p-10 rounded-[40px] border border-slate-800 shadow-xl">
                                       <h3 className="text-[10px] font-black text-emerald-500 uppercase mb-4 tracking-widest">BRAND_MOOD</h3>
-                                      <p className="text-2xl font-black italic text-white uppercase italic tracking-tight">"{packageData.visualDirection.brandMood}"</p>
+                                      <p className="text-2xl font-black italic text-white uppercase italic tracking-tight">"{packageData.visualDirection.brandMood || 'Not Defined'}"</p>
                                    </div>
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                       <div className="space-y-6">
                                          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">COLOR_PSYCH</h4>
                                          {(packageData.visualDirection.colorPsychology || []).map((cp: any, i: number) => (
                                             <div key={i} className="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800">
-                                               <div className="w-8 h-8 rounded-full border border-white/10 shadow-lg" style={{ backgroundColor: cp?.color }}></div>
+                                               <div className="w-8 h-8 rounded-full border border-white/10 shadow-lg" style={{ backgroundColor: cp?.color || '#333' }}></div>
                                                <div>
                                                   <p className="text-[10px] font-black text-white">{cp?.color}</p>
                                                   <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">{cp?.purpose}</p>
@@ -251,7 +251,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
                        {activeTab === 'content' && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             {packageData?.contentPack?.length > 0 ? (
+                             {(packageData?.contentPack?.length ?? 0) > 0 ? (
                                 packageData.contentPack.map((post: any, i: number) => (
                                   <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4 hover:border-emerald-500/30 transition-all">
                                      <div className="flex justify-between items-center">
@@ -267,7 +267,7 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
                        {activeTab === 'outreach' && (
                           <div className="space-y-8">
-                             {packageData?.outreach?.emailSequence?.length > 0 ? (
+                             {(packageData?.outreach?.emailSequence?.length ?? 0) > 0 ? (
                                 <>
                                    {packageData.outreach.emailSequence.map((email: any, i: number) => (
                                      <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] shadow-lg">
