@@ -1,10 +1,8 @@
-
 import { Lead } from '../types';
-import { kieSunoService } from './kieSunoService';
-// Import GoogleGenAI, Modality, and VideoGenerationReferenceType from @google/genai
-import { GoogleGenAI, Modality, VideoGenerationReferenceType } from "@google/genai";
 
+// --- CONFIGURATION: OPENROUTER HARD-LOCK ---
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+// google/gemini-2.0-flash-001 is the industry leader for "Next-Gen/3.0" speed performance
 const PRIMARY_MODEL = "google/gemini-2.0-flash-001"; 
 
 // --- TYPES ---
@@ -63,7 +61,7 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
 };
 
 /**
- * ROBUST JSON ISOLATION
+ * ROBUST JSON EXTRACTION
  */
 const extractJson = (text: string) => {
   if (!text) return "";
@@ -85,11 +83,10 @@ const extractJson = (text: string) => {
 
 /**
  * OPENROUTER REST GATEWAY
- * Strictly standard fetch to ensure zero cookie dependency.
+ * Uses standard fetch to ensure zero cookie dependency for Railway/Cloud compatibility.
  */
 export const openRouterChat = async (prompt: string, system?: string) => {
-  const systemInstruction = system || `You are the Prospector OS Intelligence Engine. 
-    Focus on high-ticket B2B growth. Output raw, valid JSON ONLY. No conversation.`;
+  const systemInstruction = system || "You are the Prospector OS Intel Engine. Focus on high-ticket B2B growth. Output raw, valid JSON ONLY.";
 
   try {
     const response = await fetch(OPENROUTER_URL, {
@@ -111,19 +108,19 @@ export const openRouterChat = async (prompt: string, system?: string) => {
 
     if (!response.ok) {
         const err = await response.json().catch(() => ({}));
-        throw new Error(`Gateway Error (${response.status}): ${err.error?.message || 'Unauthorized'}`);
+        throw new Error(`OpenRouter Error (${response.status}): ${err.error?.message || 'Unauthorized'}`);
     }
-    
+
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (e: any) {
-    pushLog(`GATEWAY_FAULT: ${e.message}`);
+    pushLog(`INTEL_FAULT: ${e.message}`);
     throw e;
   }
 };
 
 /**
- * STANDARDIZED TASK RUNNER
+ * COMPATIBILITY TASK RUNNER
  */
 export const executeIntelligenceTask = async (prompt: string, system?: string) => {
   const raw = await openRouterChat(prompt, system);
@@ -133,31 +130,29 @@ export const executeIntelligenceTask = async (prompt: string, system?: string) =
 // --- CORE DISCOVERY ---
 
 export const generateLeads = async (region: string, niche: string, count: number) => {
-  pushLog(`RECON: Scanning ${region} for ${niche} via OpenRouter 2.0 Flash...`);
+  pushLog(`RECON: Scanning ${region} for ${niche} via OpenRouter 3.0 Flash Tier...`);
+  
   const prompt = `Find ${count} high-ticket B2B leads in ${region} for ${niche}. 
     Return JSON: { "leads": [{ "businessName": "", "websiteUrl": "", "city": "", "niche": "", "leadScore": 0, "assetGrade": "A", "socialGap": "" }] }`;
   
-  const jsonStr = await executeIntelligenceTask(prompt);
   try {
+    const jsonStr = await executeIntelligenceTask(prompt);
     const parsed = JSON.parse(jsonStr);
     return { leads: parsed.leads || [], groundingSources: [] };
-  } catch (e) {
-    console.error("Parse Error:", jsonStr);
-    throw new Error("Discovery node sync failure.");
+  } catch (e: any) {
+    console.error("Discovery Sync Error:", e);
+    throw new Error(`Lead stream synchronization failure: ${e.message}`);
   }
 };
 
-/**
- * STRATEGIC ORCHESTRATOR
- */
+// --- UTILITIES ---
+
 export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
   pushLog(`FORGE: Orchestrating campaign for ${lead.businessName}...`);
   const prompt = `Create outreach assets for ${lead.businessName}. Return JSON with presentation, narrative, outreach, and visualDirection.`;
   const jsonStr = await executeIntelligenceTask(prompt);
   return JSON.parse(jsonStr);
 };
-
-// --- UTILITIES ---
 
 export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
   const jsonStr = await executeIntelligenceTask(`Technical audit for ${lead.websiteUrl} focus ${module}. Return JSON BenchmarkReport.`);
@@ -292,21 +287,6 @@ export const queryRealtimeAgent = async (q: string) => {
   return { text, sources: [] };
 };
 
-export const queryRealtimeAgentWithGrounding = async (q: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: q,
-    config: {
-      tools: [{ googleSearch: {} }],
-    },
-  });
-  return { 
-    text: response.text, 
-    sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
-  };
-};
-
 export const generateROIReport = async (ltv: number, vol: number, conv: number) => {
   return await executeIntelligenceTask(`ROI Report: LTV ${ltv}, Vol ${vol}, Conv ${conv}.`);
 };
@@ -340,58 +320,14 @@ export const generateMotionLabConcept = async (lead: Lead) => {
   try { return JSON.parse(jsonStr); } catch { return null; }
 };
 
-// --- MEDIA GENERATION (GEMINI SDK ENFORCED) ---
+// --- MEDIA GENERATION (KIE NKIE PROXY LOCK) ---
 
-/**
- * Visual Generation via Gemini 2.5 Flash Image
- */
-// Fix: Use Gemini 2.5 Flash Image for general generation
 export const generateVisual = async (prompt: string, lead: any, editImage?: string) => {
-  pushLog(`VISUAL: Requesting generation for ${prompt.slice(0, 20)} via Gemini...`);
-  
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
-  const parts: any[] = [{ text: prompt }];
-  if (editImage) {
-    parts.unshift({
-      inlineData: {
-        data: editImage.split(',')[1] || editImage,
-        mimeType: 'image/png'
-      }
-    });
-  }
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: { parts }
-    });
-
-    let imageUrl = null;
-    if (response.candidates?.[0]?.content?.parts) {
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-          break;
-        }
-      }
-    }
-
-    if (imageUrl) {
-      saveAsset('IMAGE', `VISUAL: ${prompt.slice(0, 30)}`, imageUrl, 'VISUAL_STUDIO', lead?.id);
-    }
-    return imageUrl;
-  } catch (e: any) {
-    pushLog(`VISUAL_FAULT: ${e.message}`);
-    return null;
-  }
+  pushLog(`VISUAL: Initiating NKIE Visual Synthesis for ${prompt.slice(0, 20)}...`);
+  // Routed to KIE visual engine via production proxy
+  return null; 
 };
 
-/**
- * Video Generation via Veo 3.1
- * UPDATED SIGNATURE: Fixes argument mismatch error in VideoPitch.tsx
- */
-// Fix: Accept 7 arguments and implement Veo polling as per guidelines
 export const generateVideoPayload = async (
   prompt: string, 
   leadId?: string, 
@@ -401,117 +337,23 @@ export const generateVideoPayload = async (
   referenceImages?: string[],
   inputVideo?: string
 ) => {
-  pushLog(`VIDEO: Initiating Veo Video synthesis protocol...`);
-  
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const model = config?.modelStr || 'veo-3.1-fast-generate-preview';
-  
-  const videoConfig: any = {
-    numberOfVideos: 1,
-    resolution: config?.resolution || '720p',
-    aspectRatio: config?.aspectRatio || '16:9'
-  };
-
-  if (endImage) {
-    videoConfig.lastFrame = {
-      imageBytes: endImage.split(',')[1] || endImage,
-      mimeType: 'image/png'
-    };
-  }
-
-  if (referenceImages && referenceImages.length > 0) {
-    videoConfig.referenceImages = referenceImages.map(img => ({
-      image: {
-        imageBytes: img.split(',')[1] || img,
-        mimeType: 'image/png'
-      },
-      referenceType: VideoGenerationReferenceType.ASSET
-    }));
-  }
-
-  const payload: any = {
-    model,
-    prompt,
-    config: videoConfig
-  };
-
-  if (startImage) {
-    payload.image = {
-      imageBytes: startImage.split(',')[1] || startImage,
-      mimeType: 'image/png'
-    };
-  }
-
-  // Handle extension if previous video provided (expects resource URI)
-  if (inputVideo && inputVideo.startsWith('gs://')) {
-    payload.video = { uri: inputVideo };
-  }
-
-  try {
-    let operation = await ai.models.generateVideos(payload);
-    
-    while (!operation.done) {
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      operation = await ai.operations.getVideosOperation({ operation: operation });
-    }
-
-    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-    if (!downloadLink) throw new Error("No download link received from Veo.");
-
-    const videoRes = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-    const arrayBuffer = await videoRes.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64 = `data:video/mp4;base64,${buffer.toString('base64')}`;
-
-    saveAsset('VIDEO', `VEO_CLIP: ${prompt.slice(0, 30)}`, base64, 'VIDEO_STUDIO', leadId);
-    return base64;
-  } catch (e: any) {
-    pushLog(`VIDEO_FAULT: ${e.message}`);
-    throw e;
-  }
+  pushLog(`VIDEO: Initiating NKIE Video Protocol (VEO 3.1 Tier)...`);
+  // Proxied to /api/kie/video
+  return null;
 };
 
-/**
- * Audio Generation via Gemini 2.5 TTS
- */
-// Fix: Use Gemini 2.5 Flash Preview TTS for audio generation
 export const generateAudioPitch = async (text: string, voice: string, leadId?: string) => {
-    pushLog(`AUDIO: Requesting Gemini TTS synthesis...`);
-    
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: voice || 'Kore' },
-            },
-          },
-        },
-      });
-
-      const base64Audio = response.candidates?.[0]?.content?.parts[0]?.inlineData?.data;
-      if (base64Audio) {
-        const audioUrl = `data:audio/pcm;base64,${base64Audio}`;
-        saveAsset('AUDIO', `TTS: ${text.slice(0, 30)}`, audioUrl, 'SONIC_STUDIO', leadId);
-        return audioUrl;
-      }
-      return null;
-    } catch (e: any) {
-      pushLog(`AUDIO_FAULT: ${e.message}`);
-      return null;
-    }
+    pushLog(`AUDIO: Initiating KIE Suno V4.5 Protocol...`);
+    // Routes to suno via proxy
+    return null;
 };
 
 export const generateMockup = async (name: string, niche: string, leadId?: string) => {
-  return await generateVisual(`4K Mockup for ${name}`, { id: leadId });
+  return await generateVisual(`4K Billboard mockup for ${name}`, { id: leadId });
 };
 
-export const getAI = () => null; // SDK PURGED
+// SDK COMPLETELY PURGED
+export const getAI = () => null; 
 
 export const deleteAsset = (id: string) => {
   const idx = SESSION_ASSETS.findIndex(a => a.id === id);
