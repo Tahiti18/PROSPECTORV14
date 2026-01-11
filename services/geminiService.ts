@@ -1,7 +1,5 @@
 
 import { Lead } from '../types';
-// Import GoogleGenAI and Type as per guidelines
-import { GoogleGenAI, Type } from "@google/genai";
 
 // --- TYPES ---
 export interface AssetRecord {
@@ -27,7 +25,6 @@ export interface BenchmarkReport {
   sources: Array<{ title: string; uri: string }>;
 }
 
-// Fix Error: Module '"../../services/geminiService"' has no exported member 'VeoConfig'.
 export interface VeoConfig {
   aspectRatio: '16:9' | '9:16';
   resolution: '720p' | '1080p';
@@ -77,29 +74,55 @@ const extractJson = (text: string) => {
 };
 
 /**
- * GEMINI CORE CHAT
- * Enforces strict role-play and uses the Google GenAI SDK.
+ * OPENROUTER GEMINI FLASH CHAT
+ * STRICTLY uses Gemini 2.0 Flash via OpenRouter API
+ * NO GOOGLE APIS - NO PRO MODELS - ONLY FLASH
  */
 export const openRouterChat = async (prompt: string, systemInstruction?: string) => {
-  // Always initialize GoogleGenAI inside the call as per guidelines
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+  
+  if (!OPENROUTER_API_KEY) {
+    throw new Error('OPENROUTER_API_KEY is not configured in .env file');
+  }
+
   const defaultSystem = `You are a Senior B2B Sales Strategist for a high-end AI Transformation Agency. 
 Your goal is to help your agency close specific business targets. 
 NEVER mention "Prospector OS", "The Engine", or your own internal software in your outreach. 
 You work for the user. Always output raw valid JSON. No conversational filler.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        systemInstruction: systemInstruction || defaultSystem,
-        temperature: 0.3,
-        responseMimeType: "application/json",
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': typeof window !== 'undefined' ? window.location.href : 'https://prospector-os.app',
+        'X-Title': 'Prospector OS V14'
       },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-exp:free',
+        messages: [
+          {
+            role: 'system',
+            content: systemInstruction || defaultSystem
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.3,
+        response_format: { type: 'json_object' }
+      })
     });
 
-    const text = response.text || "";
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`OpenRouter API Error (${response.status}): ${error}`);
+    }
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content || "";
     return extractJson(text);
   } catch (e: any) {
     pushLog(`NEURAL_FAULT: ${e.message}`);
@@ -124,7 +147,7 @@ export const generateLeads = async (region: string, niche: string, count: number
 
 /**
  * STRATEGIC ORCHESTRATOR
- * Stabilized prompt for Gemini 3 Flash.
+ * Stabilized prompt for Gemini Flash via OpenRouter.
  */
 export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
   pushLog(`FORGE: Mapping strategy for ${lead.businessName}...`);
@@ -164,12 +187,12 @@ export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> =
 };
 
 export const generateProposalDraft = async (lead: Lead) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Write a high-ticket AI transformation proposal for ${lead.businessName}. Focus on ROI.`,
-  });
-  return response.text || "";
+  const text = await openRouterChat(`Write a high-ticket AI transformation proposal for ${lead.businessName}. Focus on ROI. Return as JSON with "proposal" field.`);
+  try { 
+    return JSON.parse(text).proposal || text; 
+  } catch { 
+    return text; 
+  }
 };
 
 export const generateOutreachSequence = async (lead: Lead) => {
@@ -233,41 +256,36 @@ export const generatePitch = async (lead: Lead) => {
 };
 
 export const simulateSandbox = async (lead: Lead, ltv: number, volume: number) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `ROI for ${lead.businessName}. LTV ${ltv}, Vol ${volume}.`,
-  });
-  return response.text || "";
+  const text = await openRouterChat(`ROI simulation for ${lead.businessName}. LTV $${ltv}, Volume ${volume}. Return as JSON with "analysis" field.`);
+  try {
+    return JSON.parse(text).analysis || text;
+  } catch {
+    return text;
+  }
 };
 
 export const synthesizeArticle = async (s: string, m: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Synthesize article: ${s} as ${m}.`,
-  });
-  return response.text || "";
+  const text = await openRouterChat(`Synthesize article: ${s} as ${m}. Return as JSON with "article" field.`);
+  try {
+    return JSON.parse(text).article || text;
+  } catch {
+    return text;
+  }
 };
 
 export const loggedGenerateContent = async (opts: any) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const p = Array.isArray(opts.contents) ? opts.contents.map((c:any)=>c.text||c).join(' ') : opts.contents;
-  const response = await ai.models.generateContent({
-    model: opts.model || 'gemini-3-flash-preview',
-    contents: p,
-    config: opts.config
-  });
-  return response.text || "";
+  const text = await openRouterChat(p, opts.config?.systemInstruction);
+  return text;
 };
 
 export const generateLyrics = async (l: any, p: string, t: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Lyrics for ${l.businessName}. Style: ${p}.`,
-  });
-  return response.text || "";
+  const text = await openRouterChat(`Lyrics for ${l.businessName}. Style: ${p}. Return as JSON with "lyrics" field.`);
+  try {
+    return JSON.parse(text).lyrics || text;
+  } catch {
+    return text;
+  }
 };
 
 export const generateSonicPrompt = async (l: any) => {
@@ -296,12 +314,12 @@ export const generateAffiliateProgram = async (niche: string) => {
 };
 
 export const critiqueVideoPresence = async (lead: Lead) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Video audit for ${lead.businessName}.`,
-  });
-  return response.text || "";
+  const text = await openRouterChat(`Video audit for ${lead.businessName}. Return as JSON with "audit" field.`);
+  try {
+    return JSON.parse(text).audit || text;
+  } catch {
+    return text;
+  }
 };
 
 export const translateTactical = async (text: string, lang: string) => {
@@ -315,27 +333,28 @@ export const fetchViralPulseData = async (niche: string) => {
 };
 
 export const queryRealtimeAgent = async (q: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: q,
-    config: {
-      tools: [{ googleSearch: {} }]
-    }
-  });
-  return { 
-    text: response.text || "", 
-    sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] 
-  };
+  const text = await openRouterChat(`${q} Return as JSON with "text" and "sources" fields.`);
+  try {
+    const parsed = JSON.parse(text);
+    return {
+      text: parsed.text || text,
+      sources: parsed.sources || []
+    };
+  } catch {
+    return {
+      text: text,
+      sources: []
+    };
+  }
 };
 
 export const generateROIReport = async (ltv: number, vol: number, conv: number) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `ROI: LTV ${ltv}, Vol ${vol}, Conv ${conv}.`,
-  });
-  return response.text || "";
+  const text = await openRouterChat(`ROI Report: LTV $${ltv}, Volume ${vol}, Conversion ${conv}%. Return as JSON with "report" field.`);
+  try {
+    return JSON.parse(text).report || text;
+  } catch {
+    return text;
+  }
 };
 
 export const fetchTokenStats = async () => ({ recentOps: [{ op: 'REST_LINK', id: 'OR_FLASH_V3', cost: '0.0001' }] });
@@ -350,60 +369,33 @@ export const crawlTheaterSignals = async (region: string, signal: string) => {
   try { return JSON.parse(text); } catch { return []; }
 };
 
-// Fix Error: Expected 2 arguments, but got 3.
+// NOTE: Video/image analysis features require KIE API (audio/video generation service)
+// OpenRouter with Gemini Flash doesn't support multimodal vision/video analysis
 export const analyzeVideoUrl = async (u: string, p: string, leadId?: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Analyze video ${u}. Instruction: ${p}`,
-    config: {
-      tools: [{ googleSearch: {} }]
-    }
-  });
-  return response.text || "";
+  const text = await openRouterChat(`Analyze video at URL: ${u}. Instruction: ${p}. Return as JSON with "analysis" field. Note: Direct video analysis not available, provide text-based analysis.`);
+  try {
+    return JSON.parse(text).analysis || text;
+  } catch {
+    return text;
+  }
 };
 
-/**
- * Fix Error: Module '"../../services/geminiService"' has no exported member 'analyzeVisual'.
- * Implementation for VisionLab.tsx using Gemini Vision part format.
- */
+// NOTE: Visual analysis via base64 images not supported by OpenRouter Gemini Flash
+// This returns a placeholder - use KIE API for actual image generation
 export const analyzeVisual = async (base64: string, mimeType: string, prompt: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [{ parts: [{ inlineData: { data: base64, mimeType } }, { text: prompt }] }]
-  });
-  return response.text || "";
+  pushLog('WARN: Image analysis not supported via OpenRouter. Use KIE API for visual features.');
+  return `Visual analysis requested: ${prompt}. Note: Direct image analysis not available through OpenRouter API. Consider using KIE API for visual generation.`;
 };
 
-// Implementation for CreativeStudio using Gemini 2.5 Flash Image
+// NOTE: Image generation not supported by OpenRouter Gemini Flash
+// Use KIE API for actual image generation
 export const generateVisual = async (prompt: string, lead: any, base64Image?: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const parts: any[] = [{ text: prompt }];
-  
-  if (base64Image) {
-    const [mimePart, dataPart] = base64Image.split(';base64,');
-    const mimeType = mimePart.split(':')[1];
-    parts.unshift({ inlineData: { data: dataPart, mimeType } });
-  }
-
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: { parts },
-  });
-
-  for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if (part.inlineData) {
-      const b64 = part.inlineData.data;
-      const url = `data:image/png;base64,${b64}`;
-      saveAsset('IMAGE', `VISUAL: ${prompt.slice(0, 20)}`, url, 'VISUAL_STUDIO', lead?.id);
-      return url;
-    }
-  }
+  pushLog('WARN: Image generation not supported via OpenRouter. Use KIE API for image generation.');
   return null;
 };
 
-// Implementation for VideoPitch using Veo models
+// NOTE: Video generation not supported by OpenRouter
+// Use KIE API for actual video generation
 export const generateVideoPayload = async (
   prompt: string,
   leadId?: string,
@@ -413,97 +405,29 @@ export const generateVideoPayload = async (
   referenceImages?: string[],
   inputVideo?: string
 ) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const model = config?.modelStr || 'veo-3.1-fast-generate-preview';
-  
-  const videoParams: any = {
-    model,
-    prompt,
-    config: {
-      numberOfVideos: 1,
-      resolution: config?.resolution || '720p',
-      aspectRatio: config?.aspectRatio || '16:9'
-    }
-  };
-
-  if (startImage) {
-    const [mime, data] = startImage.split(';base64,');
-    videoParams.image = { imageBytes: data, mimeType: mime.split(':')[1] };
-  }
-  if (endImage) {
-    const [mime, data] = endImage.split(';base64,');
-    videoParams.lastFrame = { imageBytes: data, mimeType: mime.split(':')[1] };
-  }
-  
-  let operation = await ai.models.generateVideos(videoParams);
-  while (!operation.done) {
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    operation = await ai.operations.getVideosOperation({ operation });
-  }
-
-  const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-  if (!downloadLink) return null;
-  
-  const videoRes = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-  const blob = await videoRes.blob();
-  return new Promise<string>((resolve) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      saveAsset('VIDEO', `VEO: ${prompt.slice(0, 20)}`, base64, 'VIDEO_STUDIO', leadId);
-      resolve(base64);
-    };
-    reader.readAsDataURL(blob);
-  });
-};
-
-// Implementation for SonicStudio using Gemini TTS models
-export const generateAudioPitch = async (text: string, voice: string, leadId?: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash-preview-tts",
-    contents: [{ parts: [{ text }] }],
-    config: {
-      responseModalities: ["AUDIO" as any], 
-      speechConfig: {
-        voiceConfig: {
-          prebuiltVoiceConfig: { voiceName: voice },
-        },
-      },
-    },
-  });
-  
-  const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (base64Audio) {
-    const url = `data:audio/pcm;base64,${base64Audio}`;
-    saveAsset('AUDIO', `VOICE: ${text.slice(0, 20)}`, url, 'SONIC_STUDIO', leadId);
-    return url;
-  }
+  pushLog('WARN: Video generation not supported via OpenRouter. Use KIE API for video generation.');
   return null;
 };
 
-// Implementation for Mockups4K
+// NOTE: Audio generation not supported by OpenRouter
+// Use KIE API for actual audio generation
+export const generateAudioPitch = async (text: string, voice: string, leadId?: string) => {
+  pushLog('WARN: Audio generation not supported via OpenRouter. Use KIE API for audio generation.');
+  return null;
+};
+
+// Mockup generation uses visual generation (KIE API required)
 export const generateMockup = async (businessName: string, niche: string, leadId?: string) => {
   return await generateVisual(`A high-end 4k 3D product mockup for ${businessName} in the ${niche} niche. Professional studio lighting.`, { id: leadId });
 };
 
-/**
- * Fix Error: Module '"../../services/geminiService"' has no exported member 'testModelPerformance'.
- * Implementation for ModelTest.tsx
- */
+// Model testing with OpenRouter
 export const testModelPerformance = async (model: string, prompt: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: model as any,
-    contents: prompt,
-  });
-  return response.text || "";
+  const text = await openRouterChat(prompt);
+  return text;
 };
 
-/**
- * Fix Error: Module '"../../services/geminiService"' has no exported member 'generateMotionLabConcept'.
- * Implementation for MotionLab.tsx
- */
+// Motion lab concept generation
 export const generateMotionLabConcept = async (lead: Lead) => {
   const prompt = `Create a motion lab concept for ${lead.businessName}. Lead context: ${lead.socialGap}. JSON { "title": "", "hook": "", "scenes": [{ "time": "0s", "visual": "", "text": "" }] }`;
   const text = await openRouterChat(prompt);
@@ -514,7 +438,11 @@ export const generateMotionLabConcept = async (lead: Lead) => {
   }
 };
 
-export const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Legacy compatibility - no longer returns AI instance
+export const getAI = () => {
+  pushLog('WARN: getAI() deprecated. Using OpenRouter API instead of direct SDK.');
+  return null;
+};
 
 export const deleteAsset = (id: string) => {
   const idx = SESSION_ASSETS.findIndex(a => a.id === id);
@@ -523,5 +451,6 @@ export const deleteAsset = (id: string) => {
     assetListeners.forEach(l => l([...SESSION_ASSETS]));
   }
 };
+
 export const clearVault = () => { SESSION_ASSETS.length = 0; assetListeners.forEach(l => l([])); };
 export const importVault = (a: any[]) => { SESSION_ASSETS.push(...a); assetListeners.forEach(l => l([...SESSION_ASSETS])); return a.length; };

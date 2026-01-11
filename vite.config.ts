@@ -22,17 +22,15 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
       // Only proxy routes under /api/kie/suno
       if (!url.startsWith('/api/kie/suno')) return next();
 
-      // Read API key from env (support both names)
-      const KIE_KEY =
-        process.env.KIE_KEY ||
-        env.KIE_KEY ||
+      // Read KIE API key from env
+      const KIE_API_KEY =
         process.env.KIE_API_KEY ||
         env.KIE_API_KEY;
 
-      if (!KIE_KEY) {
+      if (!KIE_API_KEY) {
         res.statusCode = 500;
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: 'Server configuration error: Missing KIE_KEY' }));
+        res.end(JSON.stringify({ error: 'Server configuration error: Missing KIE_API_KEY in .env file' }));
         return;
       }
 
@@ -69,7 +67,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${KIE_KEY}`
+            'Authorization': `Bearer ${KIE_API_KEY}`
           },
           body: bodyStr
         });
@@ -104,7 +102,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
 
         const upstreamRes = await fetch(upstreamUrl, {
           method: 'GET',
-          headers: { 'Authorization': `Bearer ${KIE_KEY}` }
+          headers: { 'Authorization': `Bearer ${KIE_API_KEY}` }
         });
 
         const rawText = await upstreamRes.text();
@@ -137,7 +135,8 @@ export default defineConfig(() => {
       }
     ],
     define: {
-      'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
+      'process.env.OPENROUTER_API_KEY': JSON.stringify(process.env.OPENROUTER_API_KEY),
+      'process.env.KIE_API_KEY': JSON.stringify(process.env.KIE_API_KEY),
     },
     server: {
       host: '0.0.0.0',
