@@ -45,11 +45,7 @@ const log = (msg: string, data?: any) => {
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 const toDebugString = (v: any) => {
-  try {
-    return JSON.stringify(v);
-  } catch {
-    return String(v);
-  }
+  try { return JSON.stringify(v); } catch { return String(v); }
 };
 
 const safeLocalStorageGet = (key: string): string | null => {
@@ -110,29 +106,13 @@ const upsertGalleryTracks = (newTracks: PersistedSunoTrack[]) => {
   }
 };
 
-const extractTaskId = (data: any): string => {
-  // KIE response shapes vary; handle the common ones
-  return (
-    data?.data?.taskId ||
-    data?.data?.task_id ||
-    data?.data?.id ||
-    data?.taskId ||
-    data?.task_id ||
-    data?.id ||
-    data?.result?.taskId ||
-    data?.result?.task_id ||
-    ''
-  );
-};
-
 export const kieSunoService = {
+  // Optional helper for UI later (not required, but useful)
   getPersistedGallery: (): PersistedSunoTrack[] => loadGalleryCache(),
 
   /**
    * Submit generation (via proxy)
-   * IMPORTANT: this client calls stable proxy routes.
-   * - Primary: POST /api/kie/suno/submit
-   * - Fallback: POST /api/kie/suno/suno_submit  (for older setups)
+   * Keep signature backward-compatible with SonicStudio.tsx
    */
   generateMusic: async (
     prompt: string,
@@ -143,6 +123,7 @@ export const kieSunoService = {
     const jobId = `JOB_SUNO_${Date.now()}`;
     log(`Initializing Job ${jobId}`);
 
+    // Correct payload for KIE /api/v1/generate (proxy forwards /suno_submit -> /generate)
     const payload: any = {
       prompt,
       customMode: false,
@@ -153,39 +134,30 @@ export const kieSunoService = {
 
     if (typeof duration === 'number') payload.duration = duration;
 
-    // Primary stable route
-    const submitUrlPrimary = `${BASE_URL}/submit`;
-    // Fallback for older proxy handler
-    const submitUrlFallback = `${BASE_URL}/suno_submit`;
+    const submitUrl = `${BASE_URL}/suno_submit`;
+    log(`Posting to Proxy: ${submitUrl}`, payload);
 
-    const doSubmit = async (url: string) => {
-      log(`Posting to Proxy: ${url}`, payload);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json().catch(() => ({}));
-      log(`Submit Response (${res.status})`, data);
+    const res = await fetch(submitUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-      if (!res.ok) {
-        throw new Error(`Proxy Error (${res.status}): ${data?.error || data?.msg || 'Unknown Proxy Error'}`);
-      }
+    const data = await res.json().catch(() => ({}));
+    log(`Submit Response (${res.status})`, data);
 
-      const taskId = extractTaskId(data);
-      if (!taskId) {
-        throw new Error(`KIE response missing 'taskId'. Debug: ${toDebugString(data)}`);
-      }
-      return taskId;
-    };
+    if (!res.ok) {
+      throw new Error(`Proxy Error (${res.status}): ${data?.error || data?.msg || 'Unknown Proxy Error'}`);
+    }
 
-    let taskId = '';
-    try {
-      taskId = await doSubmit(submitUrlPrimary);
-    } catch (e: any) {
-      // If your proxy doesn't implement /submit yet, fallback to old route
-      log(`Primary submit failed, trying fallback`, e?.message || e);
-      taskId = await doSubmit(submitUrlFallback);
+    const taskId =
+      data?.data?.taskId ||
+      data?.taskId ||
+      data?.id ||
+      data?.task_id;
+
+    if (!taskId) {
+      throw new Error(`KIE response missing 'taskId'. Debug: ${toDebugString(data)}`);
     }
 
     return {
@@ -200,13 +172,11 @@ export const kieSunoService = {
 
   /**
    * Poll status (via proxy)
-   * Primary: GET /api/kie/suno/record-info?taskId=...
-   * Fallback: GET /api/kie/suno/status/:taskId (only if record-info unavailable)
+   * Prefer /record-info?taskId=... (new). Fallback to /status/:id if needed.
    */
   pollTask: async (taskId: string): Promise<SunoClip[]> => {
     let attempts = 0;
-
-    const MAX_TIMEOUT = 180000; // 3 minutes
+    const MAX_TIMEOUT = 180000;
     const startTime = Date.now();
 
     const INITIAL_DELAY = 2000;
@@ -218,11 +188,9 @@ export const kieSunoService = {
       const delay = Math.min(INITIAL_DELAY * Math.pow(GROWTH_FACTOR, attempts), MAX_DELAY);
       await sleep(delay);
 
-      // Primary
       let res = await fetch(`${BASE_URL}/record-info?taskId=${encodeURIComponent(taskId)}`);
       let raw = await res.json().catch(() => ({}));
 
-      // Fallback if record-info is not wired
       if (res.status === 404) {
         res = await fetch(`${BASE_URL}/status/${encodeURIComponent(taskId)}`);
         raw = await res.json().catch(() => ({}));
@@ -232,8 +200,7 @@ export const kieSunoService = {
 
       if (res.status === 404) {
         log(`Status 404 for ${taskId}`, raw);
-        // give it some time; upstream can lag in first seconds
-        if (attempts > 6) throw new Error(`Task Not Found (404) persistently. Debug: ${toDebugString(raw)}`);
+        if (attempts > 5) throw new Error(`Task Not Found (404) persistently. Debug: ${toDebugString(raw)}`);
         continue;
       }
 
@@ -245,6 +212,7 @@ export const kieSunoService = {
       log(`Poll ${taskId} [${attempts}]: ${status}`, unwrapped);
 
       if (['COMPLETED', 'SUCCESS', 'SUCCEEDED'].includes(status)) {
+        // IMPORTANT: parse RAW (preserves wrappers like records/result)
         return kieSunoService.parseClips(raw);
       }
 
@@ -264,7 +232,10 @@ export const kieSunoService = {
       if (typeof v !== 'string') return v;
 
       const s = v.trim();
-      const looksJson = (s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'));
+      const looksJson =
+        (s.startsWith('{') && s.endsWith('}')) ||
+        (s.startsWith('[') && s.endsWith(']'));
+
       if (!looksJson) return v;
 
       let cur: any = v;
@@ -298,7 +269,7 @@ export const kieSunoService = {
 
       seen.add(url);
       clips.push({
-        id: obj.id || obj.taskId || obj.task_id,
+        id: obj.id || obj.taskId,
         url,
         image_url: obj.image_url || obj.imageUrl || obj.image_large_url,
         duration: obj.duration,
@@ -358,24 +329,27 @@ export const kieSunoService = {
 
     const signature = prompt.split(',')[0].trim().slice(0, 30);
     const urls: string[] = [];
+
     const persisted: PersistedSunoTrack[] = [];
 
+    // IMPORTANT: use for..of so we can await saveAsset if it's async
     for (let i = 0; i < clips.length; i++) {
       const clip = clips[i];
       const displayTitle = clip.title || `SUNO_TRACK_${i + 1}`;
-      const resolvedCover = customCoverUrl || clip.image_url;
 
+      // 1) Persist locally (so UI doesn't lose them on navigation)
       persisted.push({
         id: String(clip.id || job.taskId || `${Date.now()}_${i}`),
         url: clip.url,
         title: displayTitle,
-        image_url: resolvedCover,
+        image_url: customCoverUrl || clip.image_url,
         duration: clip.duration || 120,
         createdAt: Date.now(),
         promptSignature: signature,
         instrumental
       });
 
+      // 2) Save to your Assets/Vault (server-side) if saveAsset is wired
       try {
         const maybePromise = saveAsset(
           'AUDIO',
@@ -388,10 +362,11 @@ export const kieSunoService = {
             promptSignature: signature,
             duration: clip.duration || 120,
             isInstrumental: instrumental,
-            coverUrl: resolvedCover
+            coverUrl: customCoverUrl || clip.image_url
           }
         );
 
+        // If saveAsset returns a promise, wait for it
         if (maybePromise && typeof (maybePromise as any).then === 'function') {
           await maybePromise;
         }
@@ -399,10 +374,12 @@ export const kieSunoService = {
         urls.push(clip.url);
       } catch (err: any) {
         console.error('Failed to save asset for clip', clip, err);
+        // Still keep URL (it exists) even if saving fails
         urls.push(clip.url);
       }
     }
 
+    // Write local persistence LAST (so we keep everything)
     upsertGalleryTracks(persisted);
 
     log('Final URLs Saved:', urls);

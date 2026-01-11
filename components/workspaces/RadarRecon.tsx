@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { generateLeads } from '../../services/geminiService';
 import { Loader } from '../../services/Loader';
+import { toast } from '../../services/toastManager';
 
 interface RadarReconProps {
   theater: string;
@@ -14,16 +15,26 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
   const [leadCount, setLeadCount] = useState(6);
 
   const handleScan = async () => {
+    if (!theater) {
+        toast.error("Please select a target market.");
+        return;
+    }
+    
     setLoading(true);
     try {
-      const [result] = await Promise.all([
-        generateLeads(theater, niche, leadCount),
-        new Promise(resolve => setTimeout(resolve, 8000))
-      ]);
+      // Direct call - removed the 8s sleep which caused UX breakage
+      const result = await generateLeads(theater, niche || 'High-Ticket Business', leadCount);
+      
+      if (!result.leads || result.leads.length === 0) {
+          toast.info("Market scan complete, but no new targets identified in this vector.");
+          return;
+      }
+
       const formattedLeads: Lead[] = result.leads.map((l: any, i: number) => ({
         ...l,
         id: l.id || `L-${Date.now()}-${i}`,
         status: 'cold',
+        outreachStatus: 'cold',
         rank: l.rank || i + 1,
         businessName: l.businessName || 'UNIDENTIFIED_TARGET',
         websiteUrl: l.websiteUrl || '#',
@@ -31,13 +42,16 @@ export const RadarRecon: React.FC<RadarReconProps> = ({ theater, onLeadsGenerate
         assetGrade: l.assetGrade || 'C',
         city: l.city || theater,
         niche: l.niche || niche || 'AI Transformation',
-        socialGap: l.socialGap || 'No manual social gap detected yet.',
+        socialGap: l.socialGap || 'Social deficiency detected.',
         groundingSources: result.groundingSources || []
       }));
+
       onLeadsGenerated(formattedLeads);
+      toast.success(`${formattedLeads.length} Targets synchronized with Ledger.`);
+      
     } catch (e: any) {
       console.error(e);
-      alert(`Discovery failed: ${e.message || 'Check connection'}`);
+      toast.error(`Neural Link Interrupted: ${e.message || 'Check connection'}`);
     } finally {
       setLoading(false);
     }
