@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Lead } from '../../types';
 import { architectFunnel } from '../../services/geminiService';
+import { dossierStorage } from '../../services/dossierStorage';
 
 interface FunnelMapProps {
   lead?: Lead;
@@ -13,6 +13,14 @@ export const FunnelMap: React.FC<FunnelMapProps> = ({ lead }) => {
 
   useEffect(() => {
     if (!lead) return;
+
+    // Attempt to pull from existing dossier first
+    const dossier = dossierStorage.getByLead(lead.id);
+    if (dossier && dossier.data.funnel) {
+        setStages(dossier.data.funnel);
+        return;
+    }
+
     const loadFunnel = async () => {
       setIsLoading(true);
       try {
@@ -50,14 +58,14 @@ export const FunnelMap: React.FC<FunnelMapProps> = ({ lead }) => {
           </div>
         ) : (
           <div className="w-full max-w-2xl space-y-8">
-             {stages.map((s, i) => (
+             {stages.length > 0 ? stages.map((s, i) => (
                <div key={i} className="relative group">
                   {i < stages.length - 1 && (
                     <div className="absolute left-1/2 -bottom-8 w-px h-8 bg-emerald-500/30"></div>
                   )}
                   <div className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] hover:border-emerald-500/40 transition-all flex items-center gap-10">
                      <div className="w-14 h-14 bg-emerald-600/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center font-black text-emerald-400 italic text-xl">
-                       {s.stage}
+                       {s.stage || (i+1)}
                      </div>
                      <div className="flex-1 space-y-1">
                         <h4 className="text-[13px] font-black text-white uppercase tracking-widest">{s.title}</h4>
@@ -69,7 +77,11 @@ export const FunnelMap: React.FC<FunnelMapProps> = ({ lead }) => {
                      </div>
                   </div>
                </div>
-             ))}
+             )) : (
+                <div className="text-center opacity-30">
+                    <p className="text-xs font-black uppercase tracking-widest">No funnel map available. Run Campaign Forge first.</p>
+                </div>
+             )}
           </div>
         )}
       </div>

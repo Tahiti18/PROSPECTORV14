@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MainMode, SubModule, Lead, ComputeStats } from './types';
 import { Layout } from './components/Layout';
 import { LayoutCommandCenter } from './components/LayoutCommandCenter';
@@ -58,8 +58,9 @@ import { SmokeTest } from './components/SmokeTest';
 import { ToastContainer } from './components/ToastContainer';
 import { db } from './services/automation/db';
 import { VerificationNode } from './components/workspaces/VerificationNode';
+import { SecurityGateway } from './components/SecurityGateway';
+import { getStoredKeys } from './services/geminiService';
 
-const STORAGE_KEY_LEADS = 'prospector_os_leads_v14_final';
 const STORAGE_KEY_THEATER = 'prospector_os_theater_v1';
 const STORAGE_KEY_LAYOUT = 'prospector_os_layout_pref_v1';
 
@@ -68,62 +69,47 @@ const App: React.FC = () => {
   const [activeModule, setActiveModule] = useState<SubModule>('COMMAND');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [theater, setTheater] = useState<string>('LOS ANGELES, USA');
-  const [theme] = useState<'dark'>('dark');
   const [layoutMode, setLayoutMode] = useState<string>('ZENITH'); 
   const [lockedLeadId, setLockedLeadId] = useState<string | null>(null);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [compute, setCompute] = useState<ComputeStats | null>(null);
+  
+  const [isGatewayArmed, setIsGatewayArmed] = useState(() => !!getStoredKeys().openRouter);
 
   // --- SMOKE TEST INTERCEPT ---
   if (typeof window !== 'undefined' && window.location.pathname === '/__smoketest_phase1') {
     return <SmokeTest />;
   }
 
-  // Hydration & Subscription
   useEffect(() => {
     try {
       const savedLeads = db.getLeads();
       const savedTheater = localStorage.getItem(STORAGE_KEY_THEATER);
       const savedLayout = localStorage.getItem(STORAGE_KEY_LAYOUT);
-      
       if (savedLeads.length > 0) setLeads(savedLeads);
       if (savedTheater) setTheater(savedTheater);
       if (savedLayout) setLayoutMode(savedLayout);
-    } catch (e) {
-      console.error("Hydration failed", e);
-    }
+    } catch (e) { console.error("Hydration failed", e); }
     setIsHydrated(true);
 
     const unsubCompute = subscribeToCompute((s) => setCompute(s));
-    
-    // Subscribe to DB updates (Replaces polling)
-    const unsubDb = db.subscribe((newLeads) => {
-        setLeads(newLeads);
-    });
+    const unsubDb = db.subscribe((newLeads) => { setLeads(newLeads); });
 
-    return () => { 
-        unsubCompute(); 
-        unsubDb();
-    };
+    return () => { unsubCompute(); unsubDb(); };
   }, []);
 
-  // Persistence (Settings Only - Leads handled by DB service)
   useEffect(() => {
     if (!isHydrated) return;
-    try {
-      localStorage.setItem(STORAGE_KEY_THEATER, theater);
-      localStorage.setItem(STORAGE_KEY_LAYOUT, layoutMode);
-    } catch (e: any) {
-      console.error("Settings save failed", e);
-    }
+    localStorage.setItem(STORAGE_KEY_THEATER, theater);
+    localStorage.setItem(STORAGE_KEY_LAYOUT, layoutMode);
   }, [theater, layoutMode, isHydrated]);
 
   const lockedLead = useMemo(() => leads.find(l => l.id === lockedLeadId), [leads, lockedLeadId]);
   
   const handleUpdateStatus = (id: string, status: any) => { 
     const currentLeads = db.getLeads();
-    const updated = currentLeads.map(l => l.id === id ? { ...l, status, outreachStatus: status } : l);
+    const updated = currentLeads.map(l => l.id === id ? { ...l, outreachStatus: status } : l);
     db.saveLeads(updated); 
   };
   
@@ -135,13 +121,16 @@ const App: React.FC = () => {
 
   const navigate = (mode: MainMode, mod: SubModule) => { setActiveMode(mode); setActiveModule(mod); };
 
+  if (!isGatewayArmed) {
+    return <SecurityGateway onArmed={() => setIsGatewayArmed(true)} />;
+  }
+
   const renderContent = () => {
-    // --- OPERATE ---
     if (activeMode === 'OPERATE') {
       switch (activeModule) {
         case 'COMMAND': return <MissionControl leads={leads} theater={theater} onNavigate={navigate} />;
         case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(l) => { db.saveLeads(l); navigate('OPERATE', 'TARGET_LIST'); }} />;
-        case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => { /* handled by db inside autocrawl */ }} />;
+        case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => {}} />;
         case 'TARGET_LIST': return <TargetList leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('OPERATE', 'WAR_ROOM'); }} />;
         case 'WAR_ROOM': return <WarRoom lead={lockedLead} onUpdateLead={handleUpdateLead} onNavigate={navigate} />;
         case 'PIPELINE': return <Pipeline leads={leads} onUpdateStatus={handleUpdateStatus} />;
@@ -161,8 +150,6 @@ const App: React.FC = () => {
         default: return <IntelNode module={activeModule} lead={lockedLead} />;
       }
     }
-
-    // --- CREATE ---
     if (activeMode === 'CREATE') {
       switch (activeModule) {
         case 'VISUAL_STUDIO': return <VisualStudio leads={leads} lockedLead={lockedLead} />;
@@ -174,8 +161,6 @@ const App: React.FC = () => {
         default: return <CreateWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
       }
     }
-
-    // --- STUDIO ---
     if (activeMode === 'STUDIO') {
       switch (activeModule) {
         case 'VIDEO_PITCH': return <VideoPitch lead={lockedLead} />;
@@ -187,16 +172,12 @@ const App: React.FC = () => {
         default: return <IntelNode module={activeModule} lead={lockedLead} />;
       }
     }
-
-    // --- SELL ---
     if (activeMode === 'SELL') {
       if (activeModule === 'BUSINESS_ORCHESTRATOR') {
         return <BusinessOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={setLockedLeadId} onUpdateLead={handleUpdateLead} />;
       }
       return <SellWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
     }
-
-    // --- CONTROL ---
     if (activeMode === 'CONTROL') {
       switch (activeModule) {
         case 'PLAYBOOK': return <ScoringRubricView />;
@@ -217,15 +198,10 @@ const App: React.FC = () => {
         default: return <ControlWorkspace activeModule={activeModule} />;
       }
     }
-
     return null;
   };
 
-  // LAYOUT ROUTER
-  const LayoutComponent = 
-    layoutMode === 'ZENITH' ? LayoutZenith :
-    layoutMode === 'COMMAND' ? LayoutCommandCenter : 
-    Layout;
+  const LayoutComponent = layoutMode === 'ZENITH' ? LayoutZenith : layoutMode === 'COMMAND' ? LayoutCommandCenter : Layout;
 
   return (
     <>
@@ -234,28 +210,17 @@ const App: React.FC = () => {
         activeModule={activeModule} setActiveModule={setActiveModule}
         onSearchClick={() => setIsCommandOpen(true)}
         theater={theater} setTheater={setTheater}
-        theme={theme} toggleTheme={() => {}} // No-op, dark forced
+        theme="dark" toggleTheme={() => {}}
         currentLayout={layoutMode}
         setLayoutMode={setLayoutMode}
       >
         {renderContent()}
-        
-        {/* COMMAND PALETTE */}
-        <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme={theme} />
-        
-        {/* PERSISTENT FOOTER */}
+        <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme="dark" />
         <footer className="fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t border-slate-800/50 px-10 py-2 flex justify-between items-center z-[100] bg-[#020617]/80 text-[9px] font-black uppercase tracking-widest text-slate-600 pointer-events-none">
-            <div className="flex gap-4">
-                <span>SYSTEM: ONLINE</span>
-                <span>V14.2.0 (STABLE)</span>
-            </div>
-            <div className="flex gap-4">
-                <span>LATENCY: 12ms</span>
-                <span>MEM: 45MB</span>
-            </div>
+            <div className="flex gap-4"><span>SYSTEM: ONLINE</span><span>V14.3.0 (PERSISTENT)</span></div>
+            <div className="flex gap-4"><span>LATENCY: 12ms</span><span>MEM: 45MB</span></div>
         </footer>
       </LayoutComponent>
-      
       <ToastContainer />
     </>
   );

@@ -2,7 +2,7 @@ import { Lead } from '../../types';
 import { loggedGenerateContent } from '../geminiService';
 import { safeJsonParse, validateKeys } from './jsonGuard';
 
-const ENFORCED_MODEL = "google/gemini-3-flash-preview";
+const ENFORCED_MODEL = "gemini-3-flash-preview";
 
 export interface RunContext {
   identity_strict: boolean;
@@ -31,9 +31,10 @@ async function guardedGenerate<T>(
   let lastRaw = "";
 
   try {
+    // Fix: Remove modelClass, reasoningDepth, and isClientFacing as they are not supported by the loggedGenerateContent interface
     lastRaw = await loggedGenerateContent({
-      module, model: ENFORCED_MODEL, modelClass: 'FLASH',
-      reasoningDepth: reasoning, isClientFacing: false,
+      module, 
+      model: ENFORCED_MODEL,
       contents: finalPrompt,
       config: { systemInstruction: SYSTEM_BOOTSTRAP, responseMimeType: 'application/json', tools }
     });
@@ -116,8 +117,10 @@ export const Steps = {
   },
   generateFinalReport: async (lead: Lead, allData: any): Promise<string> => {
     const prompt = `Compile Final Report for ${lead.businessName}. Data: ${JSON.stringify(allData)}. RETURN JSON IN UI_BLOCKS FORMAT.`;
+    // Fix: Remove modelClass, reasoningDepth, and isClientFacing as they are not supported by the loggedGenerateContent interface
     return await loggedGenerateContent({
-      module: 'REPORT_GEN', model: ENFORCED_MODEL, modelClass: 'FLASH', reasoningDepth: 'LOW', isClientFacing: true,
+      module: 'REPORT_GEN', 
+      model: ENFORCED_MODEL,
       contents: prompt,
       config: { responseMimeType: 'application/json' }
     });

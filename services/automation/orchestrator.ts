@@ -1,3 +1,4 @@
+
 import { AutomationRun, RunStep, AutomationArtifact } from './types';
 import { db } from './db';
 import { Steps, RunContext } from './steps';
@@ -215,7 +216,7 @@ export class AutomationOrchestrator {
 
             case 'GenerateVideoScripts':
               result = await Steps.generateVideoScripts(context.strategy, runCtx);
-              context.videoScripts = result.data; // FIXED ASSIGNMENT
+              context.videoScripts = result.data;
               this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
               break;
 

@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead, CreativeAsset, Campaign, BrandIdentity } from '../../types';
-import { extractBrandDNA, generateVisual, saveAsset, generateVideoPayload, loggedGenerateContent, getAI } from '../../services/geminiService';
+import { extractBrandDNA, generateVisual, saveAsset, generateVideoPayload, loggedGenerateContent } from '../../services/geminiService';
 import { toast } from '../../services/toastManager';
 
 interface BrandDNAProps {
