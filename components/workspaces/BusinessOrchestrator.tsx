@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Lead, MainMode, SubModule } from '../../types';
 import { SESSION_ASSETS, orchestrateBusinessPackage, saveAsset, AssetRecord } from '../../services/geminiService';
@@ -22,31 +21,19 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
   const [activeTab, setActiveTab] = useState<'strategy' | 'narrative' | 'content' | 'outreach' | 'visual'>('strategy');
   const [isOutreachOpen, setIsOutreachOpen] = useState(false);
   
-  // Vault Injection State
   const [refreshKey, setRefreshKey] = useState(0); 
-  const [uploadStatus, setUploadStatus] = useState<string>("");
-  const [uploadError, setUploadError] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filter Vault for selected lead
   const targetLead = leads.find(l => l.id === selectedLeadId);
   
   useEffect(() => {
-    const interval = setInterval(() => {
-      setRefreshKey(k => k + 1);
-    }, 2000);
+    const interval = setInterval(() => setRefreshKey(k => k + 1), 2000);
     return () => clearInterval(interval);
   }, []);
   
   const leadAssets = useMemo(() => {
     if (!targetLead) return [];
-    const _ = refreshKey; 
-    return SESSION_ASSETS.filter(a => {
-      if (a.leadId && a.leadId === targetLead.id) return true;
-      const searchTerms = targetLead.businessName.toLowerCase().split(' ');
-      const titleLower = a.title.toLowerCase();
-      return searchTerms.some(term => term.length > 3 && titleLower.includes(term));
-    });
+    return SESSION_ASSETS.filter(a => a.leadId === targetLead.id);
   }, [targetLead, refreshKey]);
 
   const assetCounts = {
@@ -60,7 +47,6 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
     if (targetLead) {
       const savedDossiers = dossierStorage.getAllByLead(targetLead.id);
       setHistory(savedDossiers);
-      
       if (savedDossiers.length > 0) {
         setCurrentDossier(savedDossiers[0]);
         setPackageData(savedDossiers[0].data);
@@ -82,108 +68,16 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
       setHistory(prev => [saved, ...prev]);
     } catch (e) {
       console.error(e);
-      alert("Orchestration failed. Check API connectivity.");
+      alert("Orchestration failed. Check OpenRouter Gateway.");
     } finally {
       setIsOrchestrating(false);
     }
   };
 
-  const loadVersion = (dossier: StrategicDossier) => {
-    setCurrentDossier(dossier);
-    setPackageData(dossier.data);
-  };
-
-  const handleExportMarkdown = () => {
-    if (!currentDossier) return;
-    const md = dossierStorage.exportToMarkdown(currentDossier);
-    const blob = new Blob([md], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `DOSSIER_${targetLead?.businessName}_v${currentDossier.version}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleCopyMarkdown = async () => {
-    if (!currentDossier) return;
-    const md = dossierStorage.exportToMarkdown(currentDossier);
-    try {
-      await navigator.clipboard.writeText(md);
-      alert("Full dossier markdown copied to clipboard.");
-    } catch (e) {
-      alert("Copy failed. Please export instead.");
-    }
-  };
-
-  const handleSaveSnapshot = () => {
-    if (!targetLead || !packageData) return;
-    const saved = dossierStorage.save(targetLead, packageData, leadAssets.map(a => a.id));
-    setHistory(prev => [saved, ...prev]);
-    setCurrentDossier(saved);
-    alert(`Snapshot v${saved.version} saved successfully.`);
-  };
-
   const handleGenerateShortcut = (module: SubModule) => {
     if (!targetLead) return;
     onLockLead(targetLead.id);
-    
-    let targetMode: MainMode = 'CREATE';
-    if (['VIDEO_PITCH', 'SONIC_STUDIO', 'MOTION_LAB', 'LIVE_SCRIBE', 'CINEMA_INTEL', 'VIDEO_AI'].includes(module)) {
-        targetMode = 'STUDIO';
-    } else if (['PROPOSALS', 'SEQUENCER', 'ROI_CALC', 'BUSINESS_ORCHESTRATOR', 'AI_CONCIERGE'].includes(module)) {
-        targetMode = 'SELL';
-    } else if (['COMMAND', 'RADAR_RECON', 'AUTO_CRAWL', 'VIRAL_PULSE'].includes(module)) {
-        targetMode = 'OPERATE';
-    }
-    
-    onNavigate(targetMode, module);
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !targetLead) return;
-
-    setUploadError("");
-    setUploadStatus("Reading file...");
-
-    const MAX_MB = 25;
-    if (file.size > MAX_MB * 1024 * 1024) {
-      setUploadError(`File too large. Max ${MAX_MB}MB.`);
-      setUploadStatus("");
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const result = ev.target?.result as string;
-        let type: AssetRecord['type'] = 'TEXT';
-        if (file.type.startsWith('image/')) type = 'IMAGE';
-        else if (file.type.startsWith('video/')) type = 'VIDEO';
-        else if (file.type.startsWith('audio/')) type = 'AUDIO';
-        
-        setUploadStatus("Encrypting to Vault...");
-        saveAsset(type, `UPLOAD: ${file.name}`, result, 'MEDIA_VAULT', targetLead.id);
-        setRefreshKey(prev => prev + 1);
-        setUploadStatus(`Uploaded ✓ ${file.name}`);
-        setTimeout(() => setUploadStatus(""), 3000);
-      } catch (err) {
-        setUploadError("Vault Write Failed");
-        setUploadStatus("");
-      }
-    };
-    reader.onerror = () => { setUploadError("File Read Error"); setUploadStatus(""); };
-
-    if (file.type.startsWith('text/') || file.type === 'application/json') {
-        reader.readAsText(file);
-    } else {
-        reader.readAsDataURL(file);
-    }
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    onNavigate('STUDIO', module);
   };
 
   return (
@@ -195,21 +89,15 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
             CAMPAIGN <span className="text-emerald-500">BUILDER</span>
           </h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">
-            STRATEGIC ASSET COMPILATION & SYNTHESIS
+            SECURED OPENROUTER GATEWAY
           </p>
         </div>
         <div className="flex items-center gap-4">
            {currentDossier && (
              <div className="bg-emerald-900/20 border border-emerald-500/20 px-6 py-2 rounded-xl flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                  LOADED: V{currentDossier.version}
-                </span>
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">VERSION: V{currentDossier.version}</span>
              </div>
            )}
-           <div className="bg-slate-900 border border-slate-800 px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-400">
-              VAULT LINK: ONLINE
-           </div>
         </div>
       </div>
 
@@ -218,13 +106,13 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
         <div className="lg:col-span-4 space-y-6">
            <div className="bg-[#0b1021] border border-slate-800 rounded-[40px] p-10 shadow-2xl space-y-8">
               <div className="space-y-2">
-                 <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-1">SELECT LEAD</label>
+                 <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-1">TARGET_ENTITY</label>
                  <select 
                    value={selectedLeadId}
                    onChange={(e) => setSelectedLeadId(e.target.value)}
                    className="w-full bg-[#020617] border border-slate-800 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:outline-none focus:border-emerald-500 cursor-pointer appearance-none uppercase"
                  >
-                    <option value="">-- SELECT LEAD --</option>
+                    <option value="">-- SELECT TARGET --</option>
                     {leads.map(l => (
                       <option key={l.id} value={l.id}>{l.businessName}</option>
                     ))}
@@ -232,87 +120,23 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
               </div>
 
               {targetLead && (
-                <div className="space-y-6 animate-in slide-in-from-left-4">
-                   {history.length > 0 && (
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">VERSION HISTORY</label>
-                        <div className="flex flex-wrap gap-2">
-                           {history.map(ver => (
-                             <button
-                               key={ver.id}
-                               onClick={() => loadVersion(ver)}
-                               className={`px-3 py-1 rounded-lg text-[9px] font-black border transition-all ${
-                                 currentDossier?.id === ver.id 
-                                   ? 'bg-emerald-600 border-emerald-500 text-white' 
-                                   : 'bg-slate-900 border-slate-700 text-slate-500 hover:border-slate-500'
-                               }`}
-                             >
-                               V{ver.version}
-                             </button>
-                           ))}
-                        </div>
-                     </div>
-                   )}
-
+                <div className="space-y-6">
                    <div className="grid grid-cols-2 gap-4">
                       {Object.entries(assetCounts).map(([type, count]) => (
                         <div key={type} className="bg-slate-900/50 border border-slate-800 p-4 rounded-2xl flex justify-between items-center group">
                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{type}</span>
-                           {count > 0 ? (
-                             <span className="text-xl font-black italic text-emerald-400">{count}</span>
-                           ) : (
-                             <button 
-                               onClick={() => {
-                                 if (type === 'TEXT') handleGenerateShortcut('FLASH_SPARK');
-                                 if (type === 'IMAGE') handleGenerateShortcut('VISUAL_STUDIO');
-                                 if (type === 'VIDEO') handleGenerateShortcut('VIDEO_PITCH');
-                                 if (type === 'AUDIO') handleGenerateShortcut('SONIC_STUDIO');
-                               }}
-                               className="text-[8px] font-black uppercase tracking-widest bg-slate-800 text-slate-400 px-2 py-1 rounded hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                             >
-                               CREATE
-                             </button>
-                           )}
+                           <span className="text-xl font-black italic text-emerald-400">{count}</span>
                         </div>
                       ))}
                    </div>
                    
-                   <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-2 pr-2">
-                      {leadAssets.map(a => (
-                        <div key={a.id} className="text-[9px] font-bold text-slate-400 truncate bg-slate-950 px-3 py-2 rounded-lg border border-slate-800/50 flex justify-between">
-                           <span className="truncate max-w-[180px]">{a.title}</span>
-                           <span className="text-emerald-600 ml-2">{a.module?.split('_')[0]}</span>
-                        </div>
-                      ))}
-                      {leadAssets.length === 0 && <p className="text-[9px] text-rose-500 font-bold uppercase tracking-widest text-center py-4">NO ASSETS FOUND</p>}
-                   </div>
-
-                   <div className="pt-2">
-                      <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleFileUpload} 
-                        className="hidden" 
-                        accept="image/*,video/*,audio/*,text/plain,application/json"
-                      />
-                      <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-400 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all mb-2 flex items-center justify-center gap-2"
-                      >
-                        <span>⬆️</span> QUICK UPLOAD
-                      </button>
-                      
-                      {uploadStatus && <div className="text-[9px] text-emerald-400 font-bold text-center mb-2 animate-pulse">{uploadStatus}</div>}
-                      {uploadError && <div className="text-[9px] text-rose-500 font-bold text-center mb-2">{uploadError}</div>}
-
-                      <button 
-                        onClick={handleOrchestrate}
-                        disabled={isOrchestrating}
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800 mt-2"
-                      >
-                        {isOrchestrating ? 'GENERATING...' : (currentDossier ? 'GENERATE NEW VERSION' : 'BUILD STRATEGY')}
-                      </button>
-                   </div>
+                   <button 
+                     onClick={handleOrchestrate}
+                     disabled={isOrchestrating}
+                     className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl active:scale-95 border-b-4 border-emerald-800 mt-2"
+                   >
+                     {isOrchestrating ? 'ORCHESTRATING...' : 'INITIATE CAMPAIGN FORGE'}
+                   </button>
                 </div>
               )}
            </div>
@@ -324,18 +148,18 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
               {!packageData ? (
                  <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20 text-center space-y-6">
                     <span className="text-8xl grayscale">📁</span>
-                    <h3 className="text-4xl font-bold uppercase tracking-tight text-slate-700">WAITING FOR INPUT</h3>
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">BUILD STRATEGY TO VIEW DOSSIER</p>
+                    <h3 className="text-4xl font-bold uppercase tracking-tight text-slate-700">NODE STANDBY</h3>
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">INITIATE FORGE TO LOAD DATA</p>
                  </div>
               ) : (
-                 <div className="flex flex-col h-full animate-in zoom-in-95 duration-500">
+                 <div className="flex flex-col h-full">
                     <div className="flex border-b border-slate-800 bg-[#0b1021]">
                        {[
-                         { id: 'strategy', label: 'STRATEGY DECK' },
-                         { id: 'narrative', label: 'PITCH SCRIPT' },
-                         { id: 'content', label: 'CONTENT PACK' },
-                         { id: 'outreach', label: 'OUTREACH SEQ' },
-                         { id: 'visual', label: 'VISUAL DIRECTION' }
+                         { id: 'strategy', label: 'STRATEGY' },
+                         { id: 'narrative', label: 'NARRATIVE' },
+                         { id: 'content', label: 'CONTENT' },
+                         { id: 'outreach', label: 'OUTREACH' },
+                         { id: 'visual', label: 'VISUALS' }
                        ].map(tab => (
                          <button
                            key={tab.id}
@@ -352,88 +176,49 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                     </div>
 
                     <div className="flex-1 p-12 overflow-y-auto custom-scrollbar relative bg-[#020617]">
-                       
                        {activeTab === 'strategy' && (
                           <div className="space-y-12">
-                             <div className="text-center space-y-4 mb-12">
-                                <h2 className="text-4xl font-bold uppercase tracking-tight text-white">{packageData.presentation.title}</h2>
-                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] border border-emerald-500/30 px-4 py-1 rounded-full">CONFIDENTIAL</span>
-                             </div>
-                             <div className="grid gap-8">
-                                {packageData.presentation.slides.map((slide: any, i: number) => (
-                                  <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] flex gap-8 group hover:border-emerald-500/30 transition-all">
-                                     <div className="text-6xl font-black italic text-slate-800 group-hover:text-emerald-500/20 transition-colors select-none">
-                                        {String(i + 1).padStart(2, '0')}
-                                     </div>
-                                     <div className="space-y-4 flex-1">
-                                        <h3 className="text-xl font-bold text-white uppercase tracking-tight">{slide.title}</h3>
-                                        <ul className="space-y-2">
-                                           {slide.bullets.map((b: string, j: number) => (
-                                             <li key={j} className="text-sm text-slate-400 font-medium pl-4 border-l-2 border-slate-700">{b}</li>
-                                           ))}
-                                        </ul>
-                                        {slide.visualRef && (
-                                           <div className="mt-4 p-4 bg-black/40 rounded-xl border border-dashed border-slate-700 flex items-center gap-3">
-                                              <span className="text-lg">🖼️</span>
-                                              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{slide.visualRef}</p>
-                                           </div>
-                                        )}
-                                     </div>
+                             <h2 className="text-3xl font-bold text-white uppercase">{packageData?.presentation?.title || "STRATEGY Blueprint"}</h2>
+                             <div className="grid gap-6">
+                                {(packageData?.presentation?.slides || []).map((slide: any, i: number) => (
+                                  <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] group">
+                                     <h3 className="text-xl font-bold text-white uppercase mb-4">#{i+1}: {slide?.title}</h3>
+                                     <ul className="space-y-2 mb-4">
+                                        {(slide?.bullets || []).map((b: string, j: number) => (
+                                          <li key={j} className="text-sm text-slate-400 pl-4 border-l-2 border-slate-700">{b}</li>
+                                        ))}
+                                     </ul>
+                                     <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">VISUAL_ASSET: {slide?.visualRef}</p>
                                   </div>
                                 ))}
                              </div>
                           </div>
                        )}
 
-                       {activeTab === 'visual' && packageData.visualDirection && (
-                          <div className="space-y-12 animate-in fade-in duration-500">
-                             <div className="bg-slate-900 border border-slate-800 p-10 rounded-[40px] shadow-xl space-y-6">
-                                <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">BRAND MOOD</h3>
-                                <p className="text-xl font-black italic text-white leading-relaxed uppercase tracking-tight">
-                                   "{packageData.visualDirection.brandMood}"
-                                </p>
+                       {activeTab === 'visual' && (
+                          <div className="space-y-12">
+                             <div className="bg-slate-900 p-10 rounded-[40px] border border-slate-800">
+                                <h3 className="text-[10px] font-black text-emerald-500 uppercase mb-4">BRAND_MOOD</h3>
+                                <p className="text-2xl font-black italic text-white uppercase italic">"{packageData?.visualDirection?.brandMood}"</p>
                              </div>
-
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-6">
-                                   <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">COLOR PSYCHOLOGY</h4>
-                                   <div className="space-y-4">
-                                      {packageData.visualDirection.colorPsychology.map((cp: any, i: number) => (
-                                        <div key={i} className="flex items-center gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-                                           <div className="w-10 h-10 rounded-full border border-white/10 shadow-lg" style={{ backgroundColor: cp.color }}></div>
-                                           <div>
-                                              <p className="text-[10px] font-black text-white uppercase">{cp.color}</p>
-                                              <p className="text-[9px] text-slate-500 font-bold uppercase">{cp.purpose}</p>
-                                           </div>
-                                        </div>
-                                      ))}
-                                   </div>
-                                </div>
-                                <div className="space-y-6">
-                                   <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-2">VISUAL THEMES</h4>
-                                   <div className="space-y-2">
-                                      {packageData.visualDirection.visualThemes.map((theme: string, i: number) => (
-                                        <div key={i} className="p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-[10px] font-bold text-slate-300 uppercase italic">
-                                           {theme}
-                                        </div>
-                                      ))}
-                                   </div>
-                                </div>
-                             </div>
-
-                             <div className="space-y-8">
-                                <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">AI GENERATION PROMPTS</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                   {packageData.visualDirection.aiImagePrompts.map((p: any, i: number) => (
-                                      <div key={i} className="bg-slate-950 border border-slate-800 p-6 rounded-[32px] space-y-4">
-                                         <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">IMAGE: {p.use_case}</span>
-                                         <p className="text-[11px] text-slate-400 font-mono italic leading-relaxed">"{p.prompt}"</p>
+                                <div className="space-y-4">
+                                   <h4 className="text-[10px] font-black text-slate-500 uppercase">COLOR_PSYCH</h4>
+                                   {(packageData?.visualDirection?.colorPsychology || []).map((cp: any, i: number) => (
+                                      <div key={i} className="flex items-center gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                         <div className="w-8 h-8 rounded-full border border-white/10" style={{ backgroundColor: cp?.color }}></div>
+                                         <div>
+                                            <p className="text-[10px] font-black text-white">{cp?.color}</p>
+                                            <p className="text-[8px] text-slate-600 font-bold uppercase">{cp?.purpose}</p>
+                                         </div>
                                       </div>
                                    ))}
-                                   {packageData.visualDirection.aiVideoPrompts.map((p: any, i: number) => (
-                                      <div key={i} className="bg-slate-950 border border-slate-800 p-6 rounded-[32px] space-y-4">
-                                         <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">VIDEO: {p.use_case}</span>
-                                         <p className="text-[11px] text-slate-400 font-mono italic leading-relaxed">"{p.prompt}"</p>
+                                </div>
+                                <div className="space-y-4">
+                                   <h4 className="text-[10px] font-black text-slate-500 uppercase">AI_PROMPTS</h4>
+                                   {(packageData?.visualDirection?.aiImagePrompts || []).map((p: any, i: number) => (
+                                      <div key={i} className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                                         <p className="text-[10px] font-bold text-slate-400 italic">"{p?.prompt}"</p>
                                       </div>
                                    ))}
                                 </div>
@@ -442,32 +227,18 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
                        )}
 
                        {activeTab === 'narrative' && (
-                          <div className="max-w-3xl mx-auto space-y-8">
-                             <div className="bg-slate-900 border border-slate-800 p-10 rounded-[40px] shadow-xl">
-                                <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-6">EXECUTIVE NARRATIVE</h3>
-                                <div className="prose prose-invert max-w-none">
-                                   <p className="text-lg text-slate-300 leading-relaxed font-serif italic whitespace-pre-wrap">
-                                      {packageData.narrative}
-                                   </p>
-                                </div>
-                             </div>
+                          <div className="bg-slate-900 p-12 rounded-[40px] border border-slate-800">
+                             <h3 className="text-[10px] font-black text-emerald-500 uppercase mb-6">EXECUTIVE_NARRATIVE</h3>
+                             <p className="text-lg text-slate-300 leading-relaxed font-serif italic whitespace-pre-wrap">{packageData?.narrative}</p>
                           </div>
                        )}
 
                        {activeTab === 'content' && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             {packageData.contentPack.map((post: any, i: number) => (
-                               <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4 hover:border-emerald-500/30 transition-all">
-                                  <div className="flex justify-between items-center">
-                                     <span className="px-3 py-1 bg-white text-black rounded-lg text-[9px] font-black uppercase tracking-widest">{post.platform}</span>
-                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{post.type}</span>
-                                  </div>
-                                  <p className="text-sm text-slate-200 font-medium italic">"{post.caption}"</p>
-                                  {post.assetRef && (
-                                     <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest pt-4 border-t border-slate-800">
-                                        LINKED: {post.assetRef}
-                                     </p>
-                                  )}
+                             {(packageData?.contentPack || []).map((post: any, i: number) => (
+                               <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4">
+                                  <span className="px-3 py-1 bg-white text-black rounded-lg text-[9px] font-black uppercase">{post?.platform}</span>
+                                  <p className="text-sm text-slate-200 font-medium italic">"{post?.caption}"</p>
                                </div>
                              ))}
                           </div>
@@ -475,54 +246,20 @@ export const BusinessOrchestrator: React.FC<BusinessOrchestratorProps> = ({ lead
 
                        {activeTab === 'outreach' && (
                           <div className="space-y-8">
-                             <div className="space-y-6">
-                                <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest ml-2">EMAIL SEQUENCE</h3>
-                                {packageData.outreach.emailSequence.map((email: any, i: number) => (
-                                  <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px]">
-                                     <p className="text-sm font-bold text-white mb-4"><span className="text-slate-500">SUBJECT:</span> {email.subject}</p>
-                                     <p className="text-xs text-slate-400 whitespace-pre-wrap leading-relaxed font-mono bg-black/20 p-6 rounded-2xl border border-slate-800/50">
-                                        {email.body}
-                                     </p>
-                                  </div>
-                                ))}
-                             </div>
-                             <div className="bg-emerald-900/10 border border-emerald-500/20 p-8 rounded-[32px]">
-                                <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-4">LINKEDIN CONNECT</h3>
-                                <p className="text-sm text-slate-300 italic">"{packageData.outreach.linkedin}"</p>
-                             </div>
+                             {(packageData?.outreach?.emailSequence || []).map((email: any, i: number) => (
+                               <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px]">
+                                  <p className="text-sm font-bold text-white mb-4 uppercase">SUBJECT: {email?.subject}</p>
+                                  <p className="text-xs text-slate-400 whitespace-pre-wrap font-mono bg-black/20 p-6 rounded-2xl">{email?.body}</p>
+                               </div>
+                             ))}
+                             {packageData?.outreach?.linkedin && (
+                                <div className="bg-emerald-900/10 border border-emerald-500/20 p-8 rounded-[32px]">
+                                    <h3 className="text-[10px] font-black text-emerald-400 uppercase mb-4">LINKEDIN_CONNECT</h3>
+                                    <p className="text-sm text-slate-300 italic">"{packageData.outreach.linkedin}"</p>
+                                </div>
+                             )}
                           </div>
                        )}
-
-                    </div>
-
-                    <div className="border-t border-slate-800 p-6 flex justify-between items-center bg-[#05091a]">
-                       <div className="flex gap-4">
-                          <button 
-                            onClick={handleExportMarkdown}
-                            className="flex items-center gap-2 text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
-                          >
-                             <span>↓</span> EXPORT MD
-                          </button>
-                          <button 
-                            onClick={handleCopyMarkdown}
-                            className="flex items-center gap-2 text-[9px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
-                          >
-                             <span>📋</span> COPY
-                          </button>
-                          <button 
-                            onClick={handleSaveSnapshot}
-                            className="flex items-center gap-2 text-[9px] font-black text-emerald-500 hover:text-emerald-400 uppercase tracking-widest transition-colors"
-                          >
-                             <span>💾</span> SNAPSHOT
-                          </button>
-                       </div>
-                       
-                       <button 
-                         onClick={() => setIsOutreachOpen(true)}
-                         className="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-600/20 active:scale-95 transition-all"
-                       >
-                          <span>🚀</span> LAUNCH CAMPAIGN
-                       </button>
                     </div>
                  </div>
               )}

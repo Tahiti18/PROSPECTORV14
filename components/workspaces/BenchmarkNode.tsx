@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Lead } from '../../types';
 import { fetchBenchmarkData, BenchmarkReport } from '../../services/geminiService';
@@ -77,10 +76,10 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
               
               <div className="space-y-4">
                  <h2 className="text-6xl font-black italic text-white tracking-tighter uppercase leading-none">
-                    {report.entityName}
+                    {report?.entityName || "TARGET IDENTITY"}
                  </h2>
                  <p className="text-xl font-medium text-slate-300 italic max-w-4xl leading-relaxed">
-                    "{report.missionSummary}"
+                    "{report?.missionSummary || "Summary extracting..."}"
                  </p>
               </div>
 
@@ -89,14 +88,14 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                     <div className="space-y-8">
                        <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] italic mb-6">VISUAL / MOTION STACK</h3>
                        <ul className="space-y-8">
-                          {report.visualStack.map((item, idx) => (
+                          {(report?.visualStack || []).map((item, idx) => (
                              <li key={idx} className="space-y-1 group">
                                 <div className="flex items-center gap-4">
                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
-                                   <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{clean(item.label)}</span>
+                                   <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{clean(item?.label || 'VECTOR')}</span>
                                 </div>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pl-5 opacity-70 leading-relaxed italic">
-                                   {clean(item.description)}
+                                   {clean(item?.description || 'N/A')}
                                 </p>
                              </li>
                           ))}
@@ -105,14 +104,14 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                     <div className="space-y-8">
                        <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.4em] italic mb-6">SONIC / MUSIC STACK</h3>
                        <ul className="space-y-8">
-                          {report.sonicStack.map((item, idx) => (
+                          {(report?.sonicStack || []).map((item, idx) => (
                              <li key={idx} className="space-y-1 group">
                                 <div className="flex items-center gap-4">
                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
-                                   <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{clean(item.label)}</span>
+                                   <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{clean(item?.label || 'VECTOR')}</span>
                                 </div>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest pl-5 opacity-70 leading-relaxed italic">
-                                   {clean(item.description)}
+                                   {clean(item?.description || 'N/A')}
                                 </p>
                              </li>
                           ))}
@@ -125,7 +124,7 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                        <div className="absolute top-0 right-0 p-8 opacity-10 text-6xl font-black italic select-none uppercase">GAP</div>
                        <h3 className="text-[11px] font-black text-white uppercase tracking-[0.4em] italic border-b border-white/20 pb-4">FEATURE GAP ANALYSIS</h3>
                        <p className="text-white text-lg font-black italic leading-relaxed font-sans uppercase">
-                          "{clean(report.featureGap)}"
+                          "{clean(report?.featureGap || 'No specific gap detected.')}"
                        </p>
                     </div>
 
@@ -134,18 +133,17 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                        <div className="space-y-8">
                           <div className="space-y-2">
                              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">BUSINESS MODEL</p>
-                             <p className="text-[12px] font-black text-slate-200 uppercase tracking-widest italic leading-relaxed">{clean(report.businessModel)}</p>
+                             <p className="text-[12px] font-black text-slate-200 uppercase tracking-widest italic leading-relaxed">{clean(report?.businessModel || 'TRADITIONAL')}</p>
                           </div>
                           <div className="space-y-2">
                              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">DESIGN SYSTEM</p>
-                             <p className="text-[12px] font-black text-slate-200 uppercase tracking-widest italic leading-relaxed">{clean(report.designSystem)}</p>
+                             <p className="text-[12px] font-black text-slate-200 uppercase tracking-widest italic leading-relaxed">{clean(report?.designSystem || 'LEGACY')}</p>
                           </div>
                        </div>
                     </div>
                  </div>
               </div>
 
-              {/* REPLACED WHITE SECTION WITH DARK */}
               <div className="bg-[#0b1021] border border-slate-800 rounded-[84px] p-24 shadow-2xl relative overflow-hidden">
                  <div className="absolute top-0 left-0 w-full h-4 bg-emerald-500"></div>
                  <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1.2px, transparent 1.2px)', backgroundSize: '40px 40px' }}></div>
@@ -161,7 +159,7 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                  </div>
                  
                  <div className="max-w-none relative z-10 space-y-12">
-                    {clean(report.deepArchitecture).split('\n\n').map((para, pIdx) => (
+                    {clean(report?.deepArchitecture || 'Synthesis in progress...').split('\n\n').map((para, pIdx) => (
                       <p key={pIdx} className="text-slate-300 text-xl font-medium leading-[1.8] font-sans tracking-tight text-justify">{para}</p>
                     ))}
                  </div>
@@ -173,10 +171,10 @@ export const BenchmarkNode: React.FC<BenchmarkNodeProps> = ({ lead }) => {
                           VERIFIABLE INTELLIGENCE NODES
                        </h4>
                        <div className="grid grid-cols-1 gap-4">
-                          {report.sources.map((s, i) => (
-                             <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="p-6 bg-slate-900 border border-slate-800 rounded-[28px] hover:border-emerald-500/30 transition-all group flex flex-col gap-1 shadow-sm">
-                                <p className="text-[11px] font-black text-slate-300 uppercase truncate group-hover:text-emerald-500 transition-colors">{s.title}</p>
-                                <p className="text-[8px] text-slate-500 truncate italic font-bold tracking-widest">{s.uri}</p>
+                          {(report?.sources || []).map((s, i) => (
+                             <a key={i} href={s?.uri} target="_blank" rel="noopener noreferrer" className="p-6 bg-slate-900 border border-slate-800 rounded-[28px] hover:border-emerald-500/30 transition-all group flex flex-col gap-1 shadow-sm">
+                                <p className="text-[11px] font-black text-slate-300 uppercase truncate group-hover:text-emerald-500 transition-colors">{s?.title || 'Source Link'}</p>
+                                <p className="text-[8px] text-slate-500 truncate italic font-bold tracking-widest">{s?.uri}</p>
                              </a>
                           ))}
                        </div>
