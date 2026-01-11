@@ -137,15 +137,10 @@ export default defineConfig(() => {
       }
     ],
     define: {
+      // EXPLICIT INJECTION: Ensures variables are baked into the browser bundle at build time
       'process.env.OPENROUTER_API_KEY': JSON.stringify(env.OPENROUTER_API_KEY || env.API_KEY || ""),
       'process.env.KIE_API_KEY': JSON.stringify(env.KIE_API_KEY || env.KIE_KEY || ""),
       'process.env.API_KEY': JSON.stringify(env.API_KEY || ""),
-      // Fallback object to prevent property access errors
-      'process.env': JSON.stringify({
-        OPENROUTER_API_KEY: env.OPENROUTER_API_KEY || env.API_KEY || "",
-        KIE_API_KEY: env.KIE_API_KEY || env.KIE_KEY || "",
-        API_KEY: env.API_KEY || ""
-      })
     },
     server: {
       host: '0.0.0.0',

@@ -141,7 +141,7 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
       setView('CAMPAIGN');
 
       const timestamp = Date.now();
-      const angles: Array<CreativeAsset['angle']> = ['STORY', 'PRODUCT', 'LIFESTYLE', 'ABSTRACT'];
+      const angles = ['STORY', 'PRODUCT', 'LIFESTYLE', 'ABSTRACT'];
       
       try {
           const promises = angles.map(async (angle, idx) => {
@@ -150,17 +150,17 @@ export const BrandDNA: React.FC<BrandDNAProps> = ({ lead, onUpdateLead }) => {
               
               if (!imgUrl) return null;
 
-              const asset: CreativeAsset = {
+              // Explicitly cast to resolve type compatibility errors
+              return {
                   id: `creative-${timestamp}-${idx}`,
-                  type: 'static',
-                  angle: angle,
+                  type: 'static' as const,
+                  angle: angle as any,
                   imageUrl: imgUrl,
                   headline: idx === 0 ? concept.title : activeEntity.businessName,
                   subhead: concept.hook.slice(0, 40) + "...",
                   cta: "Shop Now",
-                  status: 'ready'
-              };
-              return asset;
+                  status: 'ready' as const
+              } as CreativeAsset;
           });
 
           const results = await Promise.all(promises);
