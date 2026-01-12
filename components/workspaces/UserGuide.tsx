@@ -20,6 +20,7 @@ interface ModuleDetail {
 const MODULE_REGISTRY: ModuleDetail[] = [
   // --- RESEARCH ZONE ---
   { id: 'EXECUTIVE_DASHBOARD', mode: 'RESEARCH', title: 'EXECUTIVE DASHBOARD', mission: 'The operational nerve center providing high-level visibility across agency activities.', input: 'Market Ledger, System Health', output: 'Unified Analytics View', useCase: 'Daily agency oversight.', tags: ['Core', 'Management'] },
+  { id: 'TRANSFORMATION_BLUEPRINT', mode: 'RESEARCH', title: 'TRANSFORMATION BLUEPRINT', mission: 'The comprehensive strategic guide to full-scale marketing capabilities.', input: 'Internal Capabilities', output: 'Value Roadmap', useCase: 'High-level agency strategy.', tags: ['Core', 'Sales'] },
   { id: 'USER_GUIDE', mode: 'RESEARCH', title: 'USER GUIDE', mission: 'The comprehensive architectural manual for the entire OS.', input: 'Internal Registry', output: 'Knowledge Base', useCase: 'System mastery and onboarding.', tags: ['Manual', 'Reference'] },
   { id: 'MARKET_DISCOVERY', mode: 'RESEARCH', title: 'MARKET DISCOVERY', mission: 'Identifies high-value prospects within specific geographic markets.', input: 'Location, Industry Focus', output: 'Verified Lead Database', useCase: 'Regional business acquisition.', tags: ['Research', 'Leads'] },
   { id: 'AUTOMATED_SEARCH', mode: 'RESEARCH', title: 'AUTOMATED SEARCH', mission: 'Autonomous scanning for growth signals and brand vulnerabilities.', input: 'Market Search Parameters', output: 'Real-time Opportunity Feed', useCase: 'Rapid pipeline development.', tags: ['Automation', 'Signals'] },
@@ -114,6 +115,14 @@ export const UserGuide: React.FC<UserGuideProps> = ({ onNavigate }) => {
            <p className="text-xl text-slate-400 font-medium leading-relaxed font-serif italic max-w-3xl">
              The comprehensive manual for Prospector OS. Learn how to master all 54 neural modules for high-fidelity agency operations.
            </p>
+           <div className="pt-4">
+              <button 
+                onClick={() => onNavigate('RESEARCH', 'TRANSFORMATION_BLUEPRINT')}
+                className="bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all shadow-xl"
+              >
+                View Transformation Matrix →
+              </button>
+           </div>
         </div>
         <div className="hidden lg:block relative mb-4 grayscale opacity-10 scale-150">📖</div>
       </div>

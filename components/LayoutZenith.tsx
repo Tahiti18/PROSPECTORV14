@@ -40,12 +40,40 @@ const ModeIcon = ({ id, active }: { id: MainMode, active: boolean }) => {
   }
 }
 
+const SubModuleIcon = ({ id, active }: { id: SubModule; active: boolean }) => {
+  const cn = active ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-300";
+  const p = (path: string) => <svg className={`w-4 h-4 transition-colors ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{React.createElement('path', { d: path })}</svg>;
+
+  switch(id) {
+    case 'EXECUTIVE_DASHBOARD': return p("M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z");
+    case 'TRANSFORMATION_BLUEPRINT': return p("M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5");
+    case 'USER_GUIDE': return p("M4 19.5A2.5 2.5 0 0 1 6.5 17H20");
+    case 'MARKET_DISCOVERY': return p("M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z");
+    case 'AUTOMATED_SEARCH': return p("M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z");
+    case 'PROSPECT_DATABASE': return p("M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16");
+    case 'STRATEGY_CENTER': return p("M12 2L2 7l10 5 10-5-10-5z");
+    case 'PIPELINE': return p("M4 6h16M4 12h16M4 18h16");
+    case 'VISUAL_STUDIO': return p("M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z");
+    case 'BRAND_DNA': return p("M12 2v20M2 12h20");
+    case 'MOCKUPS_4K': return p("M2 12h20M2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6");
+    case 'VIDEO_PRODUCTION': return p("M23 7l-7 5 7 5V7zM1 5h15v14H1z");
+    case 'SONIC_STUDIO': return p("M9 18V5l12-2v13");
+    case 'CAMPAIGN_ORCHESTRATOR': return p("M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z");
+    case 'PROPOSALS': return p("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z");
+    case 'AGENCY_PLAYBOOK': return p("M4 19.5A2.5 2.5 0 0 1 6.5 17H20");
+    case 'BILLING': return p("M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6");
+    case 'SETTINGS': return p("M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z");
+    default: return p("M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z");
+  }
+};
+
 const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: string; desc: string }[]>> = {
   RESEARCH: {
     "Core": [
       { id: 'EXECUTIVE_DASHBOARD', label: 'Executive Dashboard', desc: 'Main operational overview' },
+      { id: 'TRANSFORMATION_BLUEPRINT', label: 'Capability Matrix', desc: 'Full-scale marketing blueprint' },
       { id: 'USER_GUIDE', label: 'User Guide', desc: 'Exhaustive feature directory' },
-      { id: 'MARKET_DISCOVERY', label: 'Market Discovery', desc: 'Locate high-value prospects' },
+      { id: 'MARKET_DISCOVERY', label: 'Lead Discovery', desc: 'Locate high-value prospects' },
       { id: 'AUTOMATED_SEARCH', label: 'Automated Search', desc: 'Autonomous lead identification' },
       { id: 'MARKET_TRENDS', label: 'Market Trends', desc: 'Real-time industry insights' },
     ],
@@ -211,7 +239,7 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
       <div className="flex-1 flex overflow-hidden">
          <aside className={`flex-shrink-0 border-r flex flex-col z-40 transition-all duration-300 bg-[#0b1021] border-slate-800 ${isSidebarExpanded ? 'w-[240px]' : 'w-[80px]'}`}>
             <div className="p-4 border-b border-slate-800/50 flex items-center justify-center shrink-0">
-               <button onClick={() => setIsSidebarExpanded(!isSidebarExpanded)} className="p-2 rounded-lg hover:bg-slate-800 text-slate-500 w-full text-center">
+               <button onClick={() => setIsSidebarExpanded(!isSidebarExpanded)} className="p-2 rounded-lg hover:bg-slate-800 text-slate-500 w-full text-center text-[10px] font-black uppercase tracking-widest">
                  {isSidebarExpanded ? 'COLLAPSE' : 'EXPAND'}
                </button>
             </div>
@@ -231,9 +259,12 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                               <button
                                  key={mod.id}
                                  onClick={() => setActiveModule(mod.id)}
-                                 className={`w-full rounded-xl transition-all flex items-center group ${isSidebarExpanded ? 'px-3 py-2.5 justify-start' : 'p-3 justify-center'} ${isActive ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
+                                 className={`w-full rounded-xl transition-all flex items-center group ${isSidebarExpanded ? 'px-3 py-2.5 justify-start gap-3' : 'p-3 justify-center'} ${isActive ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
                               >
-                                 <span className="text-[10px] font-bold uppercase truncate">{isSidebarExpanded ? mod.label : mod.label.charAt(0)}</span>
+                                 <SubModuleIcon id={mod.id} active={isActive} />
+                                 {isSidebarExpanded && (
+                                   <span className="text-[10px] font-bold uppercase truncate">{mod.label}</span>
+                                 )}
                               </button>
                            );
                         })}

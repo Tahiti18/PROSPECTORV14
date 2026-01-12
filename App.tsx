@@ -53,6 +53,7 @@ import { db } from './services/automation/db';
 import { SecurityGateway } from './components/SecurityGateway';
 import { getStoredKeys } from './services/geminiService';
 import { UserGuide } from './components/workspaces/UserGuide';
+import { TransformationBlueprint } from './components/workspaces/TransformationBlueprint';
 
 const STORAGE_KEY_REGION = 'prospector_os_region_v1';
 
@@ -106,6 +107,7 @@ const App: React.FC = () => {
     switch (activeModule) {
       case 'EXECUTIVE_DASHBOARD': return <ExecutiveDashboard leads={leads} market={region} onNavigate={navigate} />;
       case 'USER_GUIDE': return <UserGuide onNavigate={navigate} />;
+      case 'TRANSFORMATION_BLUEPRINT': return <TransformationBlueprint onNavigate={navigate} />;
       case 'MARKET_DISCOVERY': return <MarketDiscovery market={region} onLeadsGenerated={(l) => { db.saveLeads(l); navigate('RESEARCH', 'PROSPECT_DATABASE'); }} />;
       case 'AUTOMATED_SEARCH': return <AutomatedSearch market={region} onNewLeads={(newL) => {}} />;
       case 'PROSPECT_DATABASE': return <ProspectDatabase leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('RESEARCH', 'STRATEGY_CENTER'); }} />;

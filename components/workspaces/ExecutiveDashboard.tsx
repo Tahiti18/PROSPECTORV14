@@ -48,9 +48,9 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ leads, market, on
   ];
 
   const actions = [
+    { id: 'TRANSFORMATION_BLUEPRINT', mode: 'RESEARCH' as MainMode, title: 'VIEW BLUEPRINT', desc: 'SYSTEM CAPABILITIES', icon: '💎' },
     { id: 'MARKET_DISCOVERY', mode: 'RESEARCH' as MainMode, title: 'SEARCH REGION', desc: 'FIND NEW CLIENTS', icon: '🔍' },
-    { id: 'PROSPECT_DATABASE', mode: 'RESEARCH' as MainMode, title: 'PROSPECT LEDGER', desc: 'VIEW DATABASE', icon: '🗂️' },
-    { id: 'VISUAL_STUDIO', mode: 'DESIGN' as MainMode, title: 'CREATIVE STUDIO', desc: 'CREATE ASSETS', icon: '🎨' }
+    { id: 'PROSPECT_DATABASE', mode: 'RESEARCH' as MainMode, title: 'CLIENT LEDGER', desc: 'VIEW DATABASE', icon: '🗂️' },
   ];
 
   return (
