@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { SubModule, Lead } from '../../types';
 import { generateProposalDraft } from '../../services/geminiService';
@@ -111,17 +112,17 @@ export const SellWorkspace: React.FC<SellWorkspaceProps> = ({ activeModule, lead
     );
   }
 
-  // Router for other Sell Modules
+  // Router for other Sell Modules - Sync with canonical SubModule types
   switch (activeModule) {
-    case 'ROI_CALC': return <ROICalc leads={leads} />;
+    case 'ROI_CALCULATOR': return <ROICalc leads={leads} />;
     case 'SEQUENCER': return <Sequencer lead={lockedLead} />;
-    case 'DECK_ARCH': return <DeckArch lead={lockedLead} />;
+    case 'PRESENTATION_BUILDER': return <DeckArch lead={lockedLead} />;
     case 'DEMO_SANDBOX': return <DemoSandbox lead={lockedLead} />;
     case 'DRAFTING': return <ProposalDrafting lead={lockedLead} />;
-    case 'VOICE_STRAT': return <VoiceStrat lead={lockedLead} />;
-    case 'LIVE_SCRIBE': return <LiveScribe />;
+    case 'SALES_COACH': return <VoiceStrat lead={lockedLead} />;
+    case 'MEETING_NOTES': return <LiveScribe />;
     case 'AI_CONCIERGE': return <AIConcierge lead={lockedLead} />;
-    case 'PITCH_GEN': return <PitchGen lead={lockedLead} />;
+    case 'ELEVATOR_PITCH': return <PitchGen lead={lockedLead} />;
     case 'FUNNEL_MAP': return <FunnelMap lead={lockedLead} />;
     default: return null;
   }

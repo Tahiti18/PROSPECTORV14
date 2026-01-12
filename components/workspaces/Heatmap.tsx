@@ -4,16 +4,16 @@ import { Lead } from '../../types';
 
 interface HeatmapProps {
   leads: Lead[];
-  theater: string;
+  market: string;
 }
 
-export const Heatmap: React.FC<HeatmapProps> = ({ leads, theater }) => {
+export const Heatmap: React.FC<HeatmapProps> = ({ leads, market }) => {
   return (
     <div className="space-y-10 py-4 animate-in fade-in duration-500">
       <div className="flex justify-between items-end border-b border-slate-800/50 pb-8">
         <div>
           <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">HOT <span className="text-emerald-600 not-italic">ZONE</span></h1>
-          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic italic">Opportunity Density: {theater}</p>
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2 italic">Opportunity Density: {market}</p>
         </div>
       </div>
 

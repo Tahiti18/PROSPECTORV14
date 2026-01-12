@@ -20,7 +20,6 @@ interface ModuleDetail {
 const MODULE_REGISTRY: ModuleDetail[] = [
   // --- RESEARCH ZONE ---
   { id: 'EXECUTIVE_DASHBOARD', mode: 'RESEARCH', title: 'Executive Dashboard', mission: 'The central operational nerve center providing high-level situational awareness across all projects.', input: 'Project data, system health, regional metrics', output: 'Unified analytics and summary widgets', useCase: 'Daily project oversight.', tags: ['Core', 'Management'] },
-  // Fix: changed 'SYSTEM_OVERVIEW' to 'USER_GUIDE' to satisfy SubModule type requirements
   { id: 'USER_GUIDE', mode: 'RESEARCH', title: 'System Overview', mission: 'An exhaustive directory and manual explaining every professional tool within the OS.', input: 'Internal software registry', output: 'Tool catalog and documentation', useCase: 'Mastering platform capabilities.', tags: ['Manual', 'Directory'] },
   { id: 'MARKET_DISCOVERY', mode: 'RESEARCH', title: 'Market Discovery', mission: 'Identifies high-ticket prospects in specific geographic regions or industry niches.', input: 'City name, industry keywords', output: 'Verified lead database', useCase: 'Regional client acquisition.', tags: ['Search', 'Sales'] },
   { id: 'AUTOMATED_SEARCH', mode: 'RESEARCH', title: 'Automated Search', mission: 'Autonomous lead identification engine that scans for specific commercial signals.', input: 'Client criteria, intent signals', output: 'Live opportunity feed', useCase: 'Passive pipeline development.', tags: ['Automation', 'Leads'] },
@@ -34,13 +33,6 @@ const MODULE_REGISTRY: ModuleDetail[] = [
   { id: 'VIDEO_INSIGHTS', mode: 'RESEARCH', title: 'Media Insights', mission: 'Deep analysis of video content to deconstruct narratives and viral potential.', input: 'Video source, URL', output: 'Creative and technical breakdown', useCase: 'Content strategy refinement.', tags: ['Video', 'Marketing'] },
   { id: 'CONTENT_ANALYSIS', mode: 'RESEARCH', title: 'Content Analysis', mission: 'Hyper-speed synthesis of long-form articles for rapid competitive research.', input: 'Article URL or source text', output: 'Executive summary and key facts', useCase: 'Competitive intelligence gathering.', tags: ['Reading', 'Efficiency'] },
   { id: 'BENCHMARK', mode: 'RESEARCH', title: 'Benchmark Analysis', mission: 'Compares business infrastructure against industry leaders to highlight gaps.', input: 'Competitor URLs', output: 'Comparative analysis reports', useCase: 'Competitive positioning.', tags: ['Stats', 'Benchmarking'] },
-  { id: 'ANALYTICS', mode: 'RESEARCH', title: 'Performance Analytics', mission: 'Visualizes internal metrics regarding agency output and resource usage.', input: 'Operational logs', output: 'Performance charts and graphs', useCase: 'Agency efficiency tracking.', tags: ['Reporting', 'Charts'] },
-  { id: 'HEATMAP', mode: 'RESEARCH', title: 'Opportunity Heatmap', mission: 'Visualizes target density across geographic regions to prioritize markets.', input: 'Lead scores and location data', output: 'Interactive geographic heatmap', useCase: 'Regional campaign planning.', tags: ['Map', 'Visual'] },
-  { id: 'PROMPT_INTERFACE', mode: 'RESEARCH', title: 'Secure Prompt Lab', mission: 'Professional interface for fine-tuning system-wide neural behavior.', input: 'Model directives, system rules', output: 'Refined, reliable AI outputs', useCase: 'Standardizing AI responses.', tags: ['Technical', 'Settings'] },
-  { id: 'MODEL_BENCH', mode: 'RESEARCH', title: 'Model Benchmark', mission: 'Diagnostic tool for comparing performance across various neural engines.', input: 'Test prompts, sample tasks', output: 'Cross-model fidelity scorecard', useCase: 'Optimizing resource selection.', tags: ['Testing', 'Quality'] },
-  { id: 'VIDEO_AUDIT', mode: 'RESEARCH', title: 'Video Audit', mission: 'Comprehensive scan of a business’s video content footprint across the web.', input: 'Entity name, brand identifiers', output: 'Video presence audit report', useCase: 'Identifying video service opportunities.', tags: ['Video', 'Research'] },
-  { id: 'FACT_CHECK', mode: 'RESEARCH', title: 'Fact Checker', mission: 'Grounded verification engine for business claims and data legitimacy.', input: 'Specific business claim', output: 'Verified/Disputed verdict with sources', useCase: 'Vetting prospect legitimacy.', tags: ['Trust', 'Verification'] },
-  { id: 'TRANSLATOR', mode: 'RESEARCH', title: 'Tactical Translator', mission: 'Localized outreach translation maintaining professional tone and context.', input: 'Source copy, target language', output: 'Localized professional translation', useCase: 'International market expansion.', tags: ['Language', 'Global'] },
   { id: 'ANALYTICS_HUB', mode: 'RESEARCH', title: 'Market Intel Hub', mission: 'Macro-level analysis of large datasets to identify emerging industry opportunities.', input: 'Aggregated market data', output: 'Strategic opportunity reports', useCase: 'Macro-strategy development.', tags: ['Data', 'Intelligence'] },
 
   // --- DESIGN ZONE ---
@@ -54,7 +46,6 @@ const MODULE_REGISTRY: ModuleDetail[] = [
   // --- MEDIA ZONE ---
   { id: 'VIDEO_PRODUCTION', mode: 'MEDIA', title: 'Video Studio', mission: 'Synthesizes high-quality cinematic video clips for advertisements.', input: 'Cinematic script or prompt', output: 'Professional video payloads', useCase: 'Social media ad creation.', tags: ['Video', 'Production'] },
   { id: 'VIDEO_AUDIT', mode: 'MEDIA', title: 'Video Audit', mission: 'Critiques existing video content for pacing, design, and engagement.', input: 'Video link or raw file', output: 'Professional creative audit', useCase: 'Improving client media quality.', tags: ['Critique', 'Media'] },
-  { id: 'VIDEO_INSIGHTS', mode: 'MEDIA', title: 'Media Insights', mission: 'Analyzes engagement and narrative arc for existing video portfolios.', input: 'Video collection', output: 'Temporal engagement report', useCase: 'Video portfolio optimization.', tags: ['Analysis', 'Video'] },
   { id: 'MOTION_LAB', mode: 'MEDIA', title: 'Motion Lab', mission: 'Architects animated storyboards and dynamic plans for video production.', input: 'Narrative script', output: 'Animated storyboard visualization', useCase: 'Pre-production architecture.', tags: ['Animation', 'Storyboard'] },
   { id: 'SONIC_STUDIO', mode: 'MEDIA', title: 'Sonic Studio', mission: 'Generates professional voiceovers and background soundtracks for media.', input: 'Script, genre, vocal directive', output: 'Studio-quality audio files', useCase: 'Media soundtracking.', tags: ['Audio', 'Music'] },
   { id: 'MEETING_NOTES', mode: 'MEDIA', title: 'Executive Scribe', mission: 'Converts raw meeting transcripts into organized action items and summaries.', input: 'Meeting transcript/audio', output: 'Executive summary and tasks', useCase: 'Post-meeting synchronization.', tags: ['Workflow', 'Scribe'] },
@@ -79,7 +70,6 @@ const MODULE_REGISTRY: ModuleDetail[] = [
   { id: 'IDENTITY', mode: 'ADMIN', title: 'Agency Identity', mission: 'Configure and maintain your own agency’s brand profile and output style.', input: 'Agency mission, branding', output: 'System-wide brand profile', useCase: 'Workspace personalization.', tags: ['Profile', 'Settings'] },
   { id: 'SYSTEM_CONFIG', mode: 'ADMIN', title: 'Core Config', mission: 'Technical backend parameters for optimizing system performance.', input: 'Technical specs, preferences', output: 'Optimized system state', useCase: 'Infrastructure optimization.', tags: ['Technical', 'Core'] },
   { id: 'EXPORT_DATA', mode: 'ADMIN', title: 'Data Management', mission: 'Secure local data synchronization and external backup nodes.', input: 'Lead ledger, app data', output: 'JSON backup manifests', useCase: 'Security and data portability.', tags: ['Security', 'Backup'] },
-  // Fix: Complete truncated registry entries using information from related guides
   { id: 'CALENDAR', mode: 'ADMIN', title: 'Schedule Hub', mission: 'Visualizes outreach schedule and milestones.', input: 'Sequencer Data', output: 'Ops Calendar', useCase: 'Timeline management.', tags: ['Time', 'Ops'] },
   { id: 'ACTIVITY_LOGS', mode: 'ADMIN', title: 'Activity Trace', mission: 'Trace of all OS activity.', input: 'Event Stream', output: 'Trace Table', useCase: 'Auditing system usage.', tags: ['Logs', 'Trace'] },
   { id: 'SETTINGS', mode: 'ADMIN', title: 'Global Settings', mission: 'Global preferences and API key management.', input: 'Auth Keys', output: 'System Readiness', useCase: 'Infrastructure setup.', tags: ['Key', 'Config'] },
@@ -101,9 +91,18 @@ export const SystemOverview: React.FC<SystemOverviewProps> = ({ onNavigate }) =>
      m.mission.toLowerCase().includes(filter.toLowerCase()))
   );
 
+  const zones: { id: MainMode | 'ALL'; label: string }[] = [
+    { id: 'ALL', label: 'MASTER_INDEX' },
+    { id: 'RESEARCH', label: 'RESEARCH' },
+    { id: 'DESIGN', label: 'DESIGN' },
+    { id: 'MEDIA', label: 'MEDIA' },
+    { id: 'OUTREACH', label: 'OUTREACH' },
+    { id: 'ADMIN', label: 'ADMIN' }
+  ];
+
   return (
     <div className="max-w-[1600px] mx-auto py-12 px-6 space-y-16 animate-in fade-in duration-1000 pb-40">
-      <div className="flex flex-col md:flex-row justify-between items-end gap-10 border-b border-slate-800 pb-16 relative">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-10 border-b border-slate-800 pb-16 relative overflow-hidden">
         <div className="space-y-6 max-w-4xl relative z-10">
            <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-600/10 border border-emerald-500/20 rounded-xl">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -122,14 +121,14 @@ export const SystemOverview: React.FC<SystemOverviewProps> = ({ onNavigate }) =>
          <div className="flex-1 w-full relative">
             <input 
               value={filter} onChange={(e) => setFilter(e.target.value)}
-              className="w-full bg-[#0b1021] border border-slate-800 rounded-2xl px-12 py-5 text-sm font-bold text-white outline-none focus:border-emerald-500 transition-all"
+              className="w-full bg-[#0b1021] border border-slate-800 rounded-2xl px-12 py-5 text-sm font-bold text-white outline-none focus:border-emerald-500 transition-all shadow-inner placeholder-slate-700"
               placeholder="SEARCH THE SYSTEM MANUAL..."
             />
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
          </div>
          <div className="flex bg-[#0b1021] border border-slate-800 rounded-2xl p-1 overflow-x-auto no-scrollbar max-w-full">
             {zones.map(z => (
-              <button key={z} onClick={() => setActiveZone(z as any)} className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeZone === z ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>{z}</button>
+              <button key={z.id} onClick={() => setActiveZone(z.id)} className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeZone === z.id ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>{z.label}</button>
             ))}
          </div>
       </div>
@@ -165,12 +164,3 @@ export const SystemOverview: React.FC<SystemOverviewProps> = ({ onNavigate }) =>
     </div>
   );
 };
-
-const zones: { id: MainMode | 'ALL'; label: string }[] = [
-  { id: 'ALL', label: 'ALL_MODULES' },
-  { id: 'RESEARCH', label: 'RESEARCH' },
-  { id: 'DESIGN', label: 'DESIGN' },
-  { id: 'MEDIA', label: 'MEDIA' },
-  { id: 'OUTREACH', label: 'OUTREACH' },
-  { id: 'ADMIN', label: 'ADMIN' }
-];

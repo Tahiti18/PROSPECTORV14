@@ -112,7 +112,7 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">RECORDS: {leads.length}</p>
         </div>
         <div className="flex gap-4">
-          <div className="bg-[#0b1021] border border-slate-800 rounded-lg px-4 flex items-center">
+          <div className="bg-[#0b1021] border-2 border-slate-800 rounded-lg px-4 flex items-center">
              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mr-3">FILTER:</span>
              <select 
                value={statusFilter}
@@ -123,22 +123,22 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
              </select>
           </div>
           {selectedIds.size > 0 ? (
-             <button onClick={() => setShowHyperLaunch(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-2 transition-all active:scale-95">
+             <button onClick={() => setShowHyperLaunch(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-2 transition-all active:scale-95 border-b-4 border-emerald-800">
                LAUNCH CAMPAIGNS ({selectedIds.size})
              </button>
           ) : (
-             <button onClick={handleOneClickRun} className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border border-slate-700 flex items-center gap-2">
+             <button onClick={handleOneClickRun} className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border-2 border-slate-700 flex items-center gap-2">
                AUTO-ENGAGE NEXT
              </button>
           )}
         </div>
       </div>
 
-      <div className="bg-[#0b1021] border border-slate-800 rounded-[24px] overflow-hidden shadow-2xl relative">
+      <div className="bg-[#0b1021] border-2 border-slate-800 rounded-[24px] overflow-hidden shadow-2xl relative">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-800 bg-[#05091a]">
+              <tr className="border-b-2 border-slate-800 bg-[#05091a]">
                 <th className="px-6 py-4 w-12 text-center">
                     <input type="checkbox" checked={selectedIds.size === sortedLeads.length && sortedLeads.length > 0} onChange={toggleSelectAll} className="accent-emerald-500 w-4 h-4 cursor-pointer" />
                 </th>
@@ -150,7 +150,7 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
                 <th className="w-32 px-6 py-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody className="divide-y-2 divide-slate-800/50">
               {sortedLeads.map((lead) => {
                 const displayStatus = lead.outreachStatus ?? lead.status ?? 'cold';
                 return (
@@ -174,7 +174,7 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
                     </td>
                     <td className="px-6 py-4 max-w-sm"><p className="text-[10px] font-medium text-slate-400 line-clamp-1 italic">"{lead.socialGap}"</p></td>
                     <td className="px-6 py-4 text-right"><span className="text-2xl font-black italic text-emerald-500">{lead.leadScore}</span></td>
-                    <td className="px-6 py-4 text-right"><button onClick={() => onInspect(lead.id)} className="px-4 py-2 bg-white text-black hover:bg-emerald-500 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all">AUDIT</button></td>
+                    <td className="px-6 py-4 text-right"><button onClick={() => onInspect(lead.id)} className="px-4 py-2 bg-white text-black hover:bg-emerald-500 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95">AUDIT</button></td>
                   </tr>
                 );
               })}
@@ -184,33 +184,31 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
       </div>
 
       {/* DATA MANAGEMENT FOOTER */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-6 mt-12 p-8 bg-[#0b1021]/80 border border-slate-800 rounded-[32px] shadow-xl">
-         {/* Left: Tools */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 mt-12 p-10 bg-[#0b1021]/80 border-2 border-slate-800 rounded-[32px] shadow-xl">
          <div className="flex gap-4">
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 bg-slate-900 border border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+              className="px-6 py-3 bg-slate-900 border-2 border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
               IMPORT LEDGER
             </button>
             <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
             
             <button 
               onClick={handleExport}
-              className="px-6 py-3 bg-slate-900 border border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+              className="px-6 py-3 bg-slate-900 border-2 border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
               EXPORT LEDGER
             </button>
          </div>
 
-         {/* Right: Master Control */}
          <button 
             onClick={handleSaveAll}
             className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-600/20 active:scale-95 transition-all border-b-4 border-emerald-800 flex items-center gap-3"
          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             COMMIT ALL CHANGES
          </button>
       </div>
