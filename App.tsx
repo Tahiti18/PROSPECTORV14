@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { MainMode, SubModule, Lead } from './types';
 import { LayoutZenith } from './components/LayoutZenith';
@@ -65,11 +64,11 @@ const App: React.FC = () => {
   const [lockedLeadId, setLockedLeadId] = useState<string | null>(null);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
-  
+
   // AUTO-ARM: If system keys are present, bypass Security Gateway
   const [isArmed, setIsArmed] = useState(() => {
     const keys = getStoredKeys();
-    return !!(keys.openRouter || keys.google);
+    return !!(keys.openRouter || keys.kie);
   });
 
   useEffect(() => {
@@ -78,11 +77,17 @@ const App: React.FC = () => {
       const savedRegion = localStorage.getItem(STORAGE_KEY_REGION);
       if (savedLeads.length > 0) setLeads(savedLeads);
       if (savedRegion) setRegion(savedRegion);
-    } catch (e) { console.error("Hydration failed", e); }
+    } catch (e) {
+      console.error('Hydration failed', e);
+    }
     setIsHydrated(true);
 
-    const unsubDb = db.subscribe((newLeads) => { setLeads([...newLeads]); });
-    return () => { unsubDb(); };
+    const unsubDb = db.subscribe((newLeads) => {
+      setLeads([...newLeads]);
+    });
+    return () => {
+      unsubDb();
+    };
   }, []);
 
   useEffect(() => {
@@ -90,15 +95,18 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY_REGION, region);
   }, [region, isHydrated]);
 
-  const lockedLead = useMemo(() => leads.find(l => l.id === lockedLeadId), [leads, lockedLeadId]);
-  
+  const lockedLead = useMemo(() => leads.find((l) => l.id === lockedLeadId), [leads, lockedLeadId]);
+
   const handleUpdateLead = (id: string, updates: Partial<Lead>) => {
     const currentLeads = db.getLeads();
-    const updated = currentLeads.map(l => l.id === id ? { ...l, ...updates } : l);
+    const updated = currentLeads.map((l) => (l.id === id ? { ...l, ...updates } : l));
     db.saveLeads(updated);
   };
 
-  const navigate = (mode: MainMode, mod: SubModule) => { setActiveMode(mode); setActiveModule(mod); };
+  const navigate = (mode: MainMode, mod: SubModule) => {
+    setActiveMode(mode);
+    setActiveModule(mod);
+  };
 
   if (!isArmed) {
     return <SecurityGateway onArmed={() => setIsArmed(true)} />;
@@ -106,70 +114,152 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (activeModule) {
-      case 'EXECUTIVE_DASHBOARD': return <ExecutiveDashboard leads={leads} market={region} onNavigate={navigate} />;
-      case 'USER_GUIDE': return <UserGuide onNavigate={navigate} />;
-      case 'TRANSFORMATION_BLUEPRINT': return <TransformationBlueprint onNavigate={navigate} />;
-      case 'MARKET_DISCOVERY': return <MarketDiscovery market={region} onLeadsGenerated={(l) => { db.saveLeads(l); navigate('RESEARCH', 'PROSPECT_DATABASE'); }} />;
-      case 'AUTOMATED_SEARCH': return <AutomatedSearch market={region} onNewLeads={(newL) => {}} />;
-      case 'PROSPECT_DATABASE': return <ProspectDatabase leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('RESEARCH', 'STRATEGY_CENTER'); }} />;
-      case 'STRATEGY_CENTER': return <StrategyCenter lead={lockedLead} onUpdateLead={handleUpdateLead} onNavigate={navigate} />;
-      case 'PIPELINE': return <Pipeline leads={leads} onUpdateStatus={(id, s) => handleUpdateLead(id, { outreachStatus: s })} />;
-      case 'HEATMAP': return <Heatmap leads={leads} market={region} />;
-      case 'STRATEGIC_REASONING': return <StrategicReasoning lead={lockedLead} />;
-      case 'BENCHMARK': return <BenchmarkNode lead={lockedLead} />;
-      case 'PROMPT_INTERFACE': return <PromptInterface lead={lockedLead} />;
-      case 'FACT_CHECK': return <FactCheck lead={lockedLead} />;
-      case 'MODEL_BENCH': return <ModelBench />;
-      case 'VIDEO_AUDIT': return <VideoAudit lead={lockedLead} />;
-      case 'TRANSLATOR': return <TranslatorNode />;
-      case 'MARKET_TRENDS': return <MarketTrends lead={lockedLead} />;
-      case 'WORKSPACE': return <WorkspaceNode leads={leads} />;
-      case 'CONTENT_ANALYSIS': return <ContentAnalysis lead={lockedLead} />;
-      case 'VIDEO_INSIGHTS': return <VideoInsights lead={lockedLead} />;
-      case 'ANALYTICS': case 'ANALYTICS_HUB': return <AnalyticsHub leads={leads} />;
-      case 'VISUAL_STUDIO': return <VisualStudio leads={leads} lockedLead={lockedLead} />;
-      case 'MOCKUPS_4K': return <Mockups4K lead={lockedLead} />;
-      case 'PRODUCT_SYNTHESIS': return <ProductSynthesis lead={lockedLead} />;
-      case 'CONTENT_IDEATION': return <ContentIdeation lead={lockedLead} />;
-      case 'ASSET_LIBRARY': return <AssetLibrary />;
-      case 'BRAND_DNA': return <BrandDNA lead={lockedLead} onUpdateLead={handleUpdateLead} />;
-      case 'VIDEO_PRODUCTION': return <VideoProduction lead={lockedLead} />;
-      case 'MOTION_LAB': return <MotionLab lead={lockedLead} />;
-      case 'SONIC_STUDIO': return <SonicStudio lead={lockedLead} />;
-      case 'MEETING_NOTES': return <MeetingNotes />;
-      case 'CAMPAIGN_ORCHESTRATOR': return <CampaignOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={setLockedLeadId} onUpdateLead={handleUpdateLead} />;
-      case 'BILLING': return <BillingNode />;
-      case 'AFFILIATE': return <AffiliateNode />;
-      case 'IDENTITY': return <IdentityNode />;
-      case 'SYSTEM_CONFIG': return <SystemConfig />;
-      case 'EXPORT_DATA': return <ExportNode leads={leads} />;
-      case 'CALENDAR': return <CalendarNode leads={leads} />;
-      case 'ACTIVITY_LOGS': return <ActivityLogs />;
-      case 'SETTINGS': return <SettingsNode />;
-      case 'NEXUS_GRAPH': return <NexusGraph leads={leads} />;
-      case 'TIMELINE': return <TimelineNode />;
-      case 'TASK_MANAGER': return <TaskManager lead={lockedLead} />;
-      case 'THEME': return <ThemeNode />;
-      case 'USAGE_STATS': return <UsageStats />;
-      default: return <IntelNode module={activeModule} lead={lockedLead} />;
+      case 'EXECUTIVE_DASHBOARD':
+        return <ExecutiveDashboard leads={leads} market={region} onNavigate={navigate} />;
+      case 'USER_GUIDE':
+        return <UserGuide onNavigate={navigate} />;
+      case 'TRANSFORMATION_BLUEPRINT':
+        return <TransformationBlueprint onNavigate={navigate} />;
+      case 'MARKET_DISCOVERY':
+        return (
+          <MarketDiscovery
+            market={region}
+            onLeadsGenerated={(l) => {
+              db.saveLeads(l);
+              navigate('RESEARCH', 'PROSPECT_DATABASE');
+            }}
+          />
+        );
+      case 'AUTOMATED_SEARCH':
+        return <AutomatedSearch market={region} onNewLeads={(newL) => {}} />;
+      case 'PROSPECT_DATABASE':
+        return (
+          <ProspectDatabase
+            leads={leads}
+            lockedLeadId={lockedLeadId}
+            onLockLead={setLockedLeadId}
+            onInspect={(id) => {
+              setLockedLeadId(id);
+              navigate('RESEARCH', 'STRATEGY_CENTER');
+            }}
+          />
+        );
+      case 'STRATEGY_CENTER':
+        return <StrategyCenter lead={lockedLead} onUpdateLead={handleUpdateLead} onNavigate={navigate} />;
+      case 'PIPELINE':
+        return <Pipeline leads={leads} onUpdateStatus={(id, s) => handleUpdateLead(id, { outreachStatus: s })} />;
+      case 'HEATMAP':
+        return <Heatmap leads={leads} market={region} />;
+      case 'STRATEGIC_REASONING':
+        return <StrategicReasoning lead={lockedLead} />;
+      case 'BENCHMARK':
+        return <BenchmarkNode lead={lockedLead} />;
+      case 'PROMPT_INTERFACE':
+        return <PromptInterface lead={lockedLead} />;
+      case 'FACT_CHECK':
+        return <FactCheck lead={lockedLead} />;
+      case 'MODEL_BENCH':
+        return <ModelBench />;
+      case 'VIDEO_AUDIT':
+        return <VideoAudit lead={lockedLead} />;
+      case 'TRANSLATOR':
+        return <TranslatorNode />;
+      case 'MARKET_TRENDS':
+        return <MarketTrends lead={lockedLead} />;
+      case 'WORKSPACE':
+        return <WorkspaceNode leads={leads} />;
+      case 'CONTENT_ANALYSIS':
+        return <ContentAnalysis lead={lockedLead} />;
+      case 'VIDEO_INSIGHTS':
+        return <VideoInsights lead={lockedLead} />;
+      case 'ANALYTICS':
+      case 'ANALYTICS_HUB':
+        return <AnalyticsHub leads={leads} />;
+      case 'VISUAL_STUDIO':
+        return <VisualStudio leads={leads} lockedLead={lockedLead} />;
+      case 'MOCKUPS_4K':
+        return <Mockups4K lead={lockedLead} />;
+      case 'PRODUCT_SYNTHESIS':
+        return <ProductSynthesis lead={lockedLead} />;
+      case 'CONTENT_IDEATION':
+        return <ContentIdeation lead={lockedLead} />;
+      case 'ASSET_LIBRARY':
+        return <AssetLibrary />;
+      case 'BRAND_DNA':
+        return <BrandDNA lead={lockedLead} onUpdateLead={handleUpdateLead} />;
+      case 'VIDEO_PRODUCTION':
+        return <VideoProduction lead={lockedLead} />;
+      case 'MOTION_LAB':
+        return <MotionLab lead={lockedLead} />;
+      case 'SONIC_STUDIO':
+        return <SonicStudio lead={lockedLead} />;
+      case 'MEETING_NOTES':
+        return <MeetingNotes />;
+      case 'CAMPAIGN_ORCHESTRATOR':
+        return (
+          <CampaignOrchestrator
+            leads={leads}
+            lockedLead={lockedLead}
+            onNavigate={navigate}
+            onLockLead={setLockedLeadId}
+            onUpdateLead={handleUpdateLead}
+          />
+        );
+      case 'BILLING':
+        return <BillingNode />;
+      case 'AFFILIATE':
+        return <AffiliateNode />;
+      case 'IDENTITY':
+        return <IdentityNode />;
+      case 'SYSTEM_CONFIG':
+        return <SystemConfig />;
+      case 'EXPORT_DATA':
+        return <ExportNode leads={leads} />;
+      case 'CALENDAR':
+        return <CalendarNode leads={leads} />;
+      case 'ACTIVITY_LOGS':
+        return <ActivityLogs />;
+      case 'SETTINGS':
+        return <SettingsNode />;
+      case 'NEXUS_GRAPH':
+        return <NexusGraph leads={leads} />;
+      case 'TIMELINE':
+        return <TimelineNode />;
+      case 'TASK_MANAGER':
+        return <TaskManager lead={lockedLead} />;
+      case 'THEME':
+        return <ThemeNode />;
+      case 'USAGE_STATS':
+        return <UsageStats />;
+      default:
+        return <IntelNode module={activeModule} lead={lockedLead} />;
     }
   };
 
   return (
     <>
       <LayoutZenith
-        activeMode={activeMode} setActiveMode={setActiveMode}
-        activeModule={activeModule} setActiveModule={setActiveModule}
+        activeMode={activeMode}
+        setActiveMode={setActiveMode}
+        activeModule={activeModule}
+        setActiveModule={setActiveModule}
         onSearchClick={() => setIsCommandOpen(true)}
-        theater={region} setTheater={setRegion}
+        theater={region}
+        setTheater={setRegion}
         currentLayout="ZENITH"
         setLayoutMode={() => {}}
       >
         {renderContent()}
         <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme="dark" />
         <footer className="fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t border-slate-800/50 px-10 py-2 flex justify-between items-center z-[100] bg-[#020617]/80 text-[9px] font-black uppercase tracking-widest text-slate-600 pointer-events-none">
-            <div className="flex gap-4"><span>SYSTEM: OPERATIONAL</span><span>V14.6.2 (RAILWAY_HARDENED)</span></div>
-            <div className="flex gap-4"><span>CORE: GEMINI_3_FLASH</span><span>SERVICE: OPENROUTER_API</span></div>
+          <div className="flex gap-4">
+            <span>SYSTEM: OPERATIONAL</span>
+            <span>V14.6.2 (RAILWAY_HARDENED)</span>
+          </div>
+          <div className="flex gap-4">
+            <span>CORE: GEMINI_3_FLASH</span>
+            <span>SERVICE: OPENROUTER_API</span>
+          </div>
         </footer>
       </LayoutZenith>
       <ToastContainer />
