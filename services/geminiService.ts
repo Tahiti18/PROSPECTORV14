@@ -1,20 +1,29 @@
-
 import { Lead, BrandIdentity } from '../types';
 import { deductCost } from './computeTracker';
-import { toast } from './toastManager';
-// Fix: Import GoogleGenAI from @google/genai
-import { GoogleGenAI } from "@google/genai";
 
-// --- INFRASTRUCTURE CONFIGURATION ---
-const PRIMARY_MODEL = "google/gemini-3-flash-preview";
-const PROXY_BASE = "/api/proxy"; // Standardized backend proxy route
+/**
+ * LOCK-IN RULES:
+ * - Browser NEVER calls OpenRouter directly.
+ * - Browser calls our same-origin proxy: POST /api/openrouter/chat
+ * - Proxy attaches Authorization: Bearer <OPENROUTER_API_KEY>
+ *
+ * This prevents: "Authorization required" / "No cookie auth credentials found"
+ */
 
-export interface VeoConfig {
-  aspectRatio: '16:9' | '9:16';
-  resolution: '720p' | '1080p';
-  modelStr?: string;
-}
+// Public route implemented in vite.config.ts middleware
+export const OPENROUTER_PROXY_PATH = '/api/openrouter/chat';
 
+// Default model (you can change later)
+export const PRIMARY_MODEL = 'google/gemini-2.0-flash-001';
+
+// Stable system instruction (prevents undefined build/runtime issues)
+export const SYSTEM_INSTRUCTION = `
+You are Prospector OS.
+When asked for JSON, output VALID JSON only (no markdown fences).
+Keep output structured and usable.
+`.trim();
+
+// -------------------- Types --------------------
 export interface AssetRecord {
   id: string;
   type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO';
@@ -38,29 +47,28 @@ export interface BenchmarkReport {
   sources: Array<{ title: string; uri: string }>;
 }
 
-// --- SECURED KEY PERSISTENCE (ENVIRONMENT DRIVEN) ---
-const sanitizeKey = (k: any): string => {
-  if (!k || k === 'undefined' || k === 'null' || k === '') return '';
-  return String(k).trim().replace(/^["']|["']$/g, '');
-};
+export interface VeoConfig {
+  aspectRatio: '16:9' | '9:16';
+  resolution: '720p' | '1080p';
+  modelStr?: string;
+}
 
-export const getStoredKeys = () => {
-    return { 
-        openRouter: sanitizeKey(process.env.OPENROUTER_API_KEY || process.env.API_KEY), 
-        kie: sanitizeKey(process.env.KIE_API_KEY),
-        google: sanitizeKey(process.env.API_KEY)
-    };
-};
+export interface LoggedGenerateParams {
+  module: string;
+  model?: string;
+  modelClass?: 'FLASH' | 'PRO';
+  reasoningDepth?: 'LOW' | 'MEDIUM' | 'HIGH';
+  isClientFacing?: boolean;
+  contents: any;
+  config?: any; // IMPORTANT: keep for callers that pass config
+}
 
-export const setStoredKeys = (openRouter?: string, kie?: string) => {
-    if (openRouter) localStorage.setItem('pomelli_auth_override', sanitizeKey(openRouter));
-    if (kie) localStorage.setItem('kie_api_key_override', sanitizeKey(kie));
-};
-
-// --- GLOBAL ASSET REPOSITORY ---
+// -------------------- State (Assets/Vault) --------------------
 export const SESSION_ASSETS: AssetRecord[] = [];
 export const PRODUCTION_LOGS: string[] = [];
 const assetListeners = new Set<(assets: AssetRecord[]) => void>();
+
+const uuidLike = () => Math.random().toString(36).substring(2, 15);
 
 export const pushLog = (msg: string) => {
   PRODUCTION_LOGS.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
@@ -70,70 +78,149 @@ export const pushLog = (msg: string) => {
 export const subscribeToAssets = (listener: (assets: AssetRecord[]) => void) => {
   assetListeners.add(listener);
   listener(SESSION_ASSETS);
-  return () => { assetListeners.delete(listener); };
+  return () => {
+    assetListeners.delete(listener);
+  };
 };
 
-const uuidLike = () => Math.random().toString(36).substring(2, 15);
-
-export const saveAsset = (type: AssetRecord['type'], title: string, data: string, module?: string, leadId?: string, metadata?: any) => {
-  const asset: AssetRecord = { id: uuidLike(), type, title, data, module, leadId, timestamp: Date.now(), metadata };
+export const saveAsset = (
+  type: AssetRecord['type'],
+  title: string,
+  data: string,
+  module?: string,
+  leadId?: string,
+  metadata?: any
+) => {
+  const asset: AssetRecord = {
+    id: uuidLike(),
+    type,
+    title,
+    data,
+    module,
+    leadId,
+    timestamp: Date.now(),
+    metadata
+  };
   SESSION_ASSETS.unshift(asset);
-  assetListeners.forEach(l => l([...SESSION_ASSETS]));
+  assetListeners.forEach((l) => l([...SESSION_ASSETS]));
   return asset;
 };
 
-export const importVault = (newAssets: AssetRecord[]) => {
-  SESSION_ASSETS.unshift(...newAssets);
-  assetListeners.forEach(l => l([...SESSION_ASSETS]));
-  return newAssets.length;
+export const deleteAsset = (id: string) => {
+  const idx = SESSION_ASSETS.findIndex((a) => a.id === id);
+  if (idx !== -1) {
+    SESSION_ASSETS.splice(idx, 1);
+    assetListeners.forEach((l) => l([...SESSION_ASSETS]));
+  }
 };
 
 export const clearVault = () => {
   SESSION_ASSETS.length = 0;
-  assetListeners.forEach(l => l([...SESSION_ASSETS]));
+  assetListeners.forEach((l) => l([]));
 };
 
-export const deleteAsset = (id: string) => {
-  const index = SESSION_ASSETS.findIndex(a => a.id === id);
-  if (index !== -1) {
-    SESSION_ASSETS.splice(index, 1);
-    assetListeners.forEach(l => l([...SESSION_ASSETS]));
+export const importVault = (assets: AssetRecord[]) => {
+  SESSION_ASSETS.length = 0;
+  SESSION_ASSETS.push(...assets);
+  assetListeners.forEach((l) => l([...SESSION_ASSETS]));
+  return SESSION_ASSETS.length;
+};
+
+// -------------------- Key storage (local) --------------------
+const OR_KEY = 'POMELLI_OPENROUTER_KEY';
+const KIE_KEY = 'POMELLI_KIE_KEY';
+
+export const setStoredKeys = (openRouter?: string, kie?: string) => {
+  try {
+    if (typeof window === 'undefined') return;
+    if (openRouter) window.localStorage.setItem(OR_KEY, openRouter.trim());
+    if (kie) window.localStorage.setItem(KIE_KEY, kie.trim());
+  } catch {
+    // ignore
   }
 };
 
+export const getStoredKeys = () => {
+  try {
+    if (typeof window === 'undefined') return { openRouter: '', kie: '' };
+    return {
+      openRouter: window.localStorage.getItem(OR_KEY) || '',
+      kie: window.localStorage.getItem(KIE_KEY) || ''
+    };
+  } catch {
+    return { openRouter: '', kie: '' };
+  }
+};
+
+// -------------------- Helpers --------------------
 const extractJson = (text: string) => {
-  if (!text) return "{}";
-  let cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start !== -1 && end !== -1) return cleaned.substring(start, end + 1);
+  if (!text) return '';
+  const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+  const objStart = cleaned.indexOf('{');
+  const objEnd = cleaned.lastIndexOf('}');
+  const arrStart = cleaned.indexOf('[');
+  const arrEnd = cleaned.lastIndexOf(']');
+
+  if (objStart !== -1 && (arrStart === -1 || objStart < arrStart) && objEnd > objStart) {
+    return cleaned.substring(objStart, objEnd + 1);
+  }
+  if (arrStart !== -1 && arrEnd > arrStart) {
+    return cleaned.substring(arrStart, arrEnd + 1);
+  }
   return cleaned;
 };
 
-// --- CORE PROXY BRIDGES ---
-
-export const openRouterChat = async (prompt: string, system?: string): Promise<string> => {
+const safeJsonParse = <T = any>(s: string, fallback: T): T => {
   try {
-    const response = await fetch(`${PROXY_BASE}/openrouter`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: PRIMARY_MODEL,
-        messages: [
-          { role: "system", content: system || "You are Prospector OS Intelligence. Output JSON." },
-          { role: "user", content: prompt }
-        ]
-      })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Proxy Fail");
-    const text = data.choices?.[0]?.message?.content || "{}";
-    deductCost(PRIMARY_MODEL, text.length);
-    return text;
-  } catch (e: any) {
-    pushLog(`ENGINE_FAULT: ${e.message}`);
-    throw e;
+    return JSON.parse(s) as T;
+  } catch {
+    return fallback;
   }
+};
+
+// Compatibility shim (older code imports getAI())
+export const getAI = () => null;
+
+// -------------------- OpenRouter (via proxy) --------------------
+export const openRouterChat = async (
+  prompt: string,
+  system?: string,
+  model: string = PRIMARY_MODEL
+): Promise<string> => {
+  const keys = getStoredKeys();
+
+  const body = {
+    prompt,
+    systemInstruction: system || SYSTEM_INSTRUCTION,
+    model
+  };
+
+  const res = await fetch(OPENROUTER_PROXY_PATH, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // Optional fallback if Railway env var is not set:
+      // Proxy will only use this if OPENROUTER_API_KEY is missing server-side.
+      ...(keys.openRouter ? { 'x-openrouter-key': keys.openRouter } : {})
+    },
+    body: JSON.stringify(body)
+  });
+
+  const rawText = await res.text();
+
+  if (!res.ok) {
+    pushLog(`OpenRouter Proxy Error (${res.status}): ${rawText}`);
+    const statusText = res.status === 401 ? 'Unauthorized (Check Key)' : `Error ${res.status}`;
+    throw new Error(`OpenRouter Error (${statusText}): ${rawText}`);
+  }
+
+  // Proxy returns OpenRouter JSON; but handle plain text too.
+  const data = safeJsonParse<any>(rawText, null);
+  if (data && typeof data === 'object') {
+    return data?.choices?.[0]?.message?.content ?? data?.text ?? '';
+  }
+  return rawText;
 };
 
 export const executeIntelligenceTask = async (prompt: string, system?: string) => {
@@ -141,139 +228,301 @@ export const executeIntelligenceTask = async (prompt: string, system?: string) =
   return extractJson(raw);
 };
 
-export const loggedGenerateContent = async (args: { module: string; contents: any; config?: any }) => {
-    const prompt = typeof args.contents === 'string' ? args.contents : JSON.stringify(args.contents);
-    const system = args.config?.systemInstruction || "Output JSON.";
-    return await openRouterChat(prompt, system);
+// Keep API-compatible export
+export const loggedGenerateContent = async (params: LoggedGenerateParams): Promise<string> => {
+  const model = params.model || PRIMARY_MODEL;
+  const contentStr = typeof params.contents === 'string' ? params.contents : JSON.stringify(params.contents ?? {});
+  const started = Date.now();
+
+  try {
+    const text = await openRouterChat(contentStr, SYSTEM_INSTRUCTION, model);
+    deductCost(model, contentStr.length + text.length);
+    pushLog(`GEN_OK ${params.module} (${Date.now() - started}ms) model=${model}`);
+    return text;
+  } catch (e: any) {
+    pushLog(`GENERATION_ERROR in ${params.module}: ${e?.message || String(e)}`);
+    throw e;
+  }
 };
 
-// --- RESTORED API METHODS ---
-
+// -------------------- Core: Lead Discovery --------------------
 export const generateLeads = async (region: string, niche: string, count: number) => {
-  const prompt = `Identify ${count} high-ticket targets in ${region} for ${niche}. JSON: { "leads": [...] }`;
+  pushLog(`RECON: ${region} | ${niche} | count=${count}`);
+
+  const prompt = `
+Find ${count} high-ticket B2B leads in ${region} for ${niche}.
+Return VALID JSON ONLY in this shape:
+{
+  "leads": [
+    {
+      "businessName": "",
+      "websiteUrl": "",
+      "city": "",
+      "niche": "",
+      "leadScore": 0,
+      "assetGrade": "A",
+      "socialGap": ""
+    }
+  ]
+}
+`.trim();
+
   const jsonStr = await executeIntelligenceTask(prompt);
-  return { leads: JSON.parse(jsonStr).leads || [], groundingSources: [] };
+  const parsed = safeJsonParse<any>(jsonStr, { leads: [] });
+
+  return { leads: parsed.leads || [], groundingSources: [] as any[] };
 };
 
-export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
-  const prompt = `Architect campaign for ${lead.businessName}. JSON: { "presentation": { "slides": [] }, "narrative": "", "outreach": {}, "funnel": [], "contentPack": [], "visualDirection": {} }`;
-  return JSON.parse(await executeIntelligenceTask(prompt));
+// -------------------- Text modules (keep signatures stable) --------------------
+export const orchestrateBusinessPackage = async (lead: Lead, _assets: any[]) => {
+  const json = await executeIntelligenceTask(
+    `Create outreach assets for ${lead.businessName}. Return VALID JSON with presentation, narrative, outreach, and visual direction.`
+  );
+  return safeJsonParse<any>(json, {});
 };
 
 export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
-  const prompt = `Audit ${lead.websiteUrl} for ${module}. Return BenchmarkReport JSON structure.`;
-  return JSON.parse(await executeIntelligenceTask(prompt));
+  const json = await executeIntelligenceTask(
+    `Technical audit for ${lead.websiteUrl}. Focus module="${module}". Return VALID JSON BenchmarkReport.`
+  );
+  return safeJsonParse<BenchmarkReport>(json, {
+    entityName: lead.businessName,
+    missionSummary: '',
+    visualStack: [],
+    sonicStack: [],
+    featureGap: '',
+    businessModel: '',
+    designSystem: '',
+    deepArchitecture: '',
+    sources: []
+  });
+};
+
+export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> => {
+  return await fetchLiveIntel(lead, 'benchmark');
+};
+
+export const generateProposalDraft = async (lead: Lead) => {
+  return await executeIntelligenceTask(
+    `Write a proposal draft for ${lead.businessName}. Focus on AI ROI, speed, and measurable outcomes. Return plain text.`
+  );
 };
 
 export const generateOutreachSequence = async (lead: Lead) => {
-    return JSON.parse(await executeIntelligenceTask(`5-day sequence for ${lead.businessName}. JSON array.`));
+  const prompt = `
+Create a 5-day multi-channel outreach sequence for:
+Business: ${lead.businessName}
+Niche: ${lead.niche}
+Website: ${lead.websiteUrl}
+
+Return VALID JSON ONLY:
+[
+  { "day": 1, "channel": "Email", "content": "...", "purpose": "..." }
+]
+`.trim();
+  const jsonStr = await executeIntelligenceTask(prompt);
+  return safeJsonParse<any[]>(jsonStr, []);
+};
+
+export const generatePitch = async (lead: Lead) => {
+  return await executeIntelligenceTask(`Write a 30-second pitch for ${lead.businessName}. Return plain text only.`);
+};
+
+export const generateNurtureDialogue = async (lead: Lead, scenario: string) => {
+  const json = await executeIntelligenceTask(
+    `Generate nurture dialogue for ${lead.businessName} in scenario: ${scenario}. Return VALID JSON array of messages.`
+  );
+  return safeJsonParse<any[]>(json, []);
+};
+
+export const generateAffiliateProgram = async (niche: string) => {
+  const json = await executeIntelligenceTask(`Generate an affiliate program matrix for ${niche}. Return VALID JSON.`);
+  return safeJsonParse<any>(json, {});
+};
+
+export const analyzeLedger = async (leads: Lead[]) => {
+  const json = await executeIntelligenceTask(
+    `Analyze these ${leads.length} leads. Return VALID JSON: { "risk": "", "opportunity": "" }`
+  );
+  return safeJsonParse<any>(json, { risk: '', opportunity: '' });
+};
+
+export const identifySubRegions = async (theater: string) => {
+  const json = await executeIntelligenceTask(`Break ${theater} into 5 strategic sub-regions. Return VALID JSON array.`);
+  return safeJsonParse<string[]>(json, []);
+};
+
+export const crawlTheaterSignals = async (sector: string, signal: string) => {
+  const json = await executeIntelligenceTask(
+    `Identify 3 businesses in ${sector} showing signal="${signal}". Return VALID JSON: { "leads": [ ... ] }`
+  );
+  const parsed = safeJsonParse<any>(json, { leads: [] });
+  return (parsed.leads || []).map((l: any) => ({ ...l, id: uuidLike() }));
+};
+
+export const generatePlaybookStrategy = async (niche: string) => {
+  const json = await executeIntelligenceTask(
+    `Generate a high-ticket agency playbook strategy for ${niche}. Return VALID JSON: { "strategyName": "", "steps": [{ "title": "", "tactic": "" }] }`
+  );
+  return safeJsonParse<any>(json, {});
+};
+
+export const synthesizeProduct = async (lead: Lead) => {
+  const json = await executeIntelligenceTask(`Architect an AI product for ${lead.businessName}. Return VALID JSON.`);
+  return safeJsonParse<any>(json, {});
 };
 
 export const architectFunnel = async (lead: Lead) => {
-    return JSON.parse(await executeIntelligenceTask(`4-stage funnel for ${lead.businessName}. JSON array.`));
+  const json = await executeIntelligenceTask(`Architect a sales funnel for ${lead.businessName}. Return VALID JSON array.`);
+  return safeJsonParse<any[]>(json, []);
 };
 
 export const architectPitchDeck = async (lead: Lead) => {
-    return JSON.parse(await executeIntelligenceTask(`Slides for ${lead.businessName}. JSON.`));
+  const json = await executeIntelligenceTask(`Architect a 5-slide pitch deck for ${lead.businessName}. Return VALID JSON.`);
+  return safeJsonParse<any>(json, {});
 };
 
-// Fix: Added generatePlaybookStrategy using @google/genai SDK
-export const generatePlaybookStrategy = async (niche: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Develop master playbook strategy for ${niche}. Return JSON { "strategyName": "", "steps": [{ "title": "", "tactic": "" }] }`,
-    config: { 
-      responseMimeType: 'application/json',
-      systemInstruction: "You are a master business strategist. Output only valid JSON."
-    }
-  });
-  const text = response.text || "{}";
-  deductCost('gemini-3-flash-preview', text.length);
-  return JSON.parse(text);
+export const generateROIReport = async (ltv: number, leads: number, conv: number) => {
+  return await executeIntelligenceTask(
+    `Generate an AI ROI report using: LTV=${ltv}, Leads=${leads}, ConversionLift=${conv}. Return plain text.`
+  );
 };
 
-// Fix: Added generateProposalDraft using @google/genai SDK
-export const generateProposalDraft = async (lead: Lead) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: `Draft high-ticket proposal for ${lead.businessName}. Focus on ${lead.socialGap}. Return detailed markdown.`,
-    config: {
-      systemInstruction: "You are a high-ticket sales closer. Output professional markdown."
-    }
-  });
-  const text = response.text || "";
-  deductCost('gemini-3-pro-preview', text.length);
-  return text;
+export const generateAgencyIdentity = async (niche: string, region: string) => {
+  const json = await executeIntelligenceTask(`Generate agency identity for ${niche} in ${region}. Return VALID JSON.`);
+  return safeJsonParse<any>(json, {});
 };
 
-export const generateVideoPayload = async (prompt: string, leadId?: string, startImg?: string, lastFr?: string, config?: any) => {
-    const res = await fetch(`${PROXY_BASE}/kie/video`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, leadId, startImg, lastFr, config })
-    });
-    const data = await res.json();
-    return data.url || data.taskId; 
+export const testModelPerformance = async (model: string, prompt: string) => {
+  return await loggedGenerateContent({ module: 'TEST', model, contents: prompt });
 };
 
-export const generateAudioPitch = async (text: string, voice: string, leadId?: string) => {
-    const res = await fetch(`${PROXY_BASE}/kie/audio`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice, leadId })
-    });
-    const data = await res.json();
-    if (data.url) saveAsset('AUDIO', `Voice: ${text.slice(0,15)}`, data.url, 'SONIC_STUDIO', leadId);
-    return data.url || "";
+export const generateMotionLabConcept = async (lead: Lead) => {
+  const json = await executeIntelligenceTask(`Create a storyboard concept for ${lead.businessName}. Return VALID JSON.`);
+  return safeJsonParse<any>(json, {});
 };
 
-export const generateVisual = async (prompt: string, lead: Lead, base64Image?: string): Promise<string | undefined> => {
-    const res = await fetch(`${PROXY_BASE}/kie/image`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, base64Image, leadId: lead.id })
-    });
-    const data = await res.json();
-    if (data.url) saveAsset('IMAGE', prompt.slice(0,20), data.url, 'VISUAL_STUDIO', lead.id);
-    return data.url;
+export const generateFlashSparks = async (lead: Lead) => {
+  const json = await executeIntelligenceTask(
+    `Generate 6 viral sparks for ${lead.businessName}. Return VALID JSON array of ideas.`
+  );
+  return safeJsonParse<any[]>(json, []);
 };
 
-export const analyzeVisual = async (data: string, mimeType: string, prompt: string) => {
-    return await openRouterChat(`Analyze image (${mimeType}): ${prompt}. Data: ${data.slice(0, 50)}...`);
+export const simulateSandbox = async (lead: Lead, ltv: number, volume: number) => {
+  return await executeIntelligenceTask(
+    `Simulate business growth for ${lead.businessName}. LTV=${ltv}, Volume=${volume}. Return plain text.`
+  );
 };
 
-export const queryRealtimeAgent = async (prompt: string) => {
-    const text = await openRouterChat(`Search grounded query: ${prompt}`);
-    return { text, sources: [] };
+export const critiqueVideoPresence = async (lead: Lead) => {
+  return await executeIntelligenceTask(`Critique the video presence of ${lead.businessName}. Return plain text.`);
 };
 
-export const fetchBenchmarkData = (lead: Lead) => fetchLiveIntel(lead, 'BENCHMARK');
-export const generateLyrics = (lead: Lead, p: string, s: string) => openRouterChat(`Lyrics for ${lead.businessName}, ${p}, ${s}`);
-export const generateSonicPrompt = (lead: Lead) => openRouterChat(`Music prompt for ${lead.businessName}`);
-export const crawlTheaterSignals = async (r: string, s: string): Promise<Lead[]> => JSON.parse(await executeIntelligenceTask(`Signals in ${r}: ${s}. JSON.`));
-export const identifySubRegions = async (t: string): Promise<string[]> => JSON.parse(await executeIntelligenceTask(`Regions in ${t}. JSON array.`));
-export const analyzeLedger = async (ls: Lead[]) => JSON.parse(await executeIntelligenceTask(`Risk/Opp analysis of ${ls.length} leads. JSON.`));
-export const enhanceVideoPrompt = (p: string) => openRouterChat(`Enhance: ${p}`);
-export const generateMockup = (n: string, ni: string, id?: string) => generateVisual(`Mockup for ${n}, ${ni}`, { id } as Lead);
-export const performFactCheck = async (l: Lead, c: string) => JSON.parse(await executeIntelligenceTask(`Fact check ${c} for ${l.businessName}. JSON.`));
-export const synthesizeProduct = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Product offer for ${l.businessName}. JSON.`));
-export const generatePitch = (l: Lead) => openRouterChat(`Elevator pitch for ${l.businessName}`);
-export const generateAgencyIdentity = async (n: string, r: string) => JSON.parse(await executeIntelligenceTask(`Identity for ${n} in ${r}. JSON.`));
-export const testModelPerformance = (m: string, p: string) => openRouterChat(`Performance test ${m}: ${p}`);
-export const generateMotionLabConcept = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Storyboard for ${l.businessName}. JSON.`));
-export const generateFlashSparks = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Hooks for ${l.businessName}. JSON array.`));
-export const simulateSandbox = (l: Lead, ltv: number, v: number) => openRouterChat(`Growth simulation for ${l.businessName}, LTV ${ltv}, Vol ${v}`);
-export const critiqueVideoPresence = (l: Lead) => openRouterChat(`Critique video for ${l.businessName}`);
-export const translateTactical = (t: string, l: string) => openRouterChat(`Translate to ${l}: ${t}`);
-export const generateNurtureDialogue = async (l: Lead, s: string) => JSON.parse(await executeIntelligenceTask(`Dialogue for ${l.businessName}, ${s}. JSON.`));
-export const generateAffiliateProgram = async (n: string) => JSON.parse(await executeIntelligenceTask(`Affiliate program for ${n}. JSON.`));
-export const generateTaskMatrix = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Tasks for ${l.businessName}. JSON.`));
-export const fetchViralPulseData = async (n: string) => JSON.parse(await executeIntelligenceTask(`Trends for ${n}. JSON.`));
-export const fetchTokenStats = async () => ({ recentOps: [] });
-export const synthesizeArticle = (s: string, m: string) => openRouterChat(`Synthesize ${s} in mode ${m}`);
-export const analyzeVideoUrl = (u: string, p: string, id?: string) => openRouterChat(`Audit video ${u}: ${p}`);
-export const enhanceStrategicPrompt = (p: string) => openRouterChat(`Optimize strategy: ${p}`);
-export const generateROIReport = (ltv: number, l: number, c: number) => openRouterChat(`ROI: LTV ${ltv}, Leads ${l}, Conv ${c}`);
-export const extractBrandDNA = async (l: Partial<Lead>, u: string): Promise<BrandIdentity> => JSON.parse(await executeIntelligenceTask(`Brand DNA from ${u}. JSON.`));
+export const translateTactical = async (text: string, lang: string) => {
+  return await executeIntelligenceTask(`Translate this into ${lang} with tactical tone: ${text}. Return plain text.`);
+};
+
+export const generateTaskMatrix = async (lead: Lead) => {
+  const json = await executeIntelligenceTask(
+    `Generate a task checklist for ${lead.businessName}. Return VALID JSON array of tasks.`
+  );
+  return safeJsonParse<any[]>(json, []);
+};
+
+export const fetchViralPulseData = async (niche: string) => {
+  const json = await executeIntelligenceTask(
+    `Identify 4 viral trends for ${niche}. Return VALID JSON array of trends with brief notes.`
+  );
+  return safeJsonParse<any[]>(json, []);
+};
+
+export const queryRealtimeAgent = async (query: string) => {
+  const text = await executeIntelligenceTask(`Answer: ${query}. Return plain text plus any source hints if known.`);
+  return { text, sources: [] as any[] };
+};
+
+export const fetchTokenStats = async () => {
+  return {
+    recentOps: [
+      { op: 'LEAD_RECON', id: '0x88FF', cost: 1200 },
+      { op: 'VIDEO_SYNTH', id: '0x12A4', cost: 45000 }
+    ]
+  };
+};
+
+export const synthesizeArticle = async (source: string, mode: string) => {
+  return await executeIntelligenceTask(`Synthesize this article into mode=${mode}: ${source}. Return plain text.`);
+};
+
+export const analyzeVideoUrl = async (url: string, prompt: string, _leadId?: string) => {
+  return await executeIntelligenceTask(`Analyze video URL: ${url}. Mission: ${prompt}. Return plain text.`);
+};
+
+export const enhanceStrategicPrompt = async (prompt: string) => {
+  return await executeIntelligenceTask(`Enhance strategic prompt: ${prompt}. Return plain text.`);
+};
+
+export const enhanceVideoPrompt = async (prompt: string) => {
+  return await executeIntelligenceTask(`Enhance this video prompt for cinematic 4K: ${prompt}. Return plain text.`);
+};
+
+// -------------------- Media stubs (kept for UI compatibility) --------------------
+// You already use KIE Suno via services/kieSunoService.ts.
+// These stay as non-breaking placeholders until you wire more KIE endpoints.
+
+export const generateVisual = async (_prompt: string, _lead: Lead, _base64Image?: string) => {
+  return null as any;
+};
+
+export const analyzeVisual = async (_base64: string, _mimeType: string, prompt: string) => {
+  return await executeIntelligenceTask(`Visual analysis task: ${prompt}. Return plain text.`);
+};
+
+export const generateMockup = async (businessName: string, niche: string, _leadId?: string) => {
+  const prompt = `Hyper-realistic 4K mockup for ${businessName} in ${niche}.`;
+  await executeIntelligenceTask(`Create an image direction prompt for: ${prompt}. Return plain text prompt only.`);
+  return null as any;
+};
+
+export const generateVideoPayload = async (
+  prompt: string,
+  leadId?: string,
+  _startImageBase64?: string,
+  _endImageBase64?: string,
+  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p' },
+  _referenceImages: string[] = [],
+  _inputVideoBase64?: string
+) => {
+  const payload = { provider: 'KIE', prompt, leadId, config };
+  saveAsset('TEXT', 'Video Payload', JSON.stringify(payload, null, 2), 'VIDEO_STUDIO', leadId);
+  return null as any;
+};
+
+export const generateAudioPitch = async (_text: string, _voiceName: string = 'Kore', _leadId?: string) => {
+  return null as any;
+};
+
+export const generateLyrics = async (lead: Lead, theme: string, type: string) => {
+  return await executeIntelligenceTask(
+    `Write ${type} lyrics for ${lead.businessName}. Theme: ${theme}. Return plain text only.`
+  );
+};
+
+export const generateSonicPrompt = async (lead: Lead) => {
+  return await executeIntelligenceTask(
+    `Generate a detailed music generation prompt for ${lead.businessName}'s brand identity. Return ONLY the prompt string.`
+  );
+};
+
+export const performFactCheck = async (_lead: Lead, claim: string) => {
+  const text = await executeIntelligenceTask(`Fact-check this claim: "${claim}". Return plain text with reasoning.`);
+  return { status: 'Review', evidence: text, sources: [] as any[] };
+};
+
+export const extractBrandDNA = async (_lead: Partial<Lead>, websiteUrl: string): Promise<BrandIdentity> => {
+  const json = await executeIntelligenceTask(
+    `Research ${websiteUrl} and extract brand DNA. Return VALID JSON: { "colors": ["#hex"], "fontPairing": "", "archetype": "", "visualTone": "", "extractedImages": ["url"] }`
+  );
+  return safeJsonParse<BrandIdentity>(json, {} as BrandIdentity);
+};
