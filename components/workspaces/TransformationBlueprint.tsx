@@ -151,7 +151,7 @@ export const TransformationBlueprint: React.FC<TransformationBlueprintProps> = (
       <div className="bg-[#0b1021] border border-slate-800 rounded-[84px] p-24 text-center space-y-12 shadow-2xl relative overflow-hidden">
          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-2 bg-gradient-to-r from-emerald-500 via-indigo-500 to-emerald-500"></div>
          <div className="space-y-6 relative z-10">
-            <h2 className="text-6xl font-black italic text-white uppercase tracking-tighter leading-none">
+            <h2 className="text-5xl font-black italic text-white uppercase tracking-tighter leading-none">
               READY TO <span className="text-emerald-500">REVAMP?</span>
             </h2>
             <p className="text-xl text-slate-400 font-medium max-w-2xl mx-auto italic font-serif">

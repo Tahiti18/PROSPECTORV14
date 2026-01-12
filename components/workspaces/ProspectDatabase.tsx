@@ -105,10 +105,10 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
   return (
     <div className="space-y-6 py-6 max-w-[1600px] mx-auto relative px-6 pb-40 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
-        <div>
-          <h3 className="text-2xl font-bold text-white uppercase tracking-tight leading-none drop-shadow-2xl">
-            PROSPECT <span className="text-emerald-600">LEDGER</span>
-          </h3>
+        <div className="space-y-2">
+          <h1 className="text-5xl font-black uppercase tracking-tighter text-white leading-none">
+            PROSPECT <span className="text-emerald-500">LEDGER</span>
+          </h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">RECORDS: {leads.length}</p>
         </div>
         <div className="flex gap-4">
@@ -123,7 +123,7 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
              </select>
           </div>
           {selectedIds.size > 0 ? (
-             <button onClick={() => setShowHyperLaunch(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-2">
+             <button onClick={() => setShowHyperLaunch(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-2 transition-all active:scale-95">
                LAUNCH CAMPAIGNS ({selectedIds.size})
              </button>
           ) : (
@@ -142,8 +142,8 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
                 <th className="px-6 py-4 w-12 text-center">
                     <input type="checkbox" checked={selectedIds.size === sortedLeads.length && sortedLeads.length > 0} onChange={toggleSelectAll} className="accent-emerald-500 w-4 h-4 cursor-pointer" />
                 </th>
-                <th onClick={() => handleSort('rank')} className="cursor-pointer px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white">RANK</th>
-                <th onClick={() => handleSort('businessName')} className="cursor-pointer px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white">BUSINESS IDENTITY</th>
+                <th onClick={() => handleSort('rank')} className="cursor-pointer px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-colors">RANK</th>
+                <th onClick={() => handleSort('businessName')} className="cursor-pointer px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white transition-colors">BUSINESS IDENTITY</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">STATUS</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">GROWTH OPPORTUNITY</th>
                 <th onClick={() => handleSort('leadScore')} className="cursor-pointer px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white text-right">SCORE</th>
@@ -158,10 +158,10 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
                     <td className="px-6 py-4 text-center">
                         <input type="checkbox" checked={selectedIds.has(lead.id)} onChange={() => toggleSelect(lead.id)} className="accent-emerald-500 w-4 h-4 cursor-pointer" />
                     </td>
-                    <td className="px-6 py-4"><span className="text-lg font-black text-slate-600 italic group-hover:text-emerald-500">#{lead.rank}</span></td>
+                    <td className="px-6 py-4"><span className="text-lg font-black text-slate-600 italic group-hover:text-emerald-500 transition-colors">#{lead.rank}</span></td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span onClick={() => onInspect(lead.id)} className="text-sm font-bold text-white uppercase tracking-tight group-hover:text-emerald-400 cursor-pointer">{lead.businessName}</span>
+                        <span onClick={() => onInspect(lead.id)} className="text-sm font-bold text-white uppercase tracking-tight group-hover:text-emerald-400 transition-colors cursor-pointer">{lead.businessName}</span>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{lead.city}</span>
                         </div>

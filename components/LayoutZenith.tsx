@@ -41,9 +41,9 @@ const ModeIcon = ({ id, active }: { id: MainMode, active: boolean }) => {
 }
 
 const SubModuleIcon = ({ id, active }: { id: SubModule; active: boolean }) => {
-  const cn = active ? "text-emerald-400" : "text-slate-500 group-hover:text-emerald-400/80";
+  const cn = active ? "text-emerald-400" : "text-slate-500 group-hover:text-emerald-300 transition-colors";
   const p = (path: string) => (
-    <svg className={`w-5 h-5 transition-all duration-300 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={`w-5 h-5 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d={path} />
     </svg>
   );
@@ -52,21 +52,23 @@ const SubModuleIcon = ({ id, active }: { id: SubModule; active: boolean }) => {
     case 'EXECUTIVE_DASHBOARD': return p("M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z");
     case 'TRANSFORMATION_BLUEPRINT': return p("M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5");
     case 'USER_GUIDE': return p("M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zm20 0h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z");
-    case 'MARKET_DISCOVERY': return p("M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z");
-    case 'AUTOMATED_SEARCH': return p("M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7");
+    case 'MARKET_DISCOVERY': return p("M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM12 8v4M12 16h.01");
+    case 'AUTOMATED_SEARCH': return p("M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z");
     case 'PROSPECT_DATABASE': return p("M4 7V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3M4 7h16M4 7v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7M9 11h6M9 15h6");
     case 'STRATEGY_CENTER': return p("M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5");
     case 'PIPELINE': return p("M4 6h16M4 12h16M4 18h16");
     case 'VISUAL_STUDIO': return p("M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z");
-    case 'BRAND_DNA': return p("M4.5 16.5c-1.5 1.26-2 3.5-2 3.5s2.24-.5 3.5-2L16.5 7.5L13.5 4.5zM15 6l3 3");
+    case 'BRAND_DNA': return p("M2 12h20M2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6");
     case 'MOCKUPS_4K': return p("M2 12h20M2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6");
     case 'VIDEO_PRODUCTION': return p("M23 7l-7 5 7 5V7zM1 5h15v14H1z");
     case 'SONIC_STUDIO': return p("M9 18V5l12-2v13M9 10a3 3 0 1 0 0 6 3 3 0 0 0 0-6z");
     case 'CAMPAIGN_ORCHESTRATOR': return p("M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z");
-    case 'PROPOSALS': return p("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 15h6M9 11h6");
+    case 'PROPOSALS': return p("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6");
     case 'AGENCY_PLAYBOOK': return p("M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 4.5z");
     case 'BILLING': return p("M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6");
     case 'SETTINGS': return p("M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z");
+    case 'NEXUS_GRAPH': return p("M5 12h14M12 5l7 7-7 7");
+    case 'TIMELINE': return p("M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z");
     default: return p("M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z");
   }
 };
@@ -265,7 +267,7 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                                  onClick={() => setActiveModule(mod.id)}
                                  className={`w-full rounded-xl transition-all flex items-center group ${isSidebarExpanded ? 'px-3 py-2.5 justify-start gap-3' : 'p-3 justify-center'} ${isActive ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
                               >
-                                 {/* Only show icon when collapsed */}
+                                 {/* Icons only visible when collapsed */}
                                  {!isSidebarExpanded ? (
                                    <SubModuleIcon id={mod.id} active={isActive} />
                                  ) : (
