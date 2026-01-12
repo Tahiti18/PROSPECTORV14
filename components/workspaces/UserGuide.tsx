@@ -19,73 +19,44 @@ interface ModuleDetail {
 
 const MODULE_REGISTRY: ModuleDetail[] = [
   // --- RESEARCH ZONE ---
-  { id: 'EXECUTIVE_DASHBOARD', mode: 'RESEARCH', title: 'EXECUTIVE DASHBOARD', mission: 'The operational nerve center providing high-level visibility across agency activities.', input: 'Market Ledger, System Health', output: 'Unified Analytics View', useCase: 'Daily agency oversight.', tags: ['Core', 'Management'] },
-  { id: 'TRANSFORMATION_BLUEPRINT', mode: 'RESEARCH', title: 'TRANSFORMATION BLUEPRINT', mission: 'The comprehensive strategic guide to full-scale marketing capabilities.', input: 'Internal Capabilities', output: 'Value Roadmap', useCase: 'High-level agency strategy.', tags: ['Core', 'Sales'] },
-  { id: 'USER_GUIDE', mode: 'RESEARCH', title: 'USER GUIDE', mission: 'The comprehensive architectural manual for the entire OS.', input: 'Internal Registry', output: 'Knowledge Base', useCase: 'System mastery and onboarding.', tags: ['Manual', 'Reference'] },
-  { id: 'MARKET_DISCOVERY', mode: 'RESEARCH', title: 'MARKET DISCOVERY', mission: 'Identifies high-value prospects within specific geographic markets.', input: 'Location, Industry Focus', output: 'Verified Lead Database', useCase: 'Regional business acquisition.', tags: ['Research', 'Leads'] },
-  { id: 'AUTOMATED_SEARCH', mode: 'RESEARCH', title: 'AUTOMATED SEARCH', mission: 'Autonomous scanning for growth signals and brand vulnerabilities.', input: 'Market Search Parameters', output: 'Real-time Opportunity Feed', useCase: 'Rapid pipeline development.', tags: ['Automation', 'Signals'] },
-  { id: 'PROSPECT_DATABASE', mode: 'RESEARCH', title: 'PROSPECT LEDGER', mission: 'The master database of all identified potential clients.', input: 'Discovery Data', output: 'Categorized Lead Records', useCase: 'CRM and list management.', tags: ['CRM', 'Data'] },
-  { id: 'PIPELINE', mode: 'RESEARCH', title: 'GROWTH PIPELINE', mission: 'Visualizes the engagement stage for every active prospect.', input: 'Outreach History', output: 'Kanban Stage Matrix', useCase: 'Tracking deal progression.', tags: ['Sales', 'Tracking'] },
-  { id: 'STRATEGY_CENTER', mode: 'RESEARCH', title: 'STRATEGY HUB', mission: 'Deep-dive analysis of individual client transformation opportunities.', input: 'Prospect Identity', output: 'Transformation Roadmap', useCase: 'Personalized sales engineering.', tags: ['Strategy', 'Audit'] },
-  { id: 'STRATEGIC_REASONING', mode: 'RESEARCH', title: 'DEEP LOGIC LAB', mission: 'Advanced reasoning for complex business hurdles.', input: 'Business Context', output: 'Logical Solution Path', useCase: 'Solving specific client roadblocks.', tags: ['Reasoning', 'Logic'] },
-  { id: 'WORKSPACE', mode: 'RESEARCH', title: 'GEMINI WORKSPACE', mission: 'A sandbox for direct interaction with neural models.', input: 'Free-form Text', output: 'Contextual Insights', useCase: 'Ad-hoc research and drafting.', tags: ['Sandbox', 'AI'] },
-  { id: 'MARKET_TRENDS', mode: 'RESEARCH', title: 'TREND MONITOR', mission: 'Real-time monitoring of industry and cultural signals.', input: 'Web Grounding', output: 'Market Insight Reports', useCase: 'Aligning outreach with news.', tags: ['Viral', 'Grounding'] },
-  { id: 'VISUAL_ANALYSIS', mode: 'RESEARCH', title: 'VISION INTEL', mission: 'Neural extraction of data from website assets.', input: 'Image/Screenshot', output: 'Design/Sentiment Matrix', useCase: 'Auditing brand authority.', tags: ['Vision', 'Research'] },
-  { id: 'VIDEO_INSIGHTS', mode: 'RESEARCH', title: 'VIDEO ANALYSIS', mission: 'Deep temporal understanding of media content.', input: 'Video URL', output: 'Strategic Deconstruction', useCase: 'Analyzing client media assets.', tags: ['Video', 'Intel'] },
-  { id: 'CONTENT_ANALYSIS', mode: 'RESEARCH', title: 'CONTENT ANALYSIS', mission: 'Hyper-speed synthesis of long-form articles.', input: 'Source Text/URL', output: 'Executive Summary', useCase: 'Rapid competitive research.', tags: ['Text', 'Synthesis'] },
-  { id: 'BENCHMARK', mode: 'RESEARCH', title: 'REVERSE ENGINEER', mission: 'Deconstructs competitor digital infrastructure.', input: 'Competitor URL', output: 'Stack/Gap Assessment', useCase: 'Identifying business vulnerabilities.', tags: ['Analysis', 'Tech'] },
-  { id: 'ANALYTICS', mode: 'RESEARCH', title: 'ANALYTICS CORE', mission: 'Internal performance metrics for agency operations.', input: 'System Logs', output: 'Operations Charts', useCase: 'Monitoring team efficiency.', tags: ['Stats', 'Performance'] },
-  { id: 'ANALYTICS_HUB', mode: 'RESEARCH', title: 'MARKET INTELLIGENCE', mission: 'Aggregate data insights across entire markets.', input: 'Ledger Data', output: 'Macro Opportunity Map', useCase: 'Evaluating market sectors.', tags: ['Macro', 'Data'] },
-  { id: 'HEATMAP', mode: 'RESEARCH', title: 'OPPORTUNITY HEATMAP', mission: 'Visual density mapping of high-value targets.', input: 'Lead Score/Geo', output: 'Interactive Map', useCase: 'Prioritizing outreach zones.', tags: ['Visual', 'Geo'] },
-  { id: 'PROMPT_INTERFACE', mode: 'RESEARCH', title: 'PROMPT SECURED', mission: 'Professional interface for secure prompt engineering.', input: 'Model Parameters', output: 'Optimized Responses', useCase: 'Refining agency system behavior.', tags: ['Secure', 'Chat'] },
-  { id: 'MODEL_BENCH', mode: 'RESEARCH', title: 'MODEL BENCHMARK', mission: 'Compares performance across various neural engines.', input: 'Test Prompts', output: 'Fidelity Scorecard', useCase: 'Optimizing resource selection.', tags: ['Testing', 'Quality'] },
-  { id: 'FACT_CHECK', mode: 'RESEARCH', title: 'FACT CHECKER', mission: 'Grounded verification of business claims.', input: 'Specific Claim', output: 'Verified/Disputed Verdict', useCase: 'Vetting prospect legitimacy.', tags: ['Trust', 'Search'] },
-  { id: 'TRANSLATOR', mode: 'RESEARCH', title: 'TACTICAL TRANSLATOR', mission: 'Localized outreach for international markets.', input: 'Source Copy', output: 'Localized Tonal Match', useCase: 'Entering foreign markets.', tags: ['Language', 'Global'] },
+  { id: 'EXECUTIVE_DASHBOARD', mode: 'RESEARCH', title: 'Executive Dashboard', mission: 'The central operational nerve center. It provides a real-time, high-level aggregate view of all active prospects, system health metrics, and automated workflow status across your entire agency theater.', input: 'Market Ledger, System Health, Automation Logs', output: 'Unified Analytics & Live Feed', useCase: 'Continuous operational monitoring and situational awareness.', tags: ['Core', 'Management'] },
+  { id: 'TRANSFORMATION_BLUEPRINT', mode: 'RESEARCH', title: 'Transformation Blueprint', mission: 'A strategic visualization of the agency\'s full capability matrix. It outlines the specific technical and creative vectors used to transition businesses from digital obscurity to market authority.', input: 'Internal Capability Logic', output: 'Value Roadmap', useCase: 'Establishing high-level strategy for agency-client alignment.', tags: ['Core', 'Sales'] },
+  { id: 'USER_GUIDE', mode: 'RESEARCH', title: 'User Guide', mission: 'The master documentation repository. This module contains exhaustive architectural details and instructions for every tool integrated into the Prospector OS ecosystem.', input: 'System Registry Documentation', output: 'Knowledge Base', useCase: 'System mastery, team onboarding, and feature discovery.', tags: ['Manual', 'Reference'] },
+  { id: 'MARKET_DISCOVERY', mode: 'RESEARCH', title: 'Market Discovery', mission: 'A regional scanning engine designed to locate high-value prospects within specific geographic sectors or industries by cross-referencing commercial signals and public records.', input: 'Location, Industry Keywords', output: 'Verified Lead Database', useCase: 'Aggressive regional business acquisition and niche expansion.', tags: ['Research', 'Leads'] },
+  { id: 'AUTOMATED_SEARCH', mode: 'RESEARCH', title: 'Automated Search', mission: 'An autonomous agent-driven engine that continuously crawls the web for specific brand vulnerabilities, such as inactive social feeds or outdated digital infrastructure.', input: 'Vulnerability Directives & Signals', output: 'Real-time Opportunity Feed', useCase: 'Building a passive, high-velocity sales pipeline.', tags: ['Automation', 'Signals'] },
+  { id: 'PROSPECT_DATABASE', mode: 'RESEARCH', title: 'Prospect Ledger', mission: 'The master command center for your contact data. It provides advanced sorting, filtering, and mass-engagement controls for every business identified by the discovery modules.', input: 'Discovery Data, Manual Imports', output: 'Structured Lead Records', useCase: 'Strategic CRM management and database synchronization.', tags: ['CRM', 'Data'] },
+  { id: 'PIPELINE', mode: 'RESEARCH', title: 'Growth Pipeline', mission: 'A visual Kanban-style matrix tracking the progression of every prospect from initial reconnaissance through negotiation and final deal closure.', input: 'Engagement History & Status', output: 'Stage-Based Deal Matrix', useCase: 'Managing the lifecycle of high-ticket sales opportunities.', tags: ['Sales', 'Tracking'] },
+  { id: 'STRATEGY_CENTER', mode: 'RESEARCH', title: 'Strategy Hub', mission: 'The primary workspace for individual lead analysis. It consolidates vulnerability audits and transformation opportunities into a single, actionable strategic interface.', input: 'Prospect Identity & Digital Footprint', output: 'Transformation Blueprint', useCase: 'Deep-dive preparation for high-stakes sales calls.', tags: ['Strategy', 'Audit'] },
+  { id: 'STRATEGIC_REASONING', mode: 'RESEARCH', title: 'Deep Logic Lab', mission: 'An advanced cognitive engine optimized for solving complex strategic hurdles, objection handling, and architecting unique competitive advantages.', input: 'Business Challenges & Context', output: 'Structured Logical Solutions', useCase: 'Overcoming specific client roadblocks during closing.', tags: ['Reasoning', 'Logic'] },
+  { id: 'WORKSPACE', mode: 'RESEARCH', title: 'Gemini Workspace', mission: 'A secure, unrestricted portal for direct interaction with neural models. Ideal for ad-hoc research, copy brainstorming, and technical documentation drafting.', input: 'Free-form Text & Directives', output: 'Contextual Intelligence', useCase: 'General research and high-speed asset drafting.', tags: ['Sandbox', 'AI'] },
+  { id: 'MARKET_TRENDS', mode: 'RESEARCH', title: 'Trend Monitor', mission: 'A live intelligence stream that monitors global news and cultural shifts to ensure your outreach messaging remains grounded and relevant to current events.', input: 'Web Grounding & Industry Keywords', output: 'Market Insight Reports', useCase: 'Aligning marketing angles with real-time cultural signals.', tags: ['Viral', 'Grounding'] },
+  { id: 'VISUAL_ANALYSIS', mode: 'RESEARCH', title: 'Vision Intel', mission: 'A multi-modal audit engine that analyzes website screenshots to grade design quality, brand authority, and visual conversion effectiveness.', input: 'Static Image / Site Screenshot', output: 'Design Grade & Sentiment Analysis', useCase: 'Identifying aesthetic deficits to sell creative revamps.', tags: ['Vision', 'Research'] },
+  { id: 'VIDEO_INSIGHTS', mode: 'RESEARCH', title: 'Media Insights', mission: 'Deep temporal analysis of video content to deconstruct pacing, narrative structure, and hooks. It benchmarks content against industry-leading performance standards.', input: 'Video URL (YouTube/Vimeo)', output: 'Structural Deconstruction', useCase: 'Refining content strategy and identifying media gaps.', tags: ['Video', 'Intel'] },
+  { id: 'CONTENT_ANALYSIS', mode: 'RESEARCH', title: 'Content Analysis', mission: 'Hyper-speed synthesis of long-form articles, whitepapers, and competitor documentation into concise executive summaries and strategic action items.', input: 'Source Text or Document URL', output: 'Executive Synthesis', useCase: 'Rapid gathering of competitive and industrial intelligence.', tags: ['Text', 'Synthesis'] },
+  { id: 'BENCHMARK', mode: 'RESEARCH', title: 'Reverse Engineer', mission: 'A technical deconstruction tool that analyzes a competitor\'s tech stack, design system, and business model to highlight exploitable infrastructure gaps.', input: 'Competitor Digital Node', output: 'Comparative Gap Analysis', useCase: 'Competitive positioning and market disruption strategy.', tags: ['Analysis', 'Tech'] },
+  { id: 'ANALYTICS_HUB', mode: 'RESEARCH', title: 'Market Intelligence', mission: 'Macro-level data evaluation across entire industry sectors to identify emerging patterns, high-growth niches, and geographic opportunity spikes.', input: 'Aggregated Ledger Data', output: 'Sector-Wide Opportunity Map', useCase: 'Large-scale strategic market evaluation.', tags: ['Macro', 'Data'] },
 
   // --- DESIGN ZONE ---
-  { id: 'VISUAL_STUDIO', mode: 'DESIGN', title: 'CREATIVE STUDIO', mission: 'Generates high-fidelity brand imagery and photography.', input: 'Style Guidelines', output: '4K Commercial Renders', useCase: 'High-end visual branding.', tags: ['Creative', 'Assets'] },
-  { id: 'BRAND_DNA', mode: 'DESIGN', title: 'BRAND DNA', mission: 'Extracts core identity markers from existing sites.', input: 'Prospect URL', output: 'Identity Matrix', useCase: 'Establishing visual alignment.', tags: ['Extraction', 'Branding'] },
-  { id: 'MOCKUPS_4K', mode: 'DESIGN', title: 'MOCKUP STUDIO', mission: 'Creates photorealistic product and ad visualizations.', input: 'Asset Pack', output: 'Studio Plate Renders', useCase: 'Visualizing transformation.', tags: ['Product', '3D'] },
-  { id: 'PRODUCT_SYNTHESIS', mode: 'DESIGN', title: 'OFFER ARCHITECTURE', mission: 'Designs high-ticket service bundles and product offers.', input: 'Niche Data', output: 'Value Stack Diagram', useCase: 'Refining agency offers.', tags: ['Offer', 'Design'] },
-  { id: 'CONTENT_IDEATION', mode: 'DESIGN', title: 'CONTENT IDEATION', mission: 'Sparks creative hooks and social concepts.', input: 'Strategy Brief', output: 'Idea Grid', useCase: 'Editorial planning.', tags: ['Viral', 'Ideas'] },
-  { id: 'ASSET_LIBRARY', mode: 'DESIGN', title: 'MEDIA VAULT', mission: 'Persistent repository for all generated media assets.', input: 'Project Outputs', output: 'Organized Assets', useCase: 'Media management.', tags: ['Storage', 'Management'] },
+  { id: 'VISUAL_STUDIO', mode: 'DESIGN', title: 'Creative Studio', mission: 'A high-end asset generation engine producing professional brand imagery, commercial photography, and ad creatives from pure text descriptions.', input: 'Aesthetic Directives & Brand Style', output: '4K Commercial Renders', useCase: 'Producing unique, high-fidelity brand assets for ads.', tags: ['Creative', 'Assets'] },
+  { id: 'BRAND_DNA', mode: 'DESIGN', title: 'Brand DNA', mission: 'Instantly extracts core identity markers—including colors, typography, and archetype—from any URL to ensure total visual consistency in new assets.', input: 'Target Website URL', output: 'Structured Identity Matrix', useCase: 'Ensuring new assets match a client\'s existing brand.', tags: ['Extraction', 'Branding'] },
+  { id: 'MOCKUPS_4K', mode: 'DESIGN', title: 'Mockup Studio', mission: 'A commercial visualization forge that creates photorealistic 4K renders of products or services in premium environment settings.', input: 'Asset Plates & Directives', output: 'Premium Studio Renders', useCase: 'Providing visual proof of brand transformation.', tags: ['Product', '3D'] },
+  { id: 'PRODUCT_SYNTHESIS', mode: 'DESIGN', title: 'Offer Architecture', mission: 'Synthesizes market data and client capabilities into high-ticket service bundles, defining price points and value-stack hierarchies.', input: 'Service Data & Niche Context', output: 'Structured Value Diagram', useCase: 'Re-engineering low-value offers into high-ticket sales.', tags: ['Offer', 'Design'] },
+  { id: 'CONTENT_IDEATION', mode: 'DESIGN', title: 'Content Ideation', mission: 'A high-volume brainstorming engine that generates hundreds of creative hooks, viral themes, and editorial concepts for multi-platform social media.', input: 'Strategy Brief & Niche Data', output: 'Categorized Idea Matrix', useCase: 'Planning comprehensive editorial and social calendars.', tags: ['Viral', 'Ideas'] },
+  { id: 'ASSET_LIBRARY', mode: 'DESIGN', title: 'Media Vault', mission: 'The persistent, locally-synchronized repository for every piece of content—images, videos, and scripts—created within the Prospector OS ecosystem.', input: 'Generated Project Assets', output: 'Categorized Media Reservoir', useCase: 'Digital asset management and archival.', tags: ['Storage', 'Management'] },
 
   // --- MEDIA ZONE ---
-  { id: 'VIDEO_PRODUCTION', mode: 'MEDIA', title: 'VIDEO STUDIO', mission: 'Cinematic synthesis for commercial advertisements.', input: 'Visual Directive', output: 'MP4 Video Payloads', useCase: 'Social media ad campaigns.', tags: ['Motion', 'Veo'] },
-  { id: 'VIDEO_AUDIT', mode: 'MEDIA', title: 'VIDEO AUDIT', mission: 'Critiques existing client video presence.', input: 'YouTube/Vimeo', output: 'Fidelity Audit', useCase: 'Evaluating media quality.', tags: ['Critique', 'Sales'] },
-  { id: 'VIDEO_INSIGHTS', mode: 'MEDIA', title: 'TEMPORAL INSEL', mission: 'Deconstructs media narratives for performance patterns.', input: 'Social Video', output: 'Engagement Breakdown', useCase: 'Content engineering.', tags: ['Temporal', 'Intel'] },
-  { id: 'MOTION_LAB', mode: 'MEDIA', title: 'MOTION LAB', mission: 'Designs dynamic storyboard concepts for animation.', input: 'Script', output: 'Visual Storyboard', useCase: 'Production planning.', tags: ['Storyboard', 'Animation'] },
-  { id: 'SONIC_STUDIO', mode: 'MEDIA', title: 'SONIC STUDIO', mission: 'Neural audio and voice synthesis for branding.', input: 'Script/Genre', output: 'PCM Audio', useCase: 'Commercial voiceover.', tags: ['Audio', 'Suno'] },
-  { id: 'MEETING_NOTES', mode: 'MEDIA', title: 'NOTE SCRIBE', mission: 'Summarizes transcripts into actionable summaries.', input: 'Raw Transcript', output: 'Executive Summary', useCase: 'Post-meeting alignment.', tags: ['Workflow', 'Scribe'] },
+  { id: 'VIDEO_PRODUCTION', mode: 'MEDIA', title: 'Video Studio', mission: 'An ultra-high-resolution cinematic synthesis engine that converts text prompts and reference frames into professional video advertisements.', input: 'Cinematic Narrative & Ref Frames', output: 'High-Fidelity MP4 Payloads', useCase: 'Scalable production of short-form video ads.', tags: ['Motion', 'Veo'] },
+  { id: 'SONIC_STUDIO', mode: 'MEDIA', title: 'Sonic Studio', mission: 'A comprehensive audio engineering lab for generating studio-quality voiceovers, background music, and original brand soundtracks.', input: 'Script, Genre, & Vocal Tones', output: 'PCM Audio / MP3 Files', useCase: 'Adding professional audio to videos and proposals.', tags: ['Audio', 'Suno'] },
+  { id: 'MEETING_NOTES', mode: 'MEDIA', title: 'Note Scribe', mission: 'A high-speed transcription and synthesis engine that converts raw meeting audio or text into executive summaries and actionable mission checklists.', input: 'Raw Meeting Audio or Text', output: 'Executive Scribe Report', useCase: 'Post-meeting synchronization and task tracking.', tags: ['Workflow', 'Scribe'] },
 
   // --- OUTREACH ZONE ---
-  { id: 'CAMPAIGN_ORCHESTRATOR', mode: 'OUTREACH', title: 'CAMPAIGN ARCHITECT', mission: 'End-to-end strategy management and orchestration.', input: 'Lead Dossier', output: 'Deployment Suite', useCase: 'Scaling client success.', tags: ['Sales', 'Automation'] },
-  { id: 'PROPOSALS', mode: 'OUTREACH', title: 'PROPOSAL BUILDER', mission: 'AI-driven high-conversion sales blueprints.', input: 'Value Data', output: 'Magic Link Proposal', useCase: 'Finalizing agreements.', tags: ['Closing', 'Copy'] },
-  { id: 'ROI_CALCULATOR', mode: 'OUTREACH', title: 'VALUE PROJECTOR', mission: 'Financial projection of transformation ROI.', input: 'Business Metrics', output: 'Investment Analysis', useCase: 'Justifying premium fees.', tags: ['Finance', 'Logic'] },
-  { id: 'SEQUENCER', mode: 'OUTREACH', title: 'OUTREACH BUILDER', mission: 'Multi-day, multi-channel engagement flows.', input: 'Strategy', output: 'Sequence Schedule', useCase: 'Engagement automation.', tags: ['Drip', 'Email'] },
-  { id: 'PRESENTATION_BUILDER', mode: 'OUTREACH', title: 'DECK ARCHITECT', mission: 'Architects structural sales pitch deck blueprints.', input: 'Narrative', output: 'Slide Matrix', useCase: 'Sales presentations.', tags: ['Deck', 'Sales'] },
-  { id: 'DEMO_SANDBOX', mode: 'OUTREACH', title: 'DEMO SANDBOX', mission: 'Predictive growth modeling and simulation.', input: 'Variables', output: 'Scenario Forecast', useCase: 'Demonstrating future growth.', tags: ['Simulation', 'Growth'] },
-  { id: 'DRAFTING', mode: 'OUTREACH', title: 'DRAFTING PORTAL', mission: 'Workspace for fine-tuning outbound communications.', input: 'AI Drafts', output: 'Polished Outreach', useCase: 'Human-in-the-loop editing.', tags: ['Editor', 'Copy'] },
-  { id: 'SALES_COACH', mode: 'OUTREACH', title: 'STRATEGY COACH', mission: 'Tactical advice for negotiation and engagement.', input: 'Project Obstacle', output: 'Advisor Directives', useCase: 'Live deal assistance.', tags: ['Coaching', 'Strategy'] },
-  { id: 'AI_CONCIERGE', mode: 'OUTREACH', title: 'VIRTUAL AGENT', mission: 'Autonomous POC for customer engagement.', input: 'Knowledge Base', output: 'Nurture Dialogue', useCase: 'Demonstrating AI services.', tags: ['Agent', 'Demo'] },
-  { id: 'ELEVATOR_PITCH', mode: 'OUTREACH', title: 'PITCH GENERATOR', mission: 'Short-form hooks for rapid engagement.', input: 'Lead Bio', output: '30s Script', useCase: 'Introductory outreach.', tags: ['Hook', 'Intro'] },
-  { id: 'FUNNEL_MAP', mode: 'OUTREACH', title: 'FUNNEL MAPPER', mission: 'Visualizes the conversion geometry for a lead.', input: 'Business Logic', output: 'Funnel Diagram', useCase: 'Conversion path analysis.', tags: ['Map', 'Logic'] },
-
-  // --- ADMIN ZONE ---
-  { id: 'AGENCY_PLAYBOOK', mode: 'ADMIN', title: 'PLAYBOOK', mission: 'Internal guide to agency standard operating procedures.', input: 'SOPs', output: 'Team Guidance', useCase: 'Standardizing delivery.', tags: ['SOP', 'Manual'] },
-  { id: 'BILLING', mode: 'ADMIN', title: 'FINANCIALS', mission: 'Financial control and resource management.', input: 'Usage Data', output: 'Financial Health', useCase: 'Managing budget.', tags: ['Finance', 'Admin'] },
-  { id: 'AFFILIATE', mode: 'ADMIN', title: 'PARTNER PROGRAM', mission: 'Manages growth networks and referral partners.', input: 'Partner Data', output: 'Partner Matrix', useCase: 'Scaling referral channels.', tags: ['Growth', 'Partners'] },
-  { id: 'IDENTITY', mode: 'ADMIN', title: 'AGENCY IDENTITY', mission: 'Configuration of the agency brand profile.', input: 'Agency Mission', output: 'Brand Signature', useCase: 'Workspace personalization.', tags: ['Profile', 'Config'] },
-  { id: 'SYSTEM_CONFIG', mode: 'ADMIN', title: 'CORE CONFIG', mission: 'Core OS parameter and technical adjustments.', input: 'Specs', output: 'System State', useCase: 'Infrastructure setup.', tags: ['Settings', 'Core'] },
-  { id: 'EXPORT_DATA', mode: 'ADMIN', title: 'DATA MANAGEMENT', mission: 'Backup and synchronization of local data nodes.', input: 'Lead Ledger', output: 'JSON Backups', useCase: 'Security and portability.', tags: ['Backup', 'Security'] },
-  { id: 'CALENDAR', mode: 'ADMIN', title: 'SCHEDULE HUB', mission: 'Visualizes project schedule and milestones.', input: 'Sequence Data', output: 'Project Calendar', useCase: 'Timeline management.', tags: ['Time', 'Ops'] },
-  { id: 'ACTIVITY_LOGS', mode: 'ADMIN', title: 'ACTIVITY TRACE', mission: 'Low-level trace of all OS activity.', input: 'Event Stream', output: 'Trace Table', useCase: 'Auditing system usage.', tags: ['Logs', 'Trace'] },
-  { id: 'SETTINGS', mode: 'ADMIN', title: 'GLOBAL SETTINGS', mission: 'Global preferences and API key management.', input: 'Auth Keys', output: 'Ready State', useCase: 'Infrastructure setup.', tags: ['Key', 'Config'] },
-  { id: 'NEXUS_GRAPH', mode: 'ADMIN', title: 'NEXUS GRAPH', mission: 'Relationship mapping across the target database.', input: 'Ledger Data', output: 'Entity Graph', useCase: 'Network effect analysis.', tags: ['Data', 'Map'] },
-  { id: 'TIMELINE', mode: 'ADMIN', title: 'PROJECT TIMELINE', mission: 'Historical view of system operations.', input: 'Log Buffer', output: 'History Feed', useCase: 'Reviewing past activity.', tags: ['History', 'Timeline'] },
-  { id: 'TASK_MANAGER', mode: 'ADMIN', title: 'TASK MANAGER', mission: 'Actionable checklist for team deployment.', input: 'Project Scope', output: 'Task Ledger', useCase: 'Execution tracking.', tags: ['Tasks', 'Checklist'] },
-  { id: 'THEME', mode: 'ADMIN', title: 'INTERFACE THEME', mission: 'UI customization and aesthetic control.', input: 'Visual Prefs', output: 'Visual Style', useCase: 'Personalizing workspace.', tags: ['UI', 'Aesthetic'] },
-  { id: 'USAGE_STATS', mode: 'ADMIN', title: 'RESOURCE STATS', mission: 'Detailed reporting on token and API consumption.', input: 'API Usage', output: 'Resource Report', useCase: 'Monitoring ROI.', tags: ['Cost', 'Compute'] }
+  { id: 'CAMPAIGN_ORCHESTRATOR', mode: 'OUTREACH', title: 'Campaign Architect', mission: 'The master engine for end-to-end campaign deployment. It synchronizes strategy, copy, visuals, and audio into a unified outreach machine.', input: 'Intelligence Dossier & Assets', output: 'Complete Campaign Suite', useCase: 'Launching full-scale agency service packages.', tags: ['Sales', 'Automation'] },
+  { id: 'PROPOSALS', mode: 'OUTREACH', title: 'Proposal Builder', mission: 'Generates high-conversion, interactive sales blueprints delivered via secure "Magic Links," optimized for high-ticket closing scenarios.', input: 'Value Data & Deal Parameters', output: 'Interactive Sales Proposal', useCase: 'Closing complex, high-value agency agreements.', tags: ['Closing', 'Copy'] },
+  { id: 'ROI_CALCULATOR', mode: 'OUTREACH', title: 'Value Projector', mission: 'A logic-based mathematical modeler that quantifies the projected financial impact and revenue lift of your AI transformation services.', input: 'LTV, Lead Volume, & Conv Rates', output: 'Projected ROI Report', useCase: 'Justifying high-ticket service fees to skeptics.', tags: ['Finance', 'Logic'] },
+  { id: 'SEQUENCER', mode: 'OUTREACH', title: 'Outreach Builder', mission: 'Architects multi-day, multi-channel engagement flows designed to maintain continuous presence across Email, LinkedIn, and SMS.', input: 'Core Strategy & Narrative', output: 'Engagement Sequence Schedule', useCase: 'Automating the top-of-funnel outreach process.', tags: ['Drip', 'Email'] },
+  { id: 'AI_CONCIERGE', mode: 'OUTREACH', title: 'Virtual Agent', mission: 'An interactive proof-of-concept for autonomous customer engagement. It demonstrates how an AI agent can handle inquiries and book meetings 24/7.', input: 'Agency/Business Knowledge Base', output: 'Nurture Dialogue Simulation', useCase: 'Demonstrating AI service value in a live environment.', tags: ['Agent', 'Demo'] },
+  { id: 'ELEVATOR_PITCH', mode: 'OUTREACH', title: 'Pitch Generator', mission: 'Crafts high-impact, 30-second introductory scripts designed to rapidly communicate value and capture interest during cold outreach.', input: 'Business Profile & Offer DNA', output: 'Short-Form Value Script', useCase: 'Cold calling and introductory messaging.', tags: ['Hook', 'Intro'] },
+  { id: 'FUNNEL_MAP', mode: 'OUTREACH', title: 'Funnel Mapper', mission: 'Visualizes the conversion geometry and intent journey for a campaign, mapping every step from initial ad to finalized contract.', input: 'Operational Logic & Conversion Goals', output: 'Visual Funnel Flowchart', useCase: 'Analyzing and optimizing conversion pathways.', tags: ['Map', 'Logic'] }
 ];
 
 export const UserGuide: React.FC<UserGuideProps> = ({ onNavigate }) => {
@@ -99,84 +70,121 @@ export const UserGuide: React.FC<UserGuideProps> = ({ onNavigate }) => {
      m.mission.toLowerCase().includes(filter.toLowerCase()))
   );
 
+  const zones: { id: MainMode | 'ALL'; label: string }[] = [
+    { id: 'ALL', label: 'MASTER_INDEX' },
+    { id: 'RESEARCH', label: 'RESEARCH' },
+    { id: 'DESIGN', label: 'DESIGN' },
+    { id: 'MEDIA', label: 'MEDIA' },
+    { id: 'OUTREACH', label: 'OUTREACH' },
+    { id: 'ADMIN', label: 'ADMIN' }
+  ];
+
   return (
     <div className="max-w-[1700px] mx-auto py-12 px-6 space-y-16 animate-in fade-in duration-1000 pb-40">
       
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-10 border-b border-slate-800 pb-16 relative">
+      <div className="flex flex-col md:flex-row justify-between items-end gap-10 border-b-2 border-emerald-500/20 pb-16 relative overflow-hidden">
+        <div className="absolute -top-20 -left-20 w-96 h-96 bg-emerald-600/10 blur-[120px] rounded-full pointer-events-none"></div>
         <div className="space-y-6 max-w-4xl relative z-10">
-           <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-600/10 border border-emerald-500/20 rounded-xl">
+           <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-600/10 border border-emerald-500/30 rounded-xl">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Official Agency Documentation</span>
+              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Official System Registry</span>
            </div>
            <h1 className="text-5xl font-black uppercase tracking-tighter text-white leading-none">
-             USER <span className="text-emerald-500">GUIDE</span>
+             SYSTEM <span className="text-emerald-500 italic">MANUAL</span>
            </h1>
            <p className="text-xl text-slate-400 font-medium leading-relaxed font-serif italic max-w-3xl">
-             The comprehensive manual for Prospector OS. Learn how to master all 54 neural modules for high-fidelity agency operations.
+             Explore the comprehensive library of Prospector OS capabilities. Every neural node and strategic module is documented below for agency mastery.
            </p>
-           <div className="pt-4">
-              <button 
-                onClick={() => onNavigate('RESEARCH', 'TRANSFORMATION_BLUEPRINT')}
-                className="bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all shadow-xl"
-              >
-                View Transformation Matrix →
-              </button>
-           </div>
         </div>
-        <div className="hidden lg:block relative mb-4 grayscale opacity-10 scale-150">📖</div>
       </div>
 
       {/* FILTER CONTROLS */}
-      <div className="sticky top-0 z-50 bg-[#020617]/90 backdrop-blur-3xl p-6 border border-slate-800 rounded-[32px] flex flex-col md:flex-row gap-6 items-center shadow-2xl">
+      <div className="sticky top-0 z-50 bg-[#020617]/95 backdrop-blur-3xl p-6 border-2 border-slate-800 rounded-[32px] flex flex-col md:flex-row gap-6 items-center shadow-2xl">
          <div className="flex-1 w-full relative">
             <input 
               value={filter} onChange={(e) => setFilter(e.target.value)}
-              className="w-full bg-[#0b1021] border border-slate-800 rounded-2xl px-12 py-5 text-sm font-bold text-white outline-none focus:border-emerald-500 transition-all"
-              placeholder="SEARCH THE USER MANUAL..."
+              className="w-full bg-[#0b1021] border border-slate-800 rounded-2xl px-12 py-5 text-sm font-bold text-white outline-none focus:border-emerald-500 transition-all shadow-inner placeholder-slate-700"
+              placeholder="SEARCH THE SYSTEM REGISTRY..."
             />
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
          </div>
-         <div className="flex bg-[#0b1021] border border-slate-800 rounded-2xl p-1 overflow-x-auto no-scrollbar max-w-full">
-            {['ALL', 'RESEARCH', 'DESIGN', 'MEDIA', 'OUTREACH', 'ADMIN'].map(z => (
-              <button key={z} onClick={() => setActiveZone(z as any)} className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeZone === z ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>{z}</button>
+         <div className="flex bg-[#0b1021] border border-slate-800 rounded-2xl p-1 overflow-x-auto no-scrollbar max-w-full shadow-lg">
+            {zones.map(z => (
+              <button 
+                key={z.id} 
+                onClick={() => setActiveZone(z.id)} 
+                className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeZone === z.id ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}
+              >
+                {z.label}
+              </button>
             ))}
          </div>
       </div>
 
-      {/* MODULE GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-         {filtered.map(m => (
-           <div key={m.id} onClick={() => onNavigate(m.mode, m.id)} className="bg-[#0b1021] border border-slate-800 rounded-[40px] p-10 flex flex-col group hover:border-emerald-500/40 transition-all cursor-pointer relative overflow-hidden shadow-2xl">
+      {/* MODULE GRID - UPDATED TO 3 COLUMNS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+         {filtered.length === 0 ? (
+           <div className="col-span-full py-40 text-center opacity-30 border-2 border-dashed border-slate-800 rounded-[56px] flex flex-col items-center justify-center">
+              <span className="text-6xl mb-6">🔍</span>
+              <h3 className="text-xl font-black uppercase tracking-[0.4em] text-slate-500 italic">No Registry Match Found</h3>
+           </div>
+         ) : filtered.map(m => (
+           <div key={m.id} onClick={() => onNavigate(m.mode, m.id)} className="bg-[#0b1021] border-2 border-slate-800/80 rounded-[48px] p-10 flex flex-col group hover:border-emerald-500/50 transition-all cursor-pointer relative overflow-hidden shadow-2xl">
               {/* Background ID Watermark */}
-              <div className="absolute top-0 right-0 p-10 opacity-[0.03] text-9xl font-black italic select-none group-hover:opacity-10 transition-opacity">
+              <div className="absolute top-0 right-0 p-10 opacity-[0.02] text-9xl font-black italic select-none group-hover:opacity-10 transition-opacity">
                 {m.id.slice(0, 2)}
               </div>
 
               <div className="flex justify-between items-start mb-8 relative z-10">
                  <span className="px-3 py-1 bg-emerald-900/20 border border-emerald-500/20 text-emerald-400 rounded-lg text-[8px] font-black uppercase tracking-widest">{m.mode}</span>
                  <div className="flex flex-wrap gap-1.5 justify-end">
-                    {m.tags.slice(0,2).map(t => <span key={t} className="text-[7px] font-bold text-slate-600 uppercase border border-slate-800 px-2 py-0.5 rounded-full">{t}</span>)}
+                    {m.tags.map(t => <span key={t} className="text-[7px] font-bold text-slate-600 uppercase border border-slate-800 px-2 py-0.5 rounded-full whitespace-nowrap">{t}</span>)}
                  </div>
               </div>
 
               <div className="mb-8 relative z-10 flex-1">
-                 <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter leading-none group-hover:text-emerald-500 transition-colors">{m.title}</h3>
-                 <p className="text-xs text-slate-400 font-medium italic mt-3 leading-relaxed line-clamp-3">"{m.mission}"</p>
+                 <h3 className="text-xl font-black italic text-white uppercase tracking-tighter leading-none group-hover:text-emerald-400 transition-colors">{m.title}</h3>
+                 <p className="text-sm text-slate-400 font-medium italic mt-4 leading-relaxed">"{m.mission}"</p>
               </div>
 
               <div className="space-y-4 mt-auto relative z-10">
-                 <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 group-hover:border-emerald-500/20 transition-all">
-                    <span className="text-[8px] font-black text-slate-600 uppercase block mb-1">INPUT VECTORS</span>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide truncate">{m.input}</p>
+                 <div className="p-5 bg-slate-950/60 rounded-3xl border border-slate-800 group-hover:border-emerald-500/30 transition-all">
+                    <span className="text-[8px] font-black text-slate-600 uppercase block mb-1.5 tracking-widest">INTELLIGENCE SOURCE</span>
+                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-wide truncate">{m.input}</p>
                  </div>
-                 <div className="pt-4 border-t border-slate-800 group-hover:border-emerald-500/20">
-                    <span className="text-[8px] font-black text-slate-500 uppercase block mb-1 tracking-widest">USE-CASE</span>
-                    <p className="text-[10px] font-black text-white uppercase italic tracking-tight">{m.useCase}</p>
+                 <div className="pt-6 border-t border-slate-800/60 group-hover:border-emerald-500/30 transition-colors">
+                    <span className="text-[8px] font-black text-slate-600 uppercase block mb-1.5 tracking-widest">ENTERPRISE USE-CASE</span>
+                    <p className="text-[11px] font-black text-white uppercase italic tracking-tight">{m.useCase}</p>
                  </div>
               </div>
+
+              {/* Decorative architectural markers */}
+              <div className="absolute top-8 left-8 w-8 h-8 border-t-2 border-l-2 border-slate-800 group-hover:border-emerald-500/30 transition-colors"></div>
+              <div className="absolute bottom-8 right-8 w-8 h-8 border-b-2 border-r-2 border-slate-800 group-hover:border-emerald-500/30 transition-colors"></div>
            </div>
          ))}
+      </div>
+      
+      {/* FOOTER CALL TO ACTION */}
+      <div className="bg-[#0b1021] border-2 border-emerald-500/20 rounded-[84px] p-20 text-center space-y-10 shadow-[0_0_50px_rgba(16,185,129,0.05)] relative overflow-hidden">
+         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500"></div>
+         <div className="space-y-6 relative z-10">
+            <h2 className="text-4xl font-black italic text-white uppercase tracking-tighter leading-none">
+              NEED <span className="text-emerald-500">ASSISTANCE?</span>
+            </h2>
+            <p className="text-xl text-slate-400 font-medium max-w-2xl mx-auto italic font-serif">
+              Master the Prospector OS workflow to maximize agency efficiency. Our technical advisors are available in the Strategy Lab for custom queries.
+            </p>
+         </div>
+         <div className="flex flex-col md:flex-row justify-center items-center gap-6 relative z-10">
+            <button 
+               onClick={() => onNavigate('RESEARCH', 'EXECUTIVE_DASHBOARD')}
+               className="px-12 py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all border-b-4 border-emerald-800"
+            >
+               Return to Mission Control
+            </button>
+         </div>
       </div>
     </div>
   );

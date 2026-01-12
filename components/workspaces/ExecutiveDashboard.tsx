@@ -67,70 +67,73 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ leads, market, on
   ];
 
   return (
-    <div className="space-y-8 py-4 max-w-6xl mx-auto animate-in fade-in duration-700 relative">
+    <div className="space-y-12 py-4 max-w-6xl mx-auto animate-in fade-in duration-700 relative pb-20">
       <div className="absolute top-0 right-0 z-20">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-500/30 bg-emerald-900/10">
-              <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">BALANCE: ${balance.toFixed(2)}</span>
+          <div className="flex items-center gap-3 px-6 py-3 rounded-full border-2 border-emerald-500/40 bg-emerald-950/20 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">BALANCE: ${balance.toFixed(2)}</span>
           </div>
       </div>
 
-      <div className="text-center relative py-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg mb-4">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
-          <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em]">Agency System Operational</span>
+      <div className="text-center relative py-6">
+        <div className="inline-flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-xl mb-6 shadow-lg">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
+          <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Agency Systems Synchronized</span>
         </div>
         
-        <h1 className="text-5xl font-black uppercase tracking-tighter text-white leading-none">
-          AGENCY <span className="text-emerald-600 opacity-70">OVERVIEW</span>
+        <h1 className="text-6xl font-black uppercase tracking-tighter text-white leading-none">
+          AGENCY <span className="text-emerald-500 italic opacity-90">OVERVIEW</span>
         </h1>
-        <p className="mt-2 text-[9px] font-black text-slate-500 uppercase tracking-[0.6em]">ACTIVE MARKET: <span className="text-emerald-400 italic">{market}</span></p>
+        <p className="mt-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.6em]">ACTIVE MARKET: <span className="text-emerald-400 italic">{market}</span></p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((node, i) => (
           <Tooltip key={i} content={node.desc} side="bottom">
-            <div className="bg-[#0b1021]/60 border border-slate-800 p-8 rounded-[24px] flex flex-col items-center group hover:border-emerald-500/40 transition-all cursor-default w-full shadow-lg">
-              <div className="text-emerald-500 mb-4 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all">
+            <div className="bg-[#0b1021] border-2 border-slate-800 p-10 rounded-[32px] flex flex-col items-center group hover:border-emerald-500/50 transition-all cursor-default w-full shadow-2xl relative overflow-hidden">
+              <div className="absolute inset-0 bg-emerald-500/[0.02] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="text-emerald-500 mb-6 opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]">
                 <DashboardIcon type={node.icon} />
               </div>
-              <span className="text-[9px] font-black text-slate-600 tracking-[0.2em] uppercase mb-1">{node.label}</span>
-              <span className="text-sm font-black text-white uppercase">{node.status}</span>
+              <span className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase mb-2">{node.label}</span>
+              <span className="text-lg font-black text-white uppercase italic tracking-tighter">{node.status}</span>
             </div>
           </Tooltip>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-         <div className="lg:col-span-2 bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 shadow-2xl flex flex-col">
-            <h3 className="text-[10px] font-black text-white uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
-               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-               LIVE ACTIVITY FEED
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+         <div className="lg:col-span-2 bg-[#0b1021] border-2 border-slate-800 rounded-[48px] p-10 shadow-2xl flex flex-col">
+            <h3 className="text-[11px] font-black text-white uppercase tracking-[0.3em] mb-8 flex items-center gap-4">
+               <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.6)]"></div>
+               LIVE OPERATIONAL FEED
             </h3>
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 space-y-4">
                {recentLogs.length === 0 ? (
-                  <div className="h-full flex items-center justify-center opacity-30 text-[10px] font-black uppercase text-slate-500">NO RECENT ACTIVITY</div>
+                  <div className="h-full flex items-center justify-center opacity-20 text-[11px] font-black uppercase tracking-[0.5em] text-slate-500 italic">SYSTEM_IDLE: NO RECENT ACTIVITY</div>
                ) : (
                   recentLogs.map((log, i) => (
-                     <div key={i} className="flex items-center gap-4 p-3 bg-slate-900/40 rounded-xl border border-slate-800/50">
-                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded ${log.type === 'AUTO' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-emerald-500/20 text-emerald-400'}`}>{log.type}</span>
-                        <span className="text-[10px] font-medium text-slate-300 truncate flex-1 font-mono uppercase">{log.msg}</span>
-                        <span className="text-[9px] font-bold text-slate-600">{new Date(log.time).toLocaleTimeString()}</span>
+                     <div key={i} className="flex items-center gap-5 p-4 bg-slate-900/60 rounded-2xl border-2 border-slate-800/50 hover:border-emerald-500/30 transition-all group">
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border ${log.type === 'AUTO' ? 'bg-indigo-950/40 text-indigo-400 border-indigo-500/20' : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-black transition-colors'}`}>{log.type}</span>
+                        <span className="text-[11px] font-bold text-slate-300 truncate flex-1 font-mono uppercase tracking-tight">{log.msg}</span>
+                        <span className="text-[9px] font-black text-slate-600 uppercase italic">{new Date(log.time).toLocaleTimeString()}</span>
                      </div>
                   ))
                )}
             </div>
          </div>
 
-         <div className="flex flex-col gap-4">
+         <div className="flex flex-col gap-5">
             {actions.map((action, i) => (
-              <div key={i} onClick={() => onNavigate(action.mode, action.id as SubModule)} className="flex-1 bg-[#0b1021] border border-slate-800 p-6 rounded-[24px] group hover:border-emerald-500/40 transition-all cursor-pointer flex items-center gap-5">
-                <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-center text-emerald-500 shadow-inner">
+              <div key={i} onClick={() => onNavigate(action.mode, action.id as SubModule)} className="flex-1 bg-[#0b1021] border-2 border-slate-800 p-8 rounded-[32px] group hover:border-emerald-500/60 transition-all cursor-pointer flex items-center gap-6 shadow-xl relative overflow-hidden">
+                <div className="absolute inset-0 bg-emerald-500/[0.03] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="w-14 h-14 bg-slate-950 border-2 border-slate-800 rounded-[22px] flex items-center justify-center text-emerald-500 shadow-inner group-hover:bg-emerald-600 group-hover:text-white transition-all group-hover:scale-105 group-hover:rotate-3">
                   <DashboardIcon type={action.icon} />
                 </div>
-                <div>
-                   <h2 className="text-xs font-black uppercase text-white mb-1 group-hover:text-emerald-400 transition-colors">{action.title}</h2>
-                   <p className="text-[8px] font-bold text-slate-600 tracking-[0.2em] uppercase">{action.desc}</p>
+                <div className="relative z-10">
+                   <h2 className="text-sm font-black uppercase tracking-widest text-white mb-1.5 group-hover:text-emerald-400 transition-colors">{action.title}</h2>
+                   <p className="text-[9px] font-bold text-slate-600 tracking-[0.2em] uppercase italic">{action.desc}</p>
                 </div>
+                <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-emerald-500 text-lg">→</div>
               </div>
             ))}
          </div>
