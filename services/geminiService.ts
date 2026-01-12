@@ -2,9 +2,10 @@
 import { Lead, BrandIdentity } from '../types';
 import { deductCost } from './computeTracker';
 import { toast } from './toastManager';
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 
-// --- INFRASTRUCTURE CONFIGURATION (OPENROUTER + GEMINI 3 FLASH) ---
-const PRIMARY_MODEL = "google/gemini-3-flash-preview"; 
+// --- INFRASTRUCTURE CONFIGURATION ---
+const PRIMARY_MODEL = "gemini-3-flash-preview"; 
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 export interface VeoConfig {
@@ -37,28 +38,32 @@ export interface BenchmarkReport {
 }
 
 // --- SECURED KEY PERSISTENCE (RAILWAY ENV PRIORITY) ---
+const sanitizeKey = (k: any): string => {
+  if (!k || k === 'undefined' || k === 'null' || k === '') return '';
+  return String(k).replace(/['"]/g, '').trim();
+};
+
 export const getStoredKeys = () => {
-    // 1. Check Railway/Vite Process Env
-    const sysOr = (process.env.OPENROUTER_API_KEY || "").trim();
-    const sysGeneric = (process.env.API_KEY || "").trim();
-    const sysKie = (process.env.KIE_API_KEY || "").trim();
-
-    // 2. Check Local Storage Overrides
-    const localOr = (localStorage.getItem('pomelli_auth_override') || "").trim();
-    const localKie = (localStorage.getItem('kie_api_key_override') || "").trim();
-
-    // Prioritize System (Railway) -> Manual Override
-    const finalOr = (sysOr && sysOr !== "undefined" && sysOr !== "") ? sysOr : 
-                    (sysGeneric && sysGeneric !== "undefined" && sysGeneric !== "") ? sysGeneric : localOr;
+    const sysGeneric = sanitizeKey(process.env.API_KEY);
+    const sysOr = sanitizeKey(process.env.OPENROUTER_API_KEY);
     
-    const finalKie = (sysKie && sysKie !== "undefined" && sysKie !== "") ? sysKie : localKie;
+    const localOr = sanitizeKey(localStorage.getItem('pomelli_auth_override'));
+    const localKie = sanitizeKey(localStorage.getItem('kie_api_key_override'));
 
-    return { openRouter: finalOr, kie: finalKie };
+    // If API_KEY starts with sk-or-, it's actually an OpenRouter key
+    const effectiveOr = (sysOr) ? sysOr : (sysGeneric.startsWith('sk-or-')) ? sysGeneric : localOr;
+    const effectiveGoogle = (sysGeneric && !sysGeneric.startsWith('sk-or-')) ? sysGeneric : "";
+
+    return { 
+        openRouter: effectiveOr, 
+        google: effectiveGoogle,
+        kie: localKie || sanitizeKey(process.env.KIE_API_KEY)
+    };
 };
 
 export const setStoredKeys = (openRouter?: string, kie?: string) => {
-    if (openRouter) localStorage.setItem('pomelli_auth_override', openRouter.trim());
-    if (kie) localStorage.setItem('kie_api_key_override', kie.trim());
+    if (openRouter) localStorage.setItem('pomelli_auth_override', sanitizeKey(openRouter));
+    if (kie) localStorage.setItem('kie_api_key_override', sanitizeKey(kie));
 };
 
 // --- GLOBAL ASSET REPOSITORY ---
@@ -86,20 +91,17 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
   return asset;
 };
 
-// Fix: Added missing export for importVault to restore assets from backup
 export const importVault = (newAssets: AssetRecord[]) => {
   SESSION_ASSETS.unshift(...newAssets);
   assetListeners.forEach(l => l([...SESSION_ASSETS]));
   return newAssets.length;
 };
 
-// Fix: Added missing export for clearVault to purge local asset storage
 export const clearVault = () => {
   SESSION_ASSETS.length = 0;
   assetListeners.forEach(l => l([...SESSION_ASSETS]));
 };
 
-// Fix: Added missing export for deleteAsset to remove individual items from the session
 export const deleteAsset = (id: string) => {
   const index = SESSION_ASSETS.findIndex(a => a.id === id);
   if (index !== -1) {
@@ -117,43 +119,59 @@ const extractJson = (text: string) => {
   return cleaned;
 };
 
-// --- CORE REST INFERENCE BRIDGE (OPENROUTER SECURED) ---
+// --- CORE REST INFERENCE BRIDGE (SDK PREFERRED) ---
 export const openRouterChat = async (prompt: string, system?: string) => {
-  const { openRouter: apiKey } = getStoredKeys();
+  const { openRouter, google } = getStoredKeys();
 
-  if (!apiKey) {
-    toast.error("GATEWAY LOCKED: No Authorization Key found in Environment or Cache.");
+  // RULE: Always use the SDK if we have a Google key
+  if (google) {
+    const ai = new GoogleGenAI({ apiKey: google });
+    try {
+      const response = await ai.models.generateContent({
+        model: PRIMARY_MODEL,
+        contents: prompt,
+        config: system ? { systemInstruction: system } : undefined,
+      });
+      const text = response.text || "{}";
+      deductCost(PRIMARY_MODEL, text.length);
+      return text;
+    } catch (e: any) {
+      if (e.message?.includes('auth') || e.message?.includes('401')) {
+          throw new Error("AUTHENTICATION_ERROR: Invalid API Key. Please verify process.env.API_KEY.");
+      }
+      throw e;
+    }
+  }
+
+  // FALLBACK: OpenRouter (Manual Fetch)
+  if (!openRouter) {
+    toast.error("GATEWAY LOCKED: No Authorization Key found.");
     throw new Error("AUTH_REQUIRED");
   }
 
   try {
     const response = await fetch(OPENROUTER_API_URL, {
       method: "POST",
-      // CRITICAL: Explicitly omit credentials to solve "cookie auth" errors 
-      // which can occur when headers leak browser state to strict APIs.
       credentials: 'omit',
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "Authorization": `Bearer ${openRouter}`,
         "Content-Type": "application/json",
         "HTTP-Referer": window.location.origin,
         "X-Title": "Prospector OS"
       },
       body: JSON.stringify({
-        model: PRIMARY_MODEL,
+        model: `google/${PRIMARY_MODEL}`,
         messages: [
-          { role: "system", content: system || "You are Prospector OS Intelligence. Output ONLY valid JSON." },
+          { role: "system", content: system || "You are Prospector OS Intelligence. Output JSON." },
           { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" }
+        ]
       })
     });
 
     const data = await response.json();
     if (!response.ok) {
-      const errMsg = data?.error?.message || `Inference Node Error: ${response.status}`;
-      throw new Error(errMsg);
+        throw new Error(data?.error?.message || "OpenRouter Error");
     }
-    
     const text = data.choices?.[0]?.message?.content || "{}";
     deductCost(PRIMARY_MODEL, text.length);
     return text;
@@ -178,45 +196,38 @@ export const loggedGenerateContent = async (args: { module: string; contents: an
 
 export const generateLeads = async (region: string, niche: string, count: number) => {
   pushLog(`RECON: Scanning ${region} for ${niche}...`);
-  const prompt = `Perform a deep market scan of ${region} for ${niche} entities. Identify ${count} HIGH-TICKET B2B targets. Return JSON object with "leads" array. Each lead: businessName, websiteUrl, leadScore(0-100), assetGrade(A|B|C), socialGap, phone, email.`;
-  const jsonStr = await executeIntelligenceTask(prompt, "You are a lead intelligence operative. Provide high-quality leads only.");
-  const parsed = JSON.parse(jsonStr);
-  return { leads: parsed.leads || [], groundingSources: [] };
+  const prompt = `Identify ${count} high-ticket B2B targets in ${region} for ${niche}. Return JSON: { "leads": [{ "businessName": "", "websiteUrl": "", "leadScore": 0, "assetGrade": "A", "socialGap": "", "phone": "", "email": "" }] }`;
+  const jsonStr = await executeIntelligenceTask(prompt);
+  return { leads: JSON.parse(jsonStr).leads || [], groundingSources: [] };
 };
 
 export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
   pushLog(`FORGE: Architecting campaign for ${lead.businessName}...`);
   const prompt = `Architect a multi-layered campaign for ${lead.businessName}. Return STRICT JSON: "presentation" (slides array), "narrative", "outreach" (emailSequence), "funnel", "contentPack", "visualDirection".`;
-  const jsonStr = await executeIntelligenceTask(prompt, "You are a World-Class Agency Architect.");
-  return JSON.parse(jsonStr);
+  return JSON.parse(await executeIntelligenceTask(prompt));
 };
 
 export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
-  const prompt = `Perform an exhaustive audit for ${lead.websiteUrl}. Return BenchmarkReport JSON.`;
-  const jsonStr = await executeIntelligenceTask(prompt);
-  return JSON.parse(jsonStr);
+  const prompt = `Perform an audit for ${lead.websiteUrl}. Return BenchmarkReport JSON.`;
+  return JSON.parse(await executeIntelligenceTask(prompt));
 };
 
 export const generateOutreachSequence = async (lead: Lead) => {
-    const jsonStr = await executeIntelligenceTask(`Generate 5-day outreach sequence for ${lead.businessName}. JSON array of {day, channel, content}.`);
-    return JSON.parse(jsonStr);
+    return JSON.parse(await executeIntelligenceTask(`Generate 5-day outreach sequence for ${lead.businessName}. JSON array.`));
 };
 
 export const architectFunnel = async (lead: Lead) => {
-    const jsonStr = await executeIntelligenceTask(`Architect 4-stage conversion funnel for ${lead.businessName}. JSON.`);
-    return JSON.parse(jsonStr);
+    return JSON.parse(await executeIntelligenceTask(`Architect 4-stage funnel for ${lead.businessName}. JSON.`));
 };
 
 export const architectPitchDeck = async (lead: Lead) => {
-    const jsonStr = await executeIntelligenceTask(`Design pitch deck for ${lead.businessName}. JSON slides array.`);
-    return JSON.parse(jsonStr);
+    return JSON.parse(await executeIntelligenceTask(`Design pitch deck for ${lead.businessName}. JSON slides.`));
 };
 
 export const generateVideoPayload = async (prompt: string, leadId?: string, startImage?: string, lastFrame?: string, config?: any) => {
     const payload = {
         prompt,
         image: startImage ? startImage.split(',')[1] : undefined,
-        lastFrame: lastFrame ? lastFrame.split(',')[1] : undefined,
         aspectRatio: config?.aspectRatio || '16:9',
         resolution: config?.resolution || '720p'
     };
@@ -229,44 +240,56 @@ export const generateVideoPayload = async (prompt: string, leadId?: string, star
     return data.taskId || data.data?.taskId; 
 };
 
-export const generateAudioPitch = async (text: string, voiceName: string = 'Kore', leadId?: string) => ""; 
+export const generateAudioPitch = async (text: string, voiceName: string = 'Kore', leadId?: string) => {
+    const { google } = getStoredKeys();
+    if (!google) return "";
+    const ai = new GoogleGenAI({ apiKey: google });
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text }] }],
+        config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
+        },
+    });
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (base64Audio) {
+        const url = `data:audio/pcm;base64,${base64Audio}`;
+        saveAsset('AUDIO', `Speech: ${text.slice(0, 20)}`, url, 'SONIC_STUDIO', leadId);
+        return url;
+    }
+    return "";
+};
 
 export const generateVisual = async (prompt: string, lead: Lead, base64Image?: string) => {
-    const placeholder = `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop`;
-    saveAsset('IMAGE', `VISUAL: ${prompt.slice(0, 20)}`, placeholder, 'VISUAL_STUDIO', lead.id);
-    return placeholder;
+    const { google } = getStoredKeys();
+    if (!google) return "";
+    const ai = new GoogleGenAI({ apiKey: google });
+    const contents: any = { parts: [{ text: prompt }] };
+    if (base64Image) {
+        contents.parts.push({ inlineData: { data: base64Image.split(',')[1], mimeType: 'image/png' } });
+    }
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents,
+    });
+    for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+            const url = `data:image/png;base64,${part.inlineData.data}`;
+            saveAsset('IMAGE', prompt.slice(0, 20), url, 'VISUAL_STUDIO', lead.id);
+            return url;
+        }
+    }
+    return "";
 };
 
 export const fetchBenchmarkData = (lead: Lead) => fetchLiveIntel(lead, 'BENCHMARK');
-export const generateProposalDraft = (lead: Lead) => openRouterChat(`Draft agency proposal for ${lead.businessName}.`);
-export const generateTaskMatrix = async (lead: Lead) => JSON.parse(await executeIntelligenceTask(`Create implemention checklist for ${lead.businessName}. JSON.`));
-export const generateNurtureDialogue = async (lead: Lead, sc: string) => JSON.parse(await executeIntelligenceTask(`Simulate dialogue for ${lead.businessName} (Scenario: ${sc}). JSON.`));
-export const generateROIReport = (ltv: number, l: number, c: number) => openRouterChat(`ROI: LTV ${ltv}, Vol ${l}, Conv ${c}.`);
-export const generateFlashSparks = async (lead: Lead) => JSON.parse(await executeIntelligenceTask(`10 hooks for ${lead.businessName}. JSON array.`));
+export const generateProposalDraft = (lead: Lead) => openRouterChat(`Draft proposal for ${lead.businessName}.`);
+export const generateTaskMatrix = async (lead: Lead) => JSON.parse(await executeIntelligenceTask(`Checklist for ${lead.businessName}. JSON.`));
+export const generateNurtureDialogue = async (lead: Lead, sc: string) => JSON.parse(await executeIntelligenceTask(`Dialogue for ${lead.businessName} (${sc}). JSON.`));
+export const generateROIReport = (ltv: number, l: number, c: number) => openRouterChat(`ROI Report: LTV ${ltv}, Leads ${l}, Conv ${c}.`);
+export const generateFlashSparks = async (lead: Lead) => JSON.parse(await executeIntelligenceTask(`10 hooks for ${lead.businessName}. JSON.`));
 export const generateMockup = async (n: string, ni: string, id?: string) => generateVisual(`Mockup for ${n}`, { id } as Lead);
 export const generatePitch = (lead: Lead) => openRouterChat(`Pitch for ${lead.businessName}.`);
 export const generateSonicPrompt = (lead: Lead) => openRouterChat(`Sonic prompt for ${lead.businessName}.`);
-export const generateLyrics = (lead: Lead, t: string, ty: string) => openRouterChat(`Lyrics for ${lead.businessName}.`);
-export const enhanceVideoPrompt = (p: string) => openRouterChat(`Enhance video: ${p}`);
-export const enhanceStrategicPrompt = (p: string) => openRouterChat(`Optimize strategy: ${p}`);
-export const fetchViralPulseData = async (n: string) => JSON.parse(await executeIntelligenceTask(`Trends for ${n}. JSON.`));
-export const identifySubRegions = async (t: string): Promise<string[]> => JSON.parse(await executeIntelligenceTask(`Sectors in ${t}. JSON.`));
-export const crawlTheaterSignals = async (s: string, sig: string): Promise<Lead[]> => JSON.parse(await executeIntelligenceTask(`Leads in ${s} with signal ${sig}. JSON.`));
-export const analyzeLedger = async (ls: Lead[]) => JSON.parse(await executeIntelligenceTask(`Analysis of ${ls.length} leads. JSON.`));
-export const analyzeVideoUrl = (u: string, p: string, id?: string) => openRouterChat(`Audit video ${u}: ${p}`);
-export const synthesizeArticle = (s: string, m: string) => openRouterChat(`Analyze source: ${s}`);
-export const testModelPerformance = (m: string, p: string) => openRouterChat(`Benchmark: ${p}`);
-export const generateMotionLabConcept = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Storyboard for ${l.businessName}. JSON.`));
-export const generateAffiliateProgram = async (n: string) => JSON.parse(await executeIntelligenceTask(`Affiliate matrix for ${n}. JSON.`));
-export const generateAgencyIdentity = async (n: string, r: string) => JSON.parse(await executeIntelligenceTask(`Agency identity for ${n}. JSON.`));
-export const extractBrandDNA = async (l: Partial<Lead>, u: string): Promise<BrandIdentity> => JSON.parse(await executeIntelligenceTask(`Brand DNA from ${u}. JSON.`));
-export const generatePlaybookStrategy = async (n: string) => JSON.parse(await executeIntelligenceTask(`Strategic playbook for ${n}. JSON.`));
-// Fix: Removed duplicate performFactCheck definition
-export const performFactCheck = async (l: Lead, c: string) => JSON.parse(await executeIntelligenceTask(`Fact check: ${c}. JSON.`));
-export const synthesizeProduct = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Offer synth for ${l.businessName}. JSON.`));
-export const simulateSandbox = (l: Lead, ltv: number, v: number) => openRouterChat(`Sandbox for ${l.businessName} (LTV:${ltv})`);
-export const critiqueVideoPresence = (l: Lead) => openRouterChat(`Video presence for ${l.businessName}.`);
-export const translateTactical = (t: string, lang: string) => openRouterChat(`Translate to ${lang}: ${t}`);
-export const fetchTokenStats = async () => ({ recentOps: [] });
-export const analyzeVisual = async (data: string, mimeType: string, prompt: string) => openRouterChat(`Analyze vision: ${prompt}`);
-export const queryRealtimeAgent = async (prompt: string) => ({ text: await openRouterChat(`Search for: ${prompt}`), sources: [] });
+export const generateLyrics = (lead: Lead, t: string, ty: string) => openRouterChat(`Lyrics for
