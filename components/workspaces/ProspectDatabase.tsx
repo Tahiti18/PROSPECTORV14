@@ -68,16 +68,42 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `PROSPECTOR_DATABASE_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `PROSPECTOR_LEDGER_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("Database exported.");
+    toast.success("DATABASE_EXPORTED_SUCCESSFULLY");
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const imported = JSON.parse(ev.target?.result as string);
+            if (Array.isArray(imported)) {
+                db.saveLeads(imported);
+                toast.success(`IMPORTED ${imported.length} RECORDS`);
+            } else {
+                toast.error("INVALID_FILE_STRUCTURE");
+            }
+        } catch (err) {
+            toast.error("PARSE_FAILURE");
+        }
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSaveAll = () => {
+    db.saveLeads(leads);
+    toast.success("LEDGER_COMMIT_SUCCESSFUL");
   };
 
   return (
-    <div className="space-y-6 py-6 max-w-[1600px] mx-auto relative px-6 pb-32 animate-in fade-in duration-700">
+    <div className="space-y-6 py-6 max-w-[1600px] mx-auto relative px-6 pb-40 animate-in fade-in duration-700">
       <div className="flex justify-between items-end">
         <div>
           <h3 className="text-2xl font-bold text-white uppercase tracking-tight leading-none drop-shadow-2xl">
@@ -157,8 +183,33 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
         </div>
       </div>
 
-      <div className="flex justify-end gap-4 mt-4">
-          <button onClick={handleExport} className="px-6 py-3 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-white">EXPORT LEDGER</button>
+      {/* DATA MANAGEMENT FOOTER */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 mt-12 p-8 bg-[#0b1021]/80 border border-slate-800 rounded-[32px] shadow-xl">
+         {/* Left: Tools */}
+         <div className="flex gap-4">
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="px-6 py-3 bg-slate-900 border border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+            >
+              <span>📥</span> IMPORT LEDGER
+            </button>
+            <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
+            
+            <button 
+              onClick={handleExport}
+              className="px-6 py-3 bg-slate-900 border border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+            >
+              <span>📤</span> EXPORT LEDGER
+            </button>
+         </div>
+
+         {/* Right: Master Control */}
+         <button 
+            onClick={handleSaveAll}
+            className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-600/20 active:scale-95 transition-all border-b-4 border-emerald-800 flex items-center gap-3"
+         >
+            <span>💾</span> COMMIT ALL CHANGES
+         </button>
       </div>
 
       {activeRunId && <RunStatus runId={activeRunId} onClose={() => setActiveRunId(null)} />}
