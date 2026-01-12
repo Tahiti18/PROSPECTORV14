@@ -50,8 +50,10 @@ export const getStoredKeys = () => {
     const localOr = sanitizeKey(localStorage.getItem('pomelli_auth_override'));
     const localKie = sanitizeKey(localStorage.getItem('kie_api_key_override'));
 
-    // If API_KEY starts with sk-or-, it's actually an OpenRouter key
-    const effectiveOr = (sysOr) ? sysOr : (sysGeneric.startsWith('sk-or-')) ? sysGeneric : localOr;
+    // OpenRouter Key priority: Explicit OR Env -> Generic API Env (if OR format) -> Local Override
+    const effectiveOr = sysOr || (sysGeneric.startsWith('sk-or-') ? sysGeneric : '') || localOr;
+    
+    // Google Key priority: Generic API Env (if NOT OR format) -> empty
     const effectiveGoogle = (sysGeneric && !sysGeneric.startsWith('sk-or-')) ? sysGeneric : "";
 
     return { 
@@ -136,9 +138,8 @@ export const openRouterChat = async (prompt: string, system?: string) => {
       deductCost(PRIMARY_MODEL, text.length);
       return text;
     } catch (e: any) {
-      if (e.message?.includes('auth') || e.message?.includes('401')) {
-          throw new Error("AUTHENTICATION_ERROR: Invalid API Key. Please verify process.env.API_KEY.");
-      }
+      pushLog(`SDK_FAULT: ${e.message}`);
+      if (e.message?.includes('auth') || e.message?.includes('401')) throw new Error("AUTH_REQUIRED");
       throw e;
     }
   }
@@ -152,7 +153,7 @@ export const openRouterChat = async (prompt: string, system?: string) => {
   try {
     const response = await fetch(OPENROUTER_API_URL, {
       method: "POST",
-      credentials: 'omit',
+      credentials: 'omit', // CRITICAL: Omit cookies to prevent 401 'No cookie auth' conflicts
       headers: {
         "Authorization": `Bearer ${openRouter}`,
         "Content-Type": "application/json",
@@ -170,7 +171,12 @@ export const openRouterChat = async (prompt: string, system?: string) => {
 
     const data = await response.json();
     if (!response.ok) {
-        throw new Error(data?.error?.message || "OpenRouter Error");
+        const errorMsg = data?.error?.message || "OpenRouter Error";
+        if (response.status === 401) {
+            pushLog(`AUTH_FAILURE: ${errorMsg}`);
+            throw new Error("AUTH_REQUIRED");
+        }
+        throw new Error(errorMsg);
     }
     const text = data.choices?.[0]?.message?.content || "{}";
     deductCost(PRIMARY_MODEL, text.length);
@@ -244,19 +250,23 @@ export const generateAudioPitch = async (text: string, voiceName: string = 'Kore
     const { google } = getStoredKeys();
     if (!google) return "";
     const ai = new GoogleGenAI({ apiKey: google });
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text }] }],
-        config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
-        },
-    });
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (base64Audio) {
-        const url = `data:audio/pcm;base64,${base64Audio}`;
-        saveAsset('AUDIO', `Speech: ${text.slice(0, 20)}`, url, 'SONIC_STUDIO', leadId);
-        return url;
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-tts",
+            contents: [{ parts: [{ text }] }],
+            config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
+            },
+        });
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (base64Audio) {
+            const url = `data:audio/pcm;base64,${base64Audio}`;
+            saveAsset('AUDIO', `Speech: ${text.slice(0, 20)}`, url, 'SONIC_STUDIO', leadId);
+            return url;
+        }
+    } catch (e: any) {
+        pushLog(`TTS_ERROR: ${e.message}`);
     }
     return "";
 };
@@ -265,20 +275,25 @@ export const generateVisual = async (prompt: string, lead: Lead, base64Image?: s
     const { google } = getStoredKeys();
     if (!google) return "";
     const ai = new GoogleGenAI({ apiKey: google });
-    const contents: any = { parts: [{ text: prompt }] };
-    if (base64Image) {
-        contents.parts.push({ inlineData: { data: base64Image.split(',')[1], mimeType: 'image/png' } });
-    }
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents,
-    });
-    for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-            const url = `data:image/png;base64,${part.inlineData.data}`;
-            saveAsset('IMAGE', prompt.slice(0, 20), url, 'VISUAL_STUDIO', lead.id);
-            return url;
+    try {
+        const contents: any = { parts: [{ text: prompt }] };
+        if (base64Image) {
+            contents.parts.push({ inlineData: { data: base64Image.split(',')[1], mimeType: 'image/png' } });
         }
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents,
+        });
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+                const base64: string = part.inlineData.data;
+                const url = `data:image/png;base64,${base64}`;
+                saveAsset('IMAGE', prompt.slice(0, 20), url, 'VISUAL_STUDIO', lead.id);
+                return url;
+            }
+        }
+    } catch (e: any) {
+        pushLog(`IMAGE_ERROR: ${e.message}`);
     }
     return "";
 };
@@ -318,10 +333,15 @@ export const queryRealtimeAgent = async (prompt: string) => {
     const { google } = getStoredKeys();
     if (!google) return { text: "Grounded search requires Google API Key.", sources: [] };
     const ai = new GoogleGenAI({ apiKey: google });
-    const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt,
-        config: { tools: [{ googleSearch: {} }] },
-    });
-    return { text: response.text || "", sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] };
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+            config: { tools: [{ googleSearch: {} }] },
+        });
+        return { text: response.text || "", sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] };
+    } catch (e: any) {
+        pushLog(`SEARCH_ERROR: ${e.message}`);
+        return { text: "Search failed.", sources: [] };
+    }
 };
