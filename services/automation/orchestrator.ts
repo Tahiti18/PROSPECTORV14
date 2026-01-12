@@ -1,5 +1,4 @@
-
-import { AutomationRun, RunStep, AutomationArtifact } from './types';
+import { AutomationRun, RunStep } from './types';
 import { db } from './db';
 import { Steps, RunContext } from './steps';
 import { uuidLike } from '../usageLogger';
@@ -22,15 +21,15 @@ export class AutomationOrchestrator {
   async startRun(targetLeadId?: string, mode: 'full' | 'lite' = 'full'): Promise<AutomationRun> {
     const runId = uuidLike();
     const hasLock = await db.acquireMutex(runId, 5000);
-    if (!hasLock) throw new Error("System busy.");
+    if (!hasLock) throw new Error("Neural Core Busy. Try in 5s.");
 
     try {
       db.clearStaleLocks();
       const leads = db.getLeads();
       let selectedLead = targetLeadId ? leads.find(l => l.id === targetLeadId) : leads.filter(l => !l.locked && l.status !== 'won').sort((a, b) => b.leadScore - a.leadScore)[0];
       
-      if (!selectedLead) throw new Error("No eligible lead found in database. Search for leads first.");
-      if (selectedLead.locked) throw new Error("This lead is currently being processed by another task.");
+      if (!selectedLead) throw new Error("No eligible targets in Ledger.");
+      if (selectedLead.locked) throw new Error("Target locked by another process.");
 
       const now = Date.now();
       const updatedLeads = leads.map(l => l.id === selectedLead!.id ? { ...l, locked: true, lockedAt: now, lockedByRunId: runId, lockExpiresAt: now + (30 * 60 * 1000) } : l);
@@ -100,26 +99,17 @@ export class AutomationOrchestrator {
       }
 
       const targetLead = db.getLeads().find(l => l.id === run!.leadId);
-      if (!targetLead) throw new Error("Target lead disconnected from session.");
+      if (!targetLead) throw new Error("Uplink lost: Target Lead not found.");
 
       const runMode = (run as any).mode || 'full';
-
-      const hasWebsite = !!(targetLead.websiteUrl && targetLead.websiteUrl !== '#' && targetLead.websiteUrl.length > 5);
-      const hasMaps = !!(targetLead.groundingSources?.some(s => s.uri?.includes('google.com/maps')));
-      const hasSocials = !!((targetLead.instagram && targetLead.instagram !== 'Not found') || 
-                         (targetLead.tiktok && targetLead.tiktok !== 'Not found') || 
-                         (targetLead.youtube && targetLead.youtube !== 'Not found'));
-      
-      const evidenceLevel = (hasWebsite || hasMaps || hasSocials) ? 'high' : 'low';
       const industryText = (targetLead.niche || '').toLowerCase();
       const isRegulated = REGULATED_KEYWORDS.some(kw => industryText.includes(kw));
-      const complianceMode = isRegulated ? 'regulated' : 'standard';
 
       let context: any = {};
       let runCtx: RunContext = {
         identity_strict: false,
-        compliance_mode: complianceMode,
-        lead_evidence_level: evidenceLevel
+        compliance_mode: isRegulated ? 'regulated' : 'standard',
+        lead_evidence_level: targetLead.leadScore < 60 ? 'low' : 'high'
       };
 
       let shouldSkipRemaining = false;
@@ -133,13 +123,7 @@ export class AutomationOrchestrator {
         if (step.status === 'success') {
           const art = run.artifacts.find(a => a.id === step.outputArtifactIds?.[0]);
           if (art && art.type === 'json') {
-             try {
-                const parsed = JSON.parse(art.content);
-                this.hydrateContext(step.name, parsed, context);
-                if (step.name === 'DeepResearch' && parsed.identity_resolution?.business_confirmed === false) {
-                  runCtx.identity_strict = true;
-                }
-             } catch(e) {}
+             try { this.hydrateContext(step.name, JSON.parse(art.content), context); } catch(e) {}
           }
           continue;
         }
@@ -161,120 +145,79 @@ export class AutomationOrchestrator {
             case 'ResolveLead':
               result = await Steps.resolveLead(targetLead, runCtx);
               context.resolved = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'DeepResearch':
-              if (runMode === 'lite') {
-                result = await Steps.generateDeepResearchLite(context.resolved, runCtx);
-                shouldSkipRemaining = true;
-              } else {
-                result = await Steps.deepResearch(context.resolved, runCtx);
-              }
+              result = runMode === 'lite' ? await Steps.generateDeepResearchLite(context.resolved, runCtx) : await Steps.deepResearch(context.resolved, runCtx);
               context.research = result.data;
-              if (result.data.identity_resolution?.business_confirmed === false) {
-                runCtx.identity_strict = true;
-              }
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              if (runMode === 'lite') shouldSkipRemaining = true;
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'ExtractSignals':
               result = await Steps.extractSignals(context.research, runCtx);
               context.signals = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'DecisionGovernor':
               result = await Steps.governDecision(context.research, context.signals, runCtx);
               context.governance = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'SynthesizeIntelligence':
               result = await Steps.synthesizeIntelligence(context.governance, runCtx);
               context.dossier = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'GenerateStrategy':
               result = await Steps.generateStrategy(context.dossier, runCtx);
               context.strategy = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'GenerateTextAssets':
               result = await Steps.generateTextAssets(context.strategy, runCtx);
               context.textAssets = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'GenerateSocialAssets':
               result = await Steps.generateSocialAssets(context.strategy, runCtx);
-              context.socialAssets = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'GenerateVideoScripts':
               result = await Steps.generateVideoScripts(context.strategy, runCtx);
-              context.videoScripts = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'GenerateAudioAssets':
               result = await Steps.generateAudioAssets(context.strategy, runCtx);
-              context.audioAssets = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'GenerateVisualAssets':
               result = await Steps.generateVisualAssets(context.strategy, runCtx);
-              context.visualAssets = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'AssembleRun':
-              result = await Steps.assembleRun({
-                strategy: context.strategy,
-                textAssets: context.textAssets,
-                socialAssets: context.socialAssets,
-                videoScripts: context.videoScripts,
-                audioAssets: context.audioAssets,
-                visualDirection: context.visualAssets
-              }, runCtx);
-              context.assembly = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              result = await Steps.assembleRun(context, runCtx);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'GenerateICP':
               result = await Steps.generateICP(targetLead, context.strategy, runCtx);
-              context.icp = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'GenerateOffer':
               result = await Steps.generateOffer(targetLead, context.icp, runCtx);
-              context.offer = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'GenerateOutreach':
               result = await Steps.generateOutreach(targetLead, context.offer, runCtx);
-              context.outreach = result.data;
-              this.addArtifact(run, step, 'json', JSON.stringify(result.data), result.raw);
+              this.addArtifact(run, step, 'json', JSON.stringify(result.data));
               break;
-
             case 'CreateFinalPackage':
               const report = await Steps.generateFinalReport(targetLead, context);
               this.addArtifact(run, step, 'markdown', report);
               break;
-
             case 'CompleteRun':
               const finalLeads = db.getLeads();
               const idx = finalLeads.findIndex(l => l.id === run!.leadId);
-              if (idx !== -1) { 
-                finalLeads[idx].locked = false; 
-                db.saveLeads(finalLeads); 
-              }
+              if (idx !== -1) { finalLeads[idx].locked = false; db.saveLeads(finalLeads); }
               break;
           }
 
@@ -282,15 +225,14 @@ export class AutomationOrchestrator {
           step.completedAt = Date.now();
         } catch (e: any) {
           step.status = 'failed';
-          const finalErr = e.message || e.error || (typeof e === 'string' ? e : "Internal Orchestration Error");
-          step.error = finalErr;
+          step.error = e.message || "Engine Fault";
           run.status = 'failed';
-          run.errorSummary = `Protocol terminated at '${step.name}': ${finalErr}`;
+          run.errorSummary = `Terminated at '${step.name}': ${step.error}`;
           db.saveRun(run);
           return;
         }
         db.saveRun(run);
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise(r => setTimeout(r, 600));
       }
 
       const finalRun = db.getRun(runId);
@@ -312,26 +254,12 @@ export class AutomationOrchestrator {
     if (stepName === 'SynthesizeIntelligence') context.dossier = parsed;
     if (stepName === 'GenerateStrategy') context.strategy = parsed;
     if (stepName === 'GenerateTextAssets') context.textAssets = parsed;
-    if (stepName === 'GenerateSocialAssets') context.socialAssets = parsed;
-    if (stepName === 'GenerateVideoScripts') context.videoScripts = parsed;
-    if (stepName === 'GenerateAudioAssets') context.audioAssets = parsed;
-    if (stepName === 'GenerateVisualAssets') context.visualAssets = parsed;
-    if (stepName === 'AssembleRun') context.assembly = parsed;
-    if (stepName === 'GenerateICP') context.icp = parsed;
-    if (stepName === 'GenerateOffer') context.offer = parsed;
-    if (stepName === 'GenerateOutreach') context.outreach = parsed;
   }
 
-  private addArtifact(run: AutomationRun, step: RunStep, type: 'json' | 'markdown' | 'text', content: string, rawResponse?: string) {
-    const art: AutomationArtifact = { id: uuidLike(), runId: run.id, stepName: step.name, type, content, createdAt: Date.now() };
+  private addArtifact(run: AutomationRun, step: RunStep, type: 'json' | 'markdown' | 'text', content: string) {
+    const art = { id: uuidLike(), runId: run.id, stepName: step.name, type, content, createdAt: Date.now() };
     run.artifacts.push(art);
     if (!step.outputArtifactIds) step.outputArtifactIds = [];
     step.outputArtifactIds.push(art.id);
-
-    if (rawResponse) {
-      const rawArt: AutomationArtifact = { id: uuidLike(), runId: run.id, stepName: `${step.name}_RAW`, type: 'text', content: rawResponse, createdAt: Date.now() };
-      run.artifacts.push(rawArt);
-      step.outputArtifactIds.push(rawArt.id);
-    }
   }
 }

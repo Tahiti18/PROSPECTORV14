@@ -1,116 +1,94 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { MainMode, SubModule, Lead, ComputeStats } from './types';
-import { Layout } from './components/Layout';
-import { LayoutCommandCenter } from './components/LayoutCommandCenter';
+import { MainMode, SubModule, Lead } from './types';
 import { LayoutZenith } from './components/LayoutZenith';
-import { MissionControl } from './components/workspaces/MissionControl';
-import { RadarRecon } from './components/workspaces/RadarRecon';
-import { TargetList } from './components/workspaces/TargetList';
-import { WarRoom } from './components/workspaces/WarRoom';
+import { ExecutiveDashboard } from './components/workspaces/ExecutiveDashboard';
+import { MarketDiscovery } from './components/workspaces/MarketDiscovery';
+import { ProspectDatabase } from './components/workspaces/ProspectDatabase';
+import { StrategyCenter } from './components/workspaces/StrategyCenter';
 import { Pipeline } from './components/workspaces/Pipeline';
 import { Heatmap } from './components/workspaces/Heatmap';
-import { DeepLogic } from './components/workspaces/DeepLogic';
+import { StrategicReasoning } from './components/workspaces/StrategicReasoning';
 import { WorkspaceNode } from './components/workspaces/WorkspaceNode';
-import { ViralPulse } from './components/workspaces/ViralPulse';
-import { VisionLab } from './components/workspaces/VisionLab';
-import { ArticleIntel } from './components/workspaces/ArticleIntel';
+import { MarketTrends } from './components/workspaces/MarketTrends';
+import { VisualAnalysis } from './components/workspaces/VisualAnalysis';
+import { ContentAnalysis } from './components/workspaces/ContentAnalysis';
 import { BenchmarkNode } from './components/workspaces/BenchmarkNode';
 import { AnalyticsHub } from './components/workspaces/AnalyticsHub';
-import { PromptAI } from './components/workspaces/PromptAI';
-import { ModelTest } from './components/workspaces/ModelTest';
+import { PromptInterface } from './components/workspaces/PromptInterface';
+import { ModelBench } from './components/workspaces/ModelBench';
 import { FactCheck } from './components/workspaces/FactCheck';
 import { TranslatorNode } from './components/workspaces/TranslatorNode';
 import { VisualStudio } from './components/workspaces/VisualStudio';
 import { Mockups4K } from './components/workspaces/Mockups4K';
-import { ProductSynth } from './components/workspaces/ProductSynth';
-import { FlashSpark } from './components/workspaces/FlashSpark';
-import { MediaVault } from './components/workspaces/MediaVault';
-import { VideoPitch } from './components/workspaces/VideoPitch';
-import { VideoAI } from './components/workspaces/VideoAI';
-import { CinemaIntel } from './components/workspaces/CinemaIntel';
+import { ProductSynthesis } from './components/workspaces/ProductSynthesis';
+import { ContentIdeation } from './components/workspaces/ContentIdeation';
+import { AssetLibrary } from './components/workspaces/AssetLibrary';
+import { VideoProduction } from './components/workspaces/VideoProduction';
+import { VideoAudit } from './components/workspaces/VideoAudit';
+import { VideoInsights } from './components/workspaces/VideoInsights';
 import { MotionLab } from './components/workspaces/MotionLab';
 import { SonicStudio } from './components/workspaces/SonicStudio';
-import { LiveScribe } from './components/workspaces/LiveScribe';
-import { BusinessOrchestrator } from './components/workspaces/BusinessOrchestrator';
+import { MeetingNotes } from './components/workspaces/MeetingNotes';
+import { CampaignOrchestrator } from './components/workspaces/CampaignOrchestrator';
 import { BillingNode } from './components/workspaces/BillingNode';
 import { AffiliateNode } from './components/workspaces/AffiliateNode';
 import { IdentityNode } from './components/workspaces/IdentityNode';
-import { OSForge } from './components/workspaces/OSForge';
+import { SystemConfig } from './components/workspaces/SystemConfig';
 import { ExportNode } from './components/workspaces/ExportNode';
 import { CalendarNode } from './components/workspaces/CalendarNode';
-import { ProdLog } from './components/workspaces/ProdLog';
+import { ActivityLogs } from './components/workspaces/ActivityLogs';
 import { SettingsNode } from './components/workspaces/SettingsNode';
 import { NexusGraph } from './components/workspaces/NexusGraph';
-import { ChronosNode } from './components/workspaces/ChronosNode';
-import { TasksNode } from './components/workspaces/TasksNode';
+import { TimelineNode } from './components/workspaces/TimelineNode';
+import { TaskManager } from './components/workspaces/TaskManager';
 import { ThemeNode } from './components/workspaces/ThemeNode';
-import { TokenNode } from './components/workspaces/TokenNode';
+import { UsageStats } from './components/workspaces/UsageStats';
 import { CommandPalette } from './components/CommandPalette';
-import { subscribeToCompute } from './services/computeTracker';
 import { IntelNode } from './components/workspaces/IntelNode';
-import { AutoCrawl } from './components/workspaces/AutoCrawl';
+import { AutomatedSearch } from './components/workspaces/AutomatedSearch';
 import { BrandDNA } from './components/workspaces/BrandDNA';
-import { SmokeTest } from './components/SmokeTest';
 import { ToastContainer } from './components/ToastContainer';
 import { db } from './services/automation/db';
-import { VerificationNode } from './components/workspaces/VerificationNode';
 import { SecurityGateway } from './components/SecurityGateway';
 import { getStoredKeys } from './services/geminiService';
+import { UserGuide } from './components/workspaces/UserGuide';
 
-const STORAGE_KEY_THEATER = 'prospector_os_theater_v1';
-const STORAGE_KEY_LAYOUT = 'prospector_os_layout_pref_v1';
+const STORAGE_KEY_REGION = 'prospector_os_region_v1';
 
 const App: React.FC = () => {
-  const [activeMode, setActiveMode] = useState<MainMode>('OPERATE');
-  const [activeModule, setActiveModule] = useState<SubModule>('COMMAND');
+  const [activeMode, setActiveMode] = useState<MainMode>('RESEARCH');
+  const [activeModule, setActiveModule] = useState<SubModule>('EXECUTIVE_DASHBOARD');
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [theater, setTheater] = useState<string>('LOS ANGELES, USA');
-  const [layoutMode, setLayoutMode] = useState<string>('ZENITH'); 
+  const [region, setRegion] = useState<string>('LOS ANGELES, USA');
   const [lockedLeadId, setLockedLeadId] = useState<string | null>(null);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   
-  // IMMEDIATELY CHECK FOR KEYS (ENV OR LOCAL)
   const [isArmed, setIsArmed] = useState(() => {
     const keys = getStoredKeys();
     return !!(keys.openRouter && keys.openRouter !== "undefined");
   });
-  
-  // --- SMOKE TEST INTERCEPT ---
-  if (typeof window !== 'undefined' && window.location.pathname === '/__smoketest_phase1') {
-    return <SmokeTest />;
-  }
 
   useEffect(() => {
     try {
       const savedLeads = db.getLeads();
-      const savedTheater = localStorage.getItem(STORAGE_KEY_THEATER);
-      const savedLayout = localStorage.getItem(STORAGE_KEY_LAYOUT);
+      const savedRegion = localStorage.getItem(STORAGE_KEY_REGION);
       if (savedLeads.length > 0) setLeads(savedLeads);
-      if (savedTheater) setTheater(savedTheater);
-      if (savedLayout) setLayoutMode(savedLayout);
+      if (savedRegion) setRegion(savedRegion);
     } catch (e) { console.error("Hydration failed", e); }
     setIsHydrated(true);
 
-    const unsubDb = db.subscribe((newLeads) => { 
-        setLeads([...newLeads]); 
-    });
+    const unsubDb = db.subscribe((newLeads) => { setLeads([...newLeads]); });
     return () => { unsubDb(); };
   }, []);
 
   useEffect(() => {
     if (!isHydrated) return;
-    localStorage.setItem(STORAGE_KEY_THEATER, theater);
-    localStorage.setItem(STORAGE_KEY_LAYOUT, layoutMode);
-  }, [theater, layoutMode, isHydrated]);
+    localStorage.setItem(STORAGE_KEY_REGION, region);
+  }, [region, isHydrated]);
 
   const lockedLead = useMemo(() => leads.find(l => l.id === lockedLeadId), [leads, lockedLeadId]);
-  
-  const handleUpdateStatus = (id: string, status: any) => { 
-    const currentLeads = db.getLeads();
-    const updated = currentLeads.map(l => l.id === id ? { ...l, outreachStatus: status } : l);
-    db.saveLeads(updated); 
-  };
   
   const handleUpdateLead = (id: string, updates: Partial<Lead>) => {
     const currentLeads = db.getLeads();
@@ -125,100 +103,72 @@ const App: React.FC = () => {
   }
 
   const renderContent = () => {
-    if (activeMode === 'OPERATE') {
-      switch (activeModule) {
-        case 'COMMAND': return <MissionControl leads={leads} theater={theater} onNavigate={navigate} />;
-        case 'RADAR_RECON': return <RadarRecon theater={theater} onLeadsGenerated={(l) => { db.saveLeads(l); navigate('OPERATE', 'TARGET_LIST'); }} />;
-        case 'AUTO_CRAWL': return <AutoCrawl theater={theater} onNewLeads={(newL) => {}} />;
-        case 'TARGET_LIST': return <TargetList leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('OPERATE', 'WAR_ROOM'); }} />;
-        case 'WAR_ROOM': return <WarRoom lead={lockedLead} onUpdateLead={handleUpdateLead} onNavigate={navigate} />;
-        case 'PIPELINE': return <Pipeline leads={leads} onUpdateStatus={handleUpdateStatus} />;
-        case 'HEATMAP': return <Heatmap leads={leads} theater={theater} />;
-        case 'DEEP_LOGIC': return <DeepLogic lead={lockedLead} />;
-        case 'BENCHMARK': return <BenchmarkNode lead={lockedLead} />;
-        case 'PROMPT_AI': return <PromptAI lead={lockedLead} />;
-        case 'FACT_CHECK': return <FactCheck lead={lockedLead} />;
-        case 'MODEL_TEST': return <ModelTest />;
-        case 'VIDEO_AI': return <VideoAI lead={lockedLead} />;
-        case 'TRANSLATOR': return <TranslatorNode />;
-        case 'VIRAL_PULSE': return <ViralPulse lead={lockedLead} />;
-        case 'WORKSPACE': return <WorkspaceNode leads={leads} />;
-        case 'ARTICLE_INTEL': return <ArticleIntel lead={lockedLead} />;
-        case 'CINEMA_INTEL': return <CinemaIntel lead={lockedLead} />;
-        case 'ANALYTICS': case 'ANALYTICS_HUB': return <AnalyticsHub leads={leads} />;
-        default: return <IntelNode module={activeModule} lead={lockedLead} />;
-      }
+    switch (activeModule) {
+      case 'EXECUTIVE_DASHBOARD': return <ExecutiveDashboard leads={leads} market={region} onNavigate={navigate} />;
+      case 'USER_GUIDE': return <UserGuide onNavigate={navigate} />;
+      case 'MARKET_DISCOVERY': return <MarketDiscovery market={region} onLeadsGenerated={(l) => { db.saveLeads(l); navigate('RESEARCH', 'PROSPECT_DATABASE'); }} />;
+      case 'AUTOMATED_SEARCH': return <AutomatedSearch market={region} onNewLeads={(newL) => {}} />;
+      case 'PROSPECT_DATABASE': return <ProspectDatabase leads={leads} lockedLeadId={lockedLeadId} onLockLead={setLockedLeadId} onInspect={(id) => { setLockedLeadId(id); navigate('RESEARCH', 'STRATEGY_CENTER'); }} />;
+      case 'STRATEGY_CENTER': return <StrategyCenter lead={lockedLead} onUpdateLead={handleUpdateLead} onNavigate={navigate} />;
+      case 'PIPELINE': return <Pipeline leads={leads} onUpdateStatus={(id, s) => handleUpdateLead(id, { outreachStatus: s })} />;
+      case 'HEATMAP': return <Heatmap leads={leads} market={region} />;
+      case 'STRATEGIC_REASONING': return <StrategicReasoning lead={lockedLead} />;
+      case 'BENCHMARK': return <BenchmarkNode lead={lockedLead} />;
+      case 'PROMPT_INTERFACE': return <PromptInterface lead={lockedLead} />;
+      case 'FACT_CHECK': return <FactCheck lead={lockedLead} />;
+      case 'MODEL_BENCH': return <ModelBench />;
+      case 'VIDEO_AUDIT': return <VideoAudit lead={lockedLead} />;
+      case 'TRANSLATOR': return <TranslatorNode />;
+      case 'MARKET_TRENDS': return <MarketTrends lead={lockedLead} />;
+      case 'WORKSPACE': return <WorkspaceNode leads={leads} />;
+      case 'CONTENT_ANALYSIS': return <ContentAnalysis lead={lockedLead} />;
+      case 'VIDEO_INSIGHTS': return <VideoInsights lead={lockedLead} />;
+      case 'ANALYTICS': case 'ANALYTICS_HUB': return <AnalyticsHub leads={leads} />;
+      case 'VISUAL_STUDIO': return <VisualStudio leads={leads} lockedLead={lockedLead} />;
+      case 'MOCKUPS_4K': return <Mockups4K lead={lockedLead} />;
+      case 'PRODUCT_SYNTHESIS': return <ProductSynthesis lead={lockedLead} />;
+      case 'CONTENT_IDEATION': return <ContentIdeation lead={lockedLead} />;
+      case 'ASSET_LIBRARY': return <AssetLibrary />;
+      case 'BRAND_DNA': return <BrandDNA lead={lockedLead} onUpdateLead={handleUpdateLead} />;
+      case 'VIDEO_PRODUCTION': return <VideoProduction lead={lockedLead} />;
+      case 'MOTION_LAB': return <MotionLab lead={lockedLead} />;
+      case 'SONIC_STUDIO': return <SonicStudio lead={lockedLead} />;
+      case 'MEETING_NOTES': return <MeetingNotes />;
+      case 'CAMPAIGN_ORCHESTRATOR': return <CampaignOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={setLockedLeadId} onUpdateLead={handleUpdateLead} />;
+      case 'BILLING': return <BillingNode />;
+      case 'AFFILIATE': return <AffiliateNode />;
+      case 'IDENTITY': return <IdentityNode />;
+      case 'SYSTEM_CONFIG': return <SystemConfig />;
+      case 'EXPORT_DATA': return <ExportNode leads={leads} />;
+      case 'CALENDAR': return <CalendarNode leads={leads} />;
+      case 'ACTIVITY_LOGS': return <ActivityLogs />;
+      case 'SETTINGS': return <SettingsNode />;
+      case 'NEXUS_GRAPH': return <NexusGraph leads={leads} />;
+      case 'TIMELINE': return <TimelineNode />;
+      case 'TASK_MANAGER': return <TaskManager lead={lockedLead} />;
+      case 'THEME': return <ThemeNode />;
+      case 'USAGE_STATS': return <UsageStats />;
+      default: return <IntelNode module={activeModule} lead={lockedLead} />;
     }
-    if (activeMode === 'CREATE') {
-      switch (activeModule) {
-        case 'VISUAL_STUDIO': return <VisualStudio leads={leads} lockedLead={lockedLead} />;
-        case 'MOCKUPS_4K': return <Mockups4K lead={lockedLead} />;
-        case 'PRODUCT_SYNTH': return <ProductSynth lead={lockedLead} />;
-        case 'FLASH_SPARK': return <FlashSpark lead={lockedLead} />;
-        case 'MEDIA_VAULT': return <MediaVault />;
-        case 'BRAND_DNA': return <BrandDNA lead={lockedLead} onUpdateLead={handleUpdateLead} />;
-        default: return <MissionControl leads={leads} theater={theater} onNavigate={navigate} />;
-      }
-    }
-    if (activeMode === 'STUDIO') {
-      switch (activeModule) {
-        case 'VIDEO_PITCH': return <VideoPitch lead={lockedLead} />;
-        case 'VIDEO_AI': return <VideoAI lead={lockedLead} />;
-        case 'CINEMA_INTEL': return <CinemaIntel lead={lockedLead} />;
-        case 'MOTION_LAB': return <MotionLab lead={lockedLead} />;
-        case 'SONIC_STUDIO': return <SonicStudio lead={lockedLead} />;
-        case 'LIVE_SCRIBE': return <LiveScribe />;
-        default: return <IntelNode module={activeModule} lead={lockedLead} />;
-      }
-    }
-    if (activeMode === 'SELL') {
-      if (activeModule === 'BUSINESS_ORCHESTRATOR') {
-        return <BusinessOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={setLockedLeadId} onUpdateLead={handleUpdateLead} />;
-      }
-      return <MissionControl leads={leads} theater={theater} onNavigate={navigate} />;
-    }
-    if (activeMode === 'CONTROL') {
-      switch (activeModule) {
-        case 'BILLING': return <BillingNode />;
-        case 'AFFILIATE': return <AffiliateNode />;
-        case 'IDENTITY': return <IdentityNode />;
-        case 'OS_FORGE': return <OSForge />;
-        case 'EXPORT_DATA': return <ExportNode leads={leads} />;
-        case 'CALENDAR': return <CalendarNode leads={leads} />;
-        case 'PROD_LOG': return <ProdLog />;
-        case 'SETTINGS': return <SettingsNode />;
-        case 'NEXUS_GRAPH': return <NexusGraph leads={leads} />;
-        case 'CHRONOS': return <ChronosNode />;
-        case 'TASKS': return <TasksNode lead={lockedLead} />;
-        case 'THEME': return <ThemeNode />;
-        case 'TOKENS': return <TokenNode />;
-        case 'MODEL_TEST': return <VerificationNode />;
-        default: return <SettingsNode />;
-      }
-    }
-    return null;
   };
-
-  const LayoutComponent = layoutMode === 'ZENITH' ? LayoutZenith : layoutMode === 'COMMAND' ? LayoutCommandCenter : Layout;
 
   return (
     <>
-      <LayoutComponent
+      <LayoutZenith
         activeMode={activeMode} setActiveMode={setActiveMode}
         activeModule={activeModule} setActiveModule={setActiveModule}
         onSearchClick={() => setIsCommandOpen(true)}
-        theater={theater} setTheater={setTheater}
-        theme="dark" toggleTheme={() => {}}
-        currentLayout={layoutMode}
-        setLayoutMode={setLayoutMode}
+        theater={region} setTheater={setRegion}
+        currentLayout="ZENITH"
+        setLayoutMode={() => {}}
       >
         {renderContent()}
         <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme="dark" />
         <footer className="fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t border-slate-800/50 px-10 py-2 flex justify-between items-center z-[100] bg-[#020617]/80 text-[9px] font-black uppercase tracking-widest text-slate-600 pointer-events-none">
-            <div className="flex gap-4"><span>SYSTEM: ONLINE</span><span>V14.3.8 (PERSISTENT)</span></div>
-            <div className="flex gap-4"><span>ENGINE: OPENROUTER</span><span>MEM: 45MB</span></div>
+            <div className="flex gap-4"><span>SYSTEM: OPERATIONAL</span><span>V14.6.0 (ENTERPRISE_SYNC)</span></div>
+            <div className="flex gap-4"><span>CORE: GEMINI_3_FLASH</span><span>SERVICE: KIE_PROXY</span></div>
         </footer>
-      </LayoutComponent>
+      </LayoutZenith>
       <ToastContainer />
     </>
   );

@@ -37,9 +37,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, onNavigate }) => {
   const navItems: { id: WorkspaceType; label: string; icon: string; category: string; description: string }[] = [
     { id: 'dashboard', label: 'Mission Control', icon: '🏠', category: 'Core', description: "Your main command center. See an overview of all active leads, stats, and system health." },
     { id: 'intelligence', label: 'Lead Discovery', icon: '📡', category: 'Intelligence', description: "The radar scanner. Use this to search for new businesses in specific cities that fit your criteria." },
-    { id: 'war-room', label: 'Strategy Hub', icon: '⚔️', category: 'Strategy', description: "The strategy hub. Analyze a specific client deeply, view their weak spots, and plan your pitch." },
+    // Fix: 'war-room' is not a valid WorkspaceType, using 'strategy' instead
+    { id: 'strategy', label: 'Strategy Hub', icon: '⚔️', category: 'Strategy', description: "The strategy hub. Analyze a specific client deeply, view their weak spots, and plan your pitch." },
     { id: 'creative', label: 'Creative Studio', icon: '🎨', category: 'Production', description: "Your asset factory. Create high-end images, videos, and audio pitches to wow the client." },
-    { id: 'outreach', label: 'Campaign Builder', icon: '🎯', category: 'Outreach', description: "The communications center. Plan and launch emails, LinkedIn messages, and follow-ups." },
+    // Fix: 'outreach' is not a valid WorkspaceType, using 'campaign' instead
+    { id: 'campaign', label: 'Campaign Builder', icon: '🎯', category: 'Outreach', description: "The communications center. Plan and launch emails, LinkedIn messages, and follow-ups." },
     { id: 'identity', label: 'Agency Identity', icon: '🏢', category: 'Operations', description: "Define who YOU are. Set your agency's niche, branding, and core offer pitch." },
   ];
 

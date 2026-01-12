@@ -2,23 +2,23 @@
 // PHASE 1: Canonical Status Definition
 export type OutreachStatus = 'cold' | 'queued' | 'sent' | 'opened' | 'replied' | 'booked' | 'won' | 'lost' | 'paused';
 
-export type MainMode = 'OPERATE' | 'CREATE' | 'STUDIO' | 'SELL' | 'CONTROL';
+export type MainMode = 'RESEARCH' | 'DESIGN' | 'MEDIA' | 'OUTREACH' | 'ADMIN';
 
 export type SubModule = 
-  | 'COMMAND' | 'RADAR_RECON' | 'AUTO_CRAWL' | 'TARGET_LIST' | 'PIPELINE' | 'WAR_ROOM' 
-  | 'DEEP_LOGIC' | 'WORKSPACE' | 'VIRAL_PULSE' | 'VISION_LAB' | 'CINEMA_INTEL' 
-  | 'ARTICLE_INTEL' | 'BENCHMARK' | 'ANALYTICS' | 'HEATMAP' | 'PROMPT_AI' | 'MODEL_TEST' 
-  | 'VIDEO_AI' | 'FACT_CHECK' | 'TRANSLATOR' | 'ANALYTICS_HUB'
-  | 'VIDEO_PITCH' | 'VISUAL_STUDIO' | 'MOCKUPS_4K' | 'SONIC_STUDIO' | 'PRODUCT_SYNTH' 
-  | 'MOTION_LAB' | 'FLASH_SPARK' | 'MEDIA_VAULT' | 'BRAND_DNA'
-  | 'BUSINESS_ORCHESTRATOR' | 'PROPOSALS' | 'ROI_CALC' | 'SEQUENCER' | 'DECK_ARCH' 
-  | 'DEMO_SANDBOX' | 'DRAFTING' | 'VOICE_STRAT' | 'LIVE_SCRIBE' | 'AI_CONCIERGE' 
-  | 'PITCH_GEN' | 'FUNNEL_MAP'
-  | 'PLAYBOOK' | 'BILLING' | 'AFFILIATE' | 'IDENTITY' | 'OS_FORGE' | 'EXPORT_DATA' 
-  | 'CALENDAR' | 'PROD_LOG' | 'SETTINGS' | 'NEXUS_GRAPH' | 'CHRONOS' 
-  | 'TASKS' | 'THEME' | 'TOKENS';
+  | 'EXECUTIVE_DASHBOARD' | 'USER_GUIDE' | 'MARKET_DISCOVERY' | 'AUTOMATED_SEARCH' | 'PROSPECT_DATABASE' | 'PIPELINE' | 'STRATEGY_CENTER' 
+  | 'STRATEGIC_REASONING' | 'WORKSPACE' | 'MARKET_TRENDS' | 'VISUAL_ANALYSIS' | 'VIDEO_INSIGHTS' 
+  | 'CONTENT_ANALYSIS' | 'BENCHMARK' | 'ANALYTICS' | 'HEATMAP' | 'PROMPT_INTERFACE' | 'MODEL_BENCH' 
+  | 'VIDEO_AUDIT' | 'FACT_CHECK' | 'TRANSLATOR' | 'ANALYTICS_HUB'
+  | 'VIDEO_PRODUCTION' | 'VISUAL_STUDIO' | 'MOCKUPS_4K' | 'SONIC_STUDIO' | 'PRODUCT_SYNTHESIS' 
+  | 'MOTION_LAB' | 'CONTENT_IDEATION' | 'ASSET_LIBRARY' | 'BRAND_DNA'
+  | 'CAMPAIGN_ORCHESTRATOR' | 'PROPOSALS' | 'ROI_CALCULATOR' | 'SEQUENCER' | 'PRESENTATION_BUILDER' 
+  | 'DEMO_SANDBOX' | 'DRAFTING' | 'SALES_COACH' | 'MEETING_NOTES' | 'AI_CONCIERGE' 
+  | 'ELEVATOR_PITCH' | 'FUNNEL_MAP'
+  | 'AGENCY_PLAYBOOK' | 'BILLING' | 'AFFILIATE' | 'IDENTITY' | 'SYSTEM_CONFIG' | 'EXPORT_DATA' 
+  | 'CALENDAR' | 'ACTIVITY_LOGS' | 'SETTINGS' | 'NEXUS_GRAPH' | 'TIMELINE' 
+  | 'TASK_MANAGER' | 'THEME' | 'USAGE_STATS';
 
-export type WorkspaceType = 'dashboard' | 'intelligence' | 'war-room' | 'creative' | 'outreach' | 'identity';
+export type WorkspaceType = 'dashboard' | 'intelligence' | 'strategy' | 'creative' | 'campaign' | 'identity';
 
 export interface ComputeStats {
   sessionTokens: number;
@@ -28,24 +28,18 @@ export interface ComputeStats {
   flashCalls: number;
 }
 
-// STRICT OUTREACH TYPING
 export type OutreachChannel = 'email' | 'linkedin';
 export type OutreachMode = 'live' | 'test';
 
 export interface OutreachLog {
   id: string;
   timestamp: number;
-
   channel: OutreachChannel;
   mode: OutreachMode;
-
   leadId?: string;
   to?: string;
-
   subject?: string;
-  contentSnippet?: string; // derived from body, max 240 chars
-  
-  // Optional extras if needed for UI compatibility
+  contentSnippet?: string;
   status?: 'SENT' | 'FAILED'; 
 }
 
@@ -54,14 +48,13 @@ export interface BrandIdentity {
   fontPairing: string;
   archetype: string;
   visualTone: string;
-  // New Fields for Pomelli Clone
   tagline?: string;
   brandValues?: string[];
   aestheticTags?: string[];
   voiceTags?: string[];
   mission?: string;
   logoUrl?: string;
-  extractedImages?: string[]; // Array of image URLs found on site
+  extractedImages?: string[];
 }
 
 export interface CreativeAsset {
@@ -98,34 +91,22 @@ export interface Lead {
   visualProof: string;
   bestAngle: string;
   personalizedHook: string;
-  
-  // Brand DNA (Pomelli Engine)
   brandIdentity?: BrandIdentity;
   campaigns?: Campaign[];
-
-  // CRM Status Contract
-  status?: OutreachStatus; // Legacy support (Optional)
-  outreachStatus?: OutreachStatus; // Canonical CRM Field (Source of Truth)
-  
+  status?: OutreachStatus;
+  outreachStatus?: OutreachStatus;
   instagram?: string;
   tiktok?: string;
   youtube?: string;
   contactUrl?: string;
   groundingSources?: Array<{ title?: string; uri?: string }>;
-  
-  // Outreach CRM Data
   outreachHistory?: OutreachLog[];
   lastContactAt?: number;
-  lastContactedAt?: number; // Alias for safety
-  nextFollowUp?: number; // Legacy alias
+  lastContactedAt?: number;
   nextFollowUpAt?: number;
-  
-  // Phase 1 CRM Fields
   owner?: string;
   notes?: string;
   tags?: string[];
-  
-  // Automation Locking Fields
   locked?: boolean;
   lockedAt?: number;
   lockedByRunId?: string;

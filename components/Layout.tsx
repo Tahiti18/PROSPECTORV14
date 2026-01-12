@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { MainMode, SubModule } from '../types';
 
@@ -63,82 +64,84 @@ const Icons = {
   Control: <IconWrapper path={<><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></>} />,
 };
 
+// Fix: Update SUB_MODULES to use valid MainMode and SubModule keys
 const SUB_MODULES: Record<MainMode, { id: SubModule; label: string }[]> = {
-  OPERATE: [
-    { id: 'COMMAND', label: 'Mission Control' },
-    { id: 'RADAR_RECON', label: 'Radar Recon' },
-    { id: 'AUTO_CRAWL', label: 'Auto Crawl' },
-    { id: 'TARGET_LIST', label: 'Target Ledger' },
+  RESEARCH: [
+    { id: 'EXECUTIVE_DASHBOARD', label: 'Mission Control' },
+    { id: 'MARKET_DISCOVERY', label: 'Radar Recon' },
+    { id: 'AUTOMATED_SEARCH', label: 'Auto Crawl' },
+    { id: 'PROSPECT_DATABASE', label: 'Target Ledger' },
     { id: 'PIPELINE', label: 'Pipeline' },
-    { id: 'WAR_ROOM', label: 'War Room' },
-    { id: 'DEEP_LOGIC', label: 'Deep Logic' },
+    { id: 'STRATEGY_CENTER', label: 'War Room' },
+    { id: 'STRATEGIC_REASONING', label: 'Deep Logic' },
     { id: 'WORKSPACE', label: 'Workspace' },
-    { id: 'VIRAL_PULSE', label: 'Viral Pulse' },
-    { id: 'VISION_LAB', label: 'Vision Lab' },
-    { id: 'ARTICLE_INTEL', label: 'Article Intel' },
+    { id: 'MARKET_TRENDS', label: 'Viral Pulse' },
+    { id: 'VISUAL_ANALYSIS', label: 'Vision Lab' },
+    { id: 'CONTENT_ANALYSIS', label: 'Article Intel' },
     { id: 'BENCHMARK', label: 'Benchmark' },
     { id: 'ANALYTICS', label: 'Analytics' },
     { id: 'ANALYTICS_HUB', label: 'Dominance Hub' },
     { id: 'HEATMAP', label: 'Heatmap' },
-    { id: 'PROMPT_AI', label: 'Prompt Interface' },
-    { id: 'MODEL_TEST', label: 'Model Test' },
+    { id: 'PROMPT_INTERFACE', label: 'Prompt Interface' },
+    { id: 'MODEL_BENCH', label: 'Model Test' },
     { id: 'FACT_CHECK', label: 'Fact Check' },
     { id: 'TRANSLATOR', label: 'Translator' }
   ],
-  CREATE: [
+  DESIGN: [
     { id: 'VISUAL_STUDIO', label: 'Visual Studio' },
     { id: 'BRAND_DNA', label: 'Brand DNA' },
     { id: 'MOCKUPS_4K', label: '4K Mockups' },
-    { id: 'PRODUCT_SYNTH', label: 'Product Synth' },
-    { id: 'FLASH_SPARK', label: 'Flash Spark' },
-    { id: 'MEDIA_VAULT', label: 'Media Vault' }
+    { id: 'PRODUCT_SYNTHESIS', label: 'Product Synth' },
+    { id: 'CONTENT_IDEATION', label: 'Flash Spark' },
+    { id: 'ASSET_LIBRARY', label: 'Media Vault' }
   ],
-  STUDIO: [
-    { id: 'VIDEO_PITCH', label: 'Veo Pitch' },
-    { id: 'VIDEO_AI', label: 'Video Audit' },
-    { id: 'CINEMA_INTEL', label: 'Cinema Intel' },
+  MEDIA: [
+    { id: 'VIDEO_PRODUCTION', label: 'Veo Pitch' },
+    { id: 'VIDEO_AUDIT', label: 'Video Audit' },
+    { id: 'VIDEO_INSIGHTS', label: 'Cinema Intel' },
     { id: 'MOTION_LAB', label: 'Motion Lab' },
     { id: 'SONIC_STUDIO', label: 'Sonic Studio' },
-    { id: 'LIVE_SCRIBE', label: 'Live Scribe' }
+    { id: 'MEETING_NOTES', label: 'Live Scribe' }
   ],
-  SELL: [
-    { id: 'BUSINESS_ORCHESTRATOR', label: 'Orchestrator' },
+  OUTREACH: [
+    { id: 'CAMPAIGN_ORCHESTRATOR', label: 'Orchestrator' },
     { id: 'PROPOSALS', label: 'Proposals' },
-    { id: 'ROI_CALC', label: 'ROI Calc' },
+    { id: 'ROI_CALCULATOR', label: 'ROI Calc' },
     { id: 'SEQUENCER', label: 'Sequencer' },
-    { id: 'DECK_ARCH', label: 'Deck Architect' },
+    { id: 'PRESENTATION_BUILDER', label: 'Deck Architect' },
     { id: 'DEMO_SANDBOX', label: 'Demo Sandbox' },
     { id: 'DRAFTING', label: 'Drafting' },
-    { id: 'VOICE_STRAT', label: 'Voice Strat' },
+    { id: 'SALES_COACH', label: 'Voice Strat' },
     { id: 'AI_CONCIERGE', label: 'AI Concierge' },
-    { id: 'PITCH_GEN', label: 'Pitch Gen' },
+    { id: 'ELEVATOR_PITCH', label: 'Pitch Gen' },
     { id: 'FUNNEL_MAP', label: 'Funnel Map' }
   ],
-  CONTROL: [
-    { id: 'PLAYBOOK', label: 'Playbook' },
+  ADMIN: [
+    { id: 'AGENCY_PLAYBOOK', label: 'Playbook' },
     { id: 'BILLING', label: 'Billing' },
     { id: 'AFFILIATE', label: 'Affiliate' },
     { id: 'IDENTITY', label: 'Identity' },
-    { id: 'OS_FORGE', label: 'OS Forge' },
+    { id: 'SYSTEM_CONFIG', label: 'OS Forge' },
     { id: 'EXPORT_DATA', label: 'Export Data' },
     { id: 'CALENDAR', label: 'Calendar' },
-    { id: 'PROD_LOG', label: 'Prod Log' },
+    { id: 'ACTIVITY_LOGS', label: 'Prod Log' },
     { id: 'SETTINGS', label: 'Settings' },
     { id: 'NEXUS_GRAPH', label: 'Nexus Graph' },
-    { id: 'CHRONOS', label: 'Chronos' },
-    { id: 'TASKS', label: 'Tasks' },
+    { id: 'TIMELINE', label: 'Chronos' },
+    { id: 'TASK_MANAGER', label: 'Tasks' },
     { id: 'THEME', label: 'Theme' },
-    { id: 'TOKENS', label: 'Tokens' }
+    { id: 'USAGE_STATS', label: 'Tokens' }
   ]
 };
 
 // UNIFIED EMERALD CONFIG
+// Fix: Update MODE_CONFIG to use valid MainMode keys
 const MODE_CONFIG: Record<MainMode, { borderClass: string; bgClass: string; shadowClass: string; icon: React.ReactNode }> = {
-  OPERATE: { borderClass: 'border-emerald-500', bgClass: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.Operate },
-  CREATE: { borderClass: 'border-emerald-500', bgClass: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.Create },
-  STUDIO: { borderClass: 'border-emerald-500', bgClass: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.Studio },
-  SELL: { borderClass: 'border-emerald-500', bgClass: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.Sell },
-  CONTROL: { borderClass: 'border-emerald-500', bgClass: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.Control },
+  RESEARCH: { borderClass: 'border-emerald-500', bgClass: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.Operate },
+  DESIGN: { borderClass: 'border-emerald-500', bgClass: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.Create },
+  MEDIA: { borderClass: 'border-emerald-500', bgClass: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.Studio },
+  OUTREACH: { borderClass: 'border-emerald-500', bgClass: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.Sell },
+  ADMIN: { borderClass: 'border-emerald-500', bgClass: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.Control },
 };
 
 export const Layout: React.FC<LayoutProps> = ({ 
@@ -189,7 +192,7 @@ export const Layout: React.FC<LayoutProps> = ({
                   <IconWrapper path={<path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />} />
                </button>
                <div className="relative group">
-                 <select value={theater} onChange={(e) => setTheater(e.target.value)} className="bg-transparent text-sm font-bold uppercase focus:outline-none cursor-pointer border-none max-w-[160px] truncate py-3 text-white">
+                 <select value={theater} onChange={(e) => setTheater(e.target.value)} className="bg-transparent text-sm font-bold uppercase focus:outline-none cursor-pointer border-none max-w-[1600px] truncate py-3 text-white">
                     {STRATEGIC_CITIES.map(c => <option key={c.city} value={c.city}>{c.city}</option>)}
                  </select>
                  <div className="absolute -bottom-1 left-0 w-full h-px bg-slate-800 group-hover:bg-emerald-500 transition-colors"></div>

@@ -2,18 +2,6 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-// Mock browser globals for Node environment compatibility if needed
-if (typeof (globalThis as any).localStorage === 'undefined') {
-  (globalThis as any).localStorage = {
-    getItem: () => null,
-    setItem: () => {},
-    removeItem: () => {},
-    clear: () => {},
-    key: () => null,
-    length: 0
-  };
-}
-
 const createKieProxyMiddleware = (env: Record<string, string>) => {
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     try {
@@ -43,7 +31,6 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         res.end(JSON.stringify(data));
       };
 
-      // Handle Submission (Video or Suno)
       if (req.method === 'POST' && (url.includes('/submit') || url.includes('/suno_submit') || url.includes('/video_submit'))) {
         const bodyStr = await readBody();
         const upstreamRes = await fetch(KIE_GENERATE_BASE, {
@@ -58,8 +45,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return sendJson(upstreamRes.status, parsed);
       }
 
-      // Handle Polling / Record Info
-      if (req.method === 'GET' && (url.includes('/status/') || url.includes('/record-info'))) {
+      if (req.method === 'GET' && (url.includes('/status/') || url.includes('/record-info') || url.includes('/suno/record-info'))) {
         const u = new URL(req.url!, `http://${req.headers.host}`);
         const taskId = u.pathname.split('/').pop() || u.searchParams.get('taskId');
         const upstreamUrl = `${KIE_GENERATE_BASE}/record-info?taskId=${encodeURIComponent(taskId || '')}`;
@@ -70,7 +56,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return sendJson(upstreamRes.status, parsed);
       }
 
-      return sendJson(404, { error: 'Route not found in KIE Proxy' });
+      return sendJson(404, { error: 'KIE Route Invalid' });
     } catch (e: any) {
       res.statusCode = 500;
       res.end(JSON.stringify({ error: e?.message || 'Internal Proxy Error' }));

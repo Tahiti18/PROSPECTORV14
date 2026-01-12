@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { MainMode, SubModule } from '../types';
 
@@ -31,104 +32,105 @@ const Icons = {
   CONTROL: <IconWrapper path={<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" />} />,
 };
 
-// --- GROUPING LOGIC ---
+// Fix: Update MODULE_GROUPS to use valid MainMode and SubModule keys
 const MODULE_GROUPS: Record<MainMode, Record<string, { id: SubModule; label: string }[]>> = {
-  OPERATE: {
+  RESEARCH: {
     "Research": [
-      { id: 'COMMAND', label: 'Dashboard' },
-      { id: 'RADAR_RECON', label: 'Lead Discovery' },
-      { id: 'AUTO_CRAWL', label: 'Auto Search' },
-      { id: 'VIRAL_PULSE', label: 'Trend Monitor' },
+      { id: 'EXECUTIVE_DASHBOARD', label: 'Dashboard' },
+      { id: 'MARKET_DISCOVERY', label: 'Lead Discovery' },
+      { id: 'AUTOMATED_SEARCH', label: 'Auto Search' },
+      { id: 'MARKET_TRENDS', label: 'Trend Monitor' },
     ],
     "CRM & Strategy": [
-      { id: 'TARGET_LIST', label: 'Lead Database' },
-      { id: 'WAR_ROOM', label: 'Strategy Hub' },
+      { id: 'PROSPECT_DATABASE', label: 'Lead Database' },
+      { id: 'STRATEGY_CENTER', label: 'Strategy Hub' },
       { id: 'PIPELINE', label: 'Sales Pipeline' },
       { id: 'ANALYTICS_HUB', label: 'Market Analytics' },
     ],
     "Analysis Tools": [
       { id: 'BENCHMARK', label: 'Reverse Engineer' },
-      { id: 'VISION_LAB', label: 'Vision Analysis' },
-      { id: 'DEEP_LOGIC', label: 'Deep Analysis' },
-      { id: 'ARTICLE_INTEL', label: 'Content Analysis' },
+      { id: 'VISUAL_ANALYSIS', label: 'Vision Analysis' },
+      { id: 'STRATEGIC_REASONING', label: 'Deep Analysis' },
+      { id: 'CONTENT_ANALYSIS', label: 'Content Analysis' },
     ],
     "Utilities": [
         { id: 'WORKSPACE', label: 'Gemini Workspace' },
-        { id: 'PROMPT_AI', label: 'Prompt Interface' },
-        { id: 'MODEL_TEST', label: 'Model Bench' },
+        { id: 'PROMPT_INTERFACE', label: 'Prompt Interface' },
+        { id: 'MODEL_BENCH', label: 'Model Bench' },
         { id: 'TRANSLATOR', label: 'Translator' }
     ]
   },
-  CREATE: {
+  DESIGN: {
     "Creative Studio": [
       { id: 'VISUAL_STUDIO', label: 'Creative Studio' },
       { id: 'BRAND_DNA', label: 'Brand DNA' },
       { id: 'MOCKUPS_4K', label: 'Mockup Generator' },
     ],
     "Assets": [
-      { id: 'PRODUCT_SYNTH', label: 'Product Design' },
-      { id: 'FLASH_SPARK', label: 'Flash Spark' },
-      { id: 'MEDIA_VAULT', label: 'Asset Library' },
+      { id: 'PRODUCT_SYNTHESIS', label: 'Product Design' },
+      { id: 'CONTENT_IDEATION', label: 'Flash Spark' },
+      { id: 'ASSET_LIBRARY', label: 'Asset Library' },
     ]
   },
-  STUDIO: {
+  MEDIA: {
     "Video": [
-      { id: 'VIDEO_PITCH', label: 'Video Studio' },
-      { id: 'VIDEO_AI', label: 'Video Audit' },
-      { id: 'CINEMA_INTEL', label: 'Video Analysis' },
+      { id: 'VIDEO_PRODUCTION', label: 'Video Studio' },
+      { id: 'VIDEO_AUDIT', label: 'Video Audit' },
+      { id: 'VIDEO_INSIGHTS', label: 'Video Analysis' },
       { id: 'MOTION_LAB', label: 'Motion Design' },
     ],
     "Audio": [
       { id: 'SONIC_STUDIO', label: 'Audio Studio' },
-      { id: 'LIVE_SCRIBE', label: 'Live Scribe' },
+      { id: 'MEETING_NOTES', label: 'Live Scribe' },
     ]
   },
-  SELL: {
+  OUTREACH: {
     "Strategy": [
-      { id: 'BUSINESS_ORCHESTRATOR', label: 'Campaign Builder' },
-      { id: 'DECK_ARCH', label: 'Deck Architect' },
+      { id: 'CAMPAIGN_ORCHESTRATOR', label: 'Campaign Builder' },
+      { id: 'PRESENTATION_BUILDER', label: 'Deck Architect' },
       { id: 'FUNNEL_MAP', label: 'Funnel Map' },
     ],
     "Execution": [
       { id: 'PROPOSALS', label: 'Proposal Builder' },
       { id: 'SEQUENCER', label: 'Outreach Builder' },
-      { id: 'PITCH_GEN', label: 'Pitch Generator' },
-      { id: 'VOICE_STRAT', label: 'Sales Coach' },
+      { id: 'ELEVATOR_PITCH', label: 'Pitch Generator' },
+      { id: 'SALES_COACH', label: 'Sales Coach' },
     ],
     "Simulation": [
-      { id: 'ROI_CALC', label: 'ROI Calculator' },
+      { id: 'ROI_CALCULATOR', label: 'ROI Calculator' },
       { id: 'DEMO_SANDBOX', label: 'Growth Simulator' },
       { id: 'AI_CONCIERGE', label: 'AI Agent' },
     ]
   },
-  CONTROL: {
+  ADMIN: {
     "Operations": [
-      { id: 'PLAYBOOK', label: 'Playbook' },
+      { id: 'AGENCY_PLAYBOOK', label: 'Playbook' },
       { id: 'IDENTITY', label: 'Identity' },
       { id: 'BILLING', label: 'Billing' },
       { id: 'AFFILIATE', label: 'Affiliate' },
     ],
     "System": [
       { id: 'SETTINGS', label: 'Settings' },
-      { id: 'OS_FORGE', label: 'System Config' },
+      { id: 'SYSTEM_CONFIG', label: 'System Config' },
       { id: 'THEME', label: 'Theme' },
-      { id: 'TOKENS', label: 'Credits' },
+      { id: 'USAGE_STATS', label: 'Credits' },
     ],
     "Logs": [
         { id: 'EXPORT_DATA', label: 'Data Export' },
-        { id: 'PROD_LOG', label: 'Activity Logs' },
-        { id: 'CHRONOS', label: 'Timeline' },
+        { id: 'ACTIVITY_LOGS', label: 'Activity Logs' },
+        { id: 'TIMELINE', label: 'Timeline' },
         { id: 'NEXUS_GRAPH', label: 'Entity Graph' },
     ]
   }
 };
 
+// Fix: Update MODE_CONFIG to use valid MainMode keys
 const MODE_CONFIG: Record<MainMode, { color: string; bg: string; shadowClass: string; icon: React.ReactNode }> = {
-  OPERATE: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.OPERATE },
-  CREATE: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.CREATE },
-  STUDIO: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.STUDIO },
-  SELL: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.SELL },
-  CONTROL: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.CONTROL },
+  RESEARCH: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.OPERATE },
+  DESIGN: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.CREATE },
+  MEDIA: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.STUDIO },
+  OUTREACH: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.SELL },
+  ADMIN: { color: 'text-emerald-500', bg: 'bg-emerald-500/10', shadowClass: 'shadow-emerald-500/20', icon: Icons.CONTROL },
 };
 
 export const LayoutCommandCenter: React.FC<LayoutProps> = ({ 
@@ -147,11 +149,8 @@ export const LayoutCommandCenter: React.FC<LayoutProps> = ({
 }) => {
   const [moduleFilter, setModuleFilter] = useState('');
   
-  // Map legacy internal modes to new UI display
-  const displayMode = activeMode === 'OPERATE' ? 'RESEARCH' : 
-                      activeMode === 'STUDIO' ? 'MEDIA' : 
-                      activeMode === 'SELL' ? 'OUTREACH' : 
-                      activeMode === 'CONTROL' ? 'ADMIN' : activeMode;
+  // Fix: activeMode values are already RESEARCH, MEDIA, etc.
+  const displayMode = activeMode;
 
   const activeConfig = MODE_CONFIG[activeMode];
   const groups = MODULE_GROUPS[activeMode];
@@ -171,10 +170,7 @@ export const LayoutCommandCenter: React.FC<LayoutProps> = ({
           {(Object.keys(MODE_CONFIG) as MainMode[]).map((mode) => {
             const isActive = activeMode === mode;
             const config = MODE_CONFIG[mode];
-            const label = mode === 'OPERATE' ? 'RESEARCH' : 
-                          mode === 'STUDIO' ? 'MEDIA' : 
-                          mode === 'SELL' ? 'OUTREACH' : 
-                          mode === 'CONTROL' ? 'ADMIN' : mode;
+            const label = mode;
 
             return (
               <button
