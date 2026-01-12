@@ -18,7 +18,7 @@ export const Heatmap: React.FC<HeatmapProps> = ({ leads, market }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        <div className="lg:col-span-8 bg-[#0b1021] border border-slate-800 rounded-[56px] p-12 shadow-2xl relative aspect-square lg:aspect-video overflow-hidden">
+        <div className="lg:col-span-8 bg-[#0b1021] border-2 border-slate-800 rounded-[56px] p-12 shadow-2xl relative aspect-square lg:aspect-video overflow-hidden">
            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#1e293b 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
            
            <svg className="w-full h-full relative z-10" viewBox="0 0 1000 500">
@@ -60,11 +60,11 @@ export const Heatmap: React.FC<HeatmapProps> = ({ leads, market }) => {
         </div>
 
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-[32px] p-8">
+          <div className="bg-slate-900 border-2 border-slate-800 rounded-[32px] p-8">
              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Theater Coordinates</h3>
              <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                 {leads.sort((a,b) => b.leadScore - a.leadScore).map(l => (
-                  <div key={l.id} className="flex justify-between items-center py-3 border-b border-slate-800/50 last:border-0">
+                  <div key={l.id} className="flex justify-between items-center py-3 border-b-2 border-slate-800/50 last:border-0">
                     <div>
                       <p className="text-[10px] font-black text-slate-200 uppercase truncate max-w-[150px]">{l.businessName}</p>
                       <p className="text-[8px] text-slate-500 font-bold uppercase">{l.niche}</p>

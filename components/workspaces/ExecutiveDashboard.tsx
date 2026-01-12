@@ -80,7 +80,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ leads, market, on
           <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em]">Agency Systems Synchronized</span>
         </div>
         
-        <h1 className="text-6xl font-black uppercase tracking-tighter text-white leading-none">
+        <h1 className="text-4xl font-black uppercase tracking-tighter text-white leading-none">
           AGENCY <span className="text-emerald-500 italic opacity-90">OVERVIEW</span>
         </h1>
         <p className="mt-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.6em]">ACTIVE MARKET: <span className="text-emerald-400 italic">{market}</span></p>

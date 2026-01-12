@@ -10,7 +10,7 @@ interface GenericIntelNodeProps {
 export const GenericIntelNode: React.FC<GenericIntelNodeProps> = ({ module, leads }) => {
   const [roiState, setRoiState] = useState({ ltv: 5000, leads: 100, conv: 2 });
 
-  // CATEGORIZATION LOGIC - Optimized to strictly match canonical types.ts
+  // CATEGORIZATION LOGIC - Synchronized with canonical SubModule type
   const isAnalytics = ['ANALYTICS_HUB', 'ANALYTICS', 'HEATMAP', 'BENCHMARK', 'PIPELINE', 'USAGE_STATS'].includes(module);
   const isSales = ['ROI_CALCULATOR', 'SEQUENCER', 'FUNNEL_MAP', 'PRESENTATION_BUILDER'].includes(module);
 
@@ -20,7 +20,7 @@ export const GenericIntelNode: React.FC<GenericIntelNodeProps> = ({ module, lead
       <div className="space-y-8 animate-in fade-in duration-500">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">{module.replace('_', ' ')} <span className="text-emerald-600 not-italic">INTEL</span></h1>
+            <h1 className="text-3xl font-black italic text-white uppercase tracking-tighter">{module.replace('_', ' ')} <span className="text-emerald-600 not-italic">INTEL</span></h1>
             <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-1 italic">Real-time Data Stream: Connected</p>
           </div>
           <div className="flex gap-2">
@@ -68,7 +68,7 @@ export const GenericIntelNode: React.FC<GenericIntelNodeProps> = ({ module, lead
     return (
       <div className="max-w-4xl mx-auto py-10 animate-in fade-in duration-500">
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-black italic text-white uppercase tracking-tighter">ROI <span className="text-emerald-600 not-italic">PROJECTION</span></h1>
+          <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">ROI <span className="text-emerald-600 not-italic">PROJECTION</span></h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">Quantifying AI Transformation Value</p>
         </div>
 
@@ -91,7 +91,7 @@ export const GenericIntelNode: React.FC<GenericIntelNodeProps> = ({ module, lead
 
           <div className="bg-[#05091a] rounded-[32px] border-2 border-slate-800/60 p-10 flex flex-col items-center justify-center text-center space-y-2">
              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">PROJECTED REVENUE INCREASE</span>
-             <h2 className="text-6xl font-black italic text-emerald-400 tracking-tighter">${revenue.toLocaleString()}</h2>
+             <h2 className="text-5xl font-black italic text-emerald-400 tracking-tighter">${revenue.toLocaleString()}</h2>
              <button className="mt-8 bg-emerald-600/10 border-2 border-emerald-500/20 text-emerald-400 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all">GENERATE REPORT</button>
           </div>
         </div>
@@ -104,7 +104,7 @@ export const GenericIntelNode: React.FC<GenericIntelNodeProps> = ({ module, lead
     <div className="max-w-5xl mx-auto py-12 animate-in fade-in duration-500">
       <div className="flex justify-between items-center mb-10">
         <div>
-           <h1 className="text-4xl font-black italic text-white uppercase tracking-tighter">{module.replace('_', ' ')}</h1>
+           <h1 className="text-3xl font-black italic text-white uppercase tracking-tighter">{module.replace('_', ' ')}</h1>
            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mt-2">Active Operational Node</p>
         </div>
         <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
