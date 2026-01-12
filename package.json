@@ -1,5 +1,6 @@
+
 {
-  "name": "prospector-os-intel-engine",
+  "name": "pomelli-lead-intel-engine",
   "private": true,
   "version": "14.5.3",
   "type": "module",
