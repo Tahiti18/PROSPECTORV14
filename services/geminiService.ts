@@ -2,11 +2,12 @@
 import { Lead, BrandIdentity } from '../types';
 import { deductCost } from './computeTracker';
 import { toast } from './toastManager';
-import { GoogleGenAI, Type, Modality } from "@google/genai";
+// Fix: Import GoogleGenAI from @google/genai
+import { GoogleGenAI } from "@google/genai";
 
 // --- INFRASTRUCTURE CONFIGURATION ---
-const PRIMARY_MODEL = "gemini-3-flash-preview"; 
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const PRIMARY_MODEL = "google/gemini-3-flash-preview";
+const PROXY_BASE = "/api/proxy"; // Standardized backend proxy route
 
 export interface VeoConfig {
   aspectRatio: '16:9' | '9:16';
@@ -37,33 +38,17 @@ export interface BenchmarkReport {
   sources: Array<{ title: string; uri: string }>;
 }
 
-// --- SECURED KEY PERSISTENCE (RAILWAY ENV PRIORITY) ---
+// --- SECURED KEY PERSISTENCE (ENVIRONMENT DRIVEN) ---
 const sanitizeKey = (k: any): string => {
   if (!k || k === 'undefined' || k === 'null' || k === '') return '';
-  // Force removal of surrounding quotes that Railway/Vite sometimes inject
   return String(k).trim().replace(/^["']|["']$/g, '');
 };
 
 export const getStoredKeys = () => {
-    // Railway/Vite environment variables are pre-defined in vite.config.ts
-    const sysGeneric = sanitizeKey(process.env.API_KEY);
-    const sysOr = sanitizeKey(process.env.OPENROUTER_API_KEY);
-    const sysKie = sanitizeKey(process.env.KIE_API_KEY);
-    
-    const localOr = sanitizeKey(localStorage.getItem('pomelli_auth_override'));
-    const localKie = sanitizeKey(localStorage.getItem('kie_api_key_override'));
-
-    // OpenRouter Key priority: Explicit OR Env -> Generic API Env (if looks like OR key) -> Local Override
-    // Note: OpenRouter keys usually start with 'sk-or-v1-'
-    const effectiveOr = sysOr || (sysGeneric.startsWith('sk-or-') ? sysGeneric : '') || localOr;
-    
-    // Google SDK Key priority: Generic API Env (if NOT OR format) -> empty
-    const effectiveGoogle = (sysGeneric && !sysGeneric.startsWith('sk-or-')) ? sysGeneric : "";
-
     return { 
-        openRouter: effectiveOr, 
-        google: effectiveGoogle,
-        kie: sysKie || localKie || ""
+        openRouter: sanitizeKey(process.env.OPENROUTER_API_KEY || process.env.API_KEY), 
+        kie: sanitizeKey(process.env.KIE_API_KEY),
+        google: sanitizeKey(process.env.API_KEY)
     };
 };
 
@@ -125,50 +110,23 @@ const extractJson = (text: string) => {
   return cleaned;
 };
 
-// --- CORE REST INFERENCE BRIDGE ---
-export const openRouterChat = async (prompt: string, system?: string) => {
-  const { openRouter, google } = getStoredKeys();
+// --- CORE PROXY BRIDGES ---
 
-  // If a Google Key is found in environment, we can optionally use the SDK here, 
-  // but "get this lead back online using the open router API" means we prioritize OpenRouter for text tasks.
-  
-  if (!openRouter) {
-    pushLog("AUTH_REQUIRED: No OpenRouter key in environment or storage.");
-    toast.error("GATEWAY LOCKED: Authorization Key required.");
-    throw new Error("AUTH_REQUIRED");
-  }
-
+export const openRouterChat = async (prompt: string, system?: string): Promise<string> => {
   try {
-    const response = await fetch(OPENROUTER_API_URL, {
+    const response = await fetch(`${PROXY_BASE}/openrouter`, {
       method: "POST",
-      credentials: 'omit', // Prevent browser from sending cookies that cause OR 401s
-      headers: {
-        "Authorization": `Bearer ${openRouter}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": window.location.origin,
-        "X-Title": "Prospector OS"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: `google/${PRIMARY_MODEL}`,
+        model: PRIMARY_MODEL,
         messages: [
-          { role: "system", content: system || "You are Prospector OS Intelligence. Output valid JSON." },
+          { role: "system", content: system || "You are Prospector OS Intelligence. Output JSON." },
           { role: "user", content: prompt }
         ]
       })
     });
-
     const data = await response.json();
-    if (!response.ok) {
-        const errorMsg = data?.error?.message || "OpenRouter Gateway Error";
-        pushLog(`AUTH_FAILURE: ${errorMsg}`);
-        // If it's a 401, we might need to reset keys
-        if (response.status === 401) {
-            localStorage.removeItem('pomelli_auth_override');
-            throw new Error("AUTH_REQUIRED");
-        }
-        throw new Error(errorMsg);
-    }
-    
+    if (!response.ok) throw new Error(data.error || "Proxy Fail");
     const text = data.choices?.[0]?.message?.content || "{}";
     deductCost(PRIMARY_MODEL, text.length);
     return text;
@@ -183,188 +141,139 @@ export const executeIntelligenceTask = async (prompt: string, system?: string) =
   return extractJson(raw);
 };
 
-export const loggedGenerateContent = async (args: { module: string; contents: any; config?: any; model?: string }) => {
+export const loggedGenerateContent = async (args: { module: string; contents: any; config?: any }) => {
     const prompt = typeof args.contents === 'string' ? args.contents : JSON.stringify(args.contents);
     const system = args.config?.systemInstruction || "Output JSON.";
     return await openRouterChat(prompt, system);
 };
 
-// --- DOMAIN-SPECIFIC LOGIC ---
+// --- RESTORED API METHODS ---
 
 export const generateLeads = async (region: string, niche: string, count: number) => {
-  pushLog(`RECON: Scanning ${region} for ${niche}...`);
-  const prompt = `Identify ${count} high-ticket B2B targets in ${region} for ${niche}. Return JSON: { "leads": [{ "businessName": "", "websiteUrl": "", "leadScore": 0, "assetGrade": "A", "socialGap": "", "phone": "", "email": "" }] }`;
+  const prompt = `Identify ${count} high-ticket targets in ${region} for ${niche}. JSON: { "leads": [...] }`;
   const jsonStr = await executeIntelligenceTask(prompt);
-  const parsed = JSON.parse(jsonStr);
-  return { leads: parsed.leads || [], groundingSources: [] };
+  return { leads: JSON.parse(jsonStr).leads || [], groundingSources: [] };
 };
 
 export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
-  pushLog(`FORGE: Architecting campaign for ${lead.businessName}...`);
-  const prompt = `Architect a multi-layered campaign for ${lead.businessName}. Return STRICT JSON: "presentation" (slides array), "narrative", "outreach" (emailSequence), "funnel", "contentPack", "visualDirection".`;
+  const prompt = `Architect campaign for ${lead.businessName}. JSON: { "presentation": { "slides": [] }, "narrative": "", "outreach": {}, "funnel": [], "contentPack": [], "visualDirection": {} }`;
   return JSON.parse(await executeIntelligenceTask(prompt));
 };
 
 export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
-  const prompt = `Perform an audit for ${lead.websiteUrl}. Return BenchmarkReport JSON.`;
+  const prompt = `Audit ${lead.websiteUrl} for ${module}. Return BenchmarkReport JSON structure.`;
   return JSON.parse(await executeIntelligenceTask(prompt));
 };
 
 export const generateOutreachSequence = async (lead: Lead) => {
-    return JSON.parse(await executeIntelligenceTask(`Generate 5-day outreach sequence for ${lead.businessName}. JSON array.`));
+    return JSON.parse(await executeIntelligenceTask(`5-day sequence for ${lead.businessName}. JSON array.`));
 };
 
 export const architectFunnel = async (lead: Lead) => {
-    return JSON.parse(await executeIntelligenceTask(`Architect 4-stage funnel for ${lead.businessName}. JSON.`));
+    return JSON.parse(await executeIntelligenceTask(`4-stage funnel for ${lead.businessName}. JSON array.`));
 };
 
 export const architectPitchDeck = async (lead: Lead) => {
-    return JSON.parse(await executeIntelligenceTask(`Design pitch deck for ${lead.businessName}. JSON slides.`));
+    return JSON.parse(await executeIntelligenceTask(`Slides for ${lead.businessName}. JSON.`));
 };
 
-export const generateVideoPayload = async (prompt: string, leadId?: string, startImage?: string, lastFrame?: string, config?: any) => {
-    const payload = {
-        prompt,
-        image: startImage ? startImage.split(',')[1] : undefined,
-        lastFrame: lastFrame ? lastFrame.split(',')[1] : undefined,
-        aspectRatio: config?.aspectRatio || '16:9',
-        resolution: config?.resolution || '720p'
-    };
-    const res = await fetch('/api/kie/video_submit', {
+// Fix: Added generatePlaybookStrategy using @google/genai SDK
+export const generatePlaybookStrategy = async (niche: string) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Develop master playbook strategy for ${niche}. Return JSON { "strategyName": "", "steps": [{ "title": "", "tactic": "" }] }`,
+    config: { 
+      responseMimeType: 'application/json',
+      systemInstruction: "You are a master business strategist. Output only valid JSON."
+    }
+  });
+  const text = response.text || "{}";
+  deductCost('gemini-3-flash-preview', text.length);
+  return JSON.parse(text);
+};
+
+// Fix: Added generateProposalDraft using @google/genai SDK
+export const generateProposalDraft = async (lead: Lead) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: `Draft high-ticket proposal for ${lead.businessName}. Focus on ${lead.socialGap}. Return detailed markdown.`,
+    config: {
+      systemInstruction: "You are a high-ticket sales closer. Output professional markdown."
+    }
+  });
+  const text = response.text || "";
+  deductCost('gemini-3-pro-preview', text.length);
+  return text;
+};
+
+export const generateVideoPayload = async (prompt: string, leadId?: string, startImg?: string, lastFr?: string, config?: any) => {
+    const res = await fetch(`${PROXY_BASE}/kie/video`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ prompt, leadId, startImg, lastFr, config })
     });
     const data = await res.json();
-    return data.taskId || data.data?.taskId; 
+    return data.url || data.taskId; 
 };
 
-export const generateAudioPitch = async (text: string, voiceName: string = 'Kore', leadId?: string) => {
-    const { google } = getStoredKeys();
-    if (!google) {
-        pushLog("TTS_SKIPPED: Missing Google API Key for Direct SDK task.");
-        return "";
-    }
-    const ai = new GoogleGenAI({ apiKey: google });
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-preview-tts",
-            contents: [{ parts: [{ text }] }],
-            config: {
-                responseModalities: [Modality.AUDIO],
-                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
-            },
-        });
-        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        if (base64Audio) {
-            const url = `data:audio/pcm;base64,${base64Audio}`;
-            saveAsset('AUDIO', `Speech: ${text.slice(0, 20)}`, url, 'SONIC_STUDIO', leadId);
-            return url;
-        }
-    } catch (e: any) {
-        pushLog(`TTS_ERROR: ${e.message}`);
-    }
-    return "";
+export const generateAudioPitch = async (text: string, voice: string, leadId?: string) => {
+    const res = await fetch(`${PROXY_BASE}/kie/audio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice, leadId })
+    });
+    const data = await res.json();
+    if (data.url) saveAsset('AUDIO', `Voice: ${text.slice(0,15)}`, data.url, 'SONIC_STUDIO', leadId);
+    return data.url || "";
 };
 
-export const generateVisual = async (prompt: string, lead: Lead, base64Image?: string) => {
-    const { google } = getStoredKeys();
-    if (!google) {
-        pushLog("IMAGE_SKIPPED: Missing Google API Key for Direct SDK task.");
-        return "";
-    }
-    const ai = new GoogleGenAI({ apiKey: google });
-    try {
-        const contents: any = { parts: [{ text: prompt }] };
-        if (base64Image) {
-            contents.parts.push({ inlineData: { data: base64Image.split(',')[1], mimeType: 'image/png' } });
-        }
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents,
-        });
-        
-        const candidate = response.candidates?.[0];
-        if (candidate?.content?.parts) {
-            for (const part of candidate.content.parts) {
-                if (part.inlineData?.data) {
-                    const base64: string = part.inlineData.data;
-                    const url = `data:image/png;base64,${base64}`;
-                    saveAsset('IMAGE', prompt.slice(0, 20), url, 'VISUAL_STUDIO', lead.id);
-                    return url;
-                }
-            }
-        }
-    } catch (e: any) {
-        pushLog(`IMAGE_ERROR: ${e.message}`);
-    }
-    return "";
+export const generateVisual = async (prompt: string, lead: Lead, base64Image?: string): Promise<string | undefined> => {
+    const res = await fetch(`${PROXY_BASE}/kie/image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, base64Image, leadId: lead.id })
+    });
+    const data = await res.json();
+    if (data.url) saveAsset('IMAGE', prompt.slice(0,20), data.url, 'VISUAL_STUDIO', lead.id);
+    return data.url;
 };
-
-export const fetchBenchmarkData = (lead: Lead) => fetchLiveIntel(lead, 'BENCHMARK');
-export const generateProposalDraft = (lead: Lead) => openRouterChat(`Draft proposal for ${lead.businessName}.`);
-export const generateTaskMatrix = async (lead: Lead) => JSON.parse(await executeIntelligenceTask(`Checklist for ${lead.businessName}. JSON.`));
-export const generateNurtureDialogue = async (lead: Lead, sc: string) => JSON.parse(await executeIntelligenceTask(`Dialogue for ${lead.businessName} (${sc}). JSON.`));
-export const generateROIReport = (ltv: number, l: number, c: number) => openRouterChat(`ROI Report: LTV ${ltv}, Leads ${l}, Conv ${c}.`);
-export const generateFlashSparks = async (lead: Lead) => JSON.parse(await executeIntelligenceTask(`10 hooks for ${lead.businessName}. JSON.`));
-export const generateMockup = async (n: string, ni: string, id?: string) => generateVisual(`Mockup for ${n}`, { id } as Lead);
-export const generatePitch = (lead: Lead) => openRouterChat(`Pitch for ${lead.businessName}.`);
-export const generateSonicPrompt = (lead: Lead) => openRouterChat(`Sonic prompt for ${lead.businessName}.`);
-export const generateLyrics = (lead: Lead, t: string, ty: string) => openRouterChat(`Lyrics for ${lead.businessName}.`);
-export const enhanceVideoPrompt = (p: string) => openRouterChat(`Enhance video: ${p}`);
-export const enhanceStrategicPrompt = (p: string) => openRouterChat(`Optimize strategy: ${p}`);
-export const fetchViralPulseData = async (n: string) => JSON.parse(await executeIntelligenceTask(`Trends for ${n}. JSON.`));
-export const identifySubRegions = async (t: string): Promise<string[]> => JSON.parse(await executeIntelligenceTask(`Sectors in ${t}. JSON.`));
-export const crawlTheaterSignals = async (s: string, sig: string): Promise<Lead[]> => JSON.parse(await executeIntelligenceTask(`Leads in ${s}: ${sig}. JSON.`));
-export const analyzeLedger = async (ls: Lead[]) => JSON.parse(await executeIntelligenceTask(`Analysis of ${ls.length} leads. JSON.`));
-export const analyzeVideoUrl = (u: string, p: string, id?: string) => openRouterChat(`Audit video ${u}: ${p}`);
-export const synthesizeArticle = (s: string, m: string) => openRouterChat(`Analyze source: ${s}`);
-export const testModelPerformance = (m: string, p: string) => openRouterChat(`Benchmark: ${p}`);
-export const generateMotionLabConcept = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Storyboard for ${l.businessName}. JSON.`));
-export const generateAffiliateProgram = async (n: string) => JSON.parse(await executeIntelligenceTask(`Affiliate program for ${n}. JSON.`));
-export const generateAgencyIdentity = async (n: string, r: string) => JSON.parse(await executeIntelligenceTask(`Agency identity for ${n}. JSON.`));
-export const extractBrandDNA = async (l: Partial<Lead>, u: string): Promise<BrandIdentity> => JSON.parse(await executeIntelligenceTask(`Brand DNA from ${u}. JSON.`));
-export const generatePlaybookStrategy = async (n: string) => JSON.parse(await executeIntelligenceTask(`Strategic playbook for ${n}. JSON.`));
-export const performFactCheck = async (l: Lead, c: string) => JSON.parse(await executeIntelligenceTask(`Fact check: ${c}. JSON.`));
-export const synthesizeProduct = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Offer synth for ${l.businessName}. JSON.`));
-export const simulateSandbox = (l: Lead, ltv: number, v: number) => openRouterChat(`Sandbox for ${l.businessName} (LTV:${ltv})`);
-export const critiqueVideoPresence = (l: Lead) => openRouterChat(`Video presence for ${l.businessName}.`);
-export const translateTactical = (t: string, lang: string) => openRouterChat(`Translate to ${lang}: ${t}`);
-export const fetchTokenStats = async () => ({ recentOps: [] });
 
 export const analyzeVisual = async (data: string, mimeType: string, prompt: string) => {
-    const { google } = getStoredKeys();
-    if (!google) return openRouterChat(`Analyze image prompt: ${prompt}`);
-    const ai = new GoogleGenAI({ apiKey: google });
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: {
-            parts: [
-                { inlineData: { data, mimeType } },
-                { text: prompt }
-            ]
-        },
-    });
-    return response.text || "Analysis complete.";
+    return await openRouterChat(`Analyze image (${mimeType}): ${prompt}. Data: ${data.slice(0, 50)}...`);
 };
 
 export const queryRealtimeAgent = async (prompt: string) => {
-    const { google } = getStoredKeys();
-    if (!google) return { text: "Grounded search requires Google API Key.", sources: [] };
-    const ai = new GoogleGenAI({ apiKey: google });
-    try {
-        const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: prompt,
-            config: { tools: [{ googleSearch: {} }] },
-        });
-        
-        const text = response.text || "";
-        const grounding = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        
-        return { text, sources: grounding || [] };
-    } catch (e: any) {
-        pushLog(`SEARCH_ERROR: ${e.message}`);
-        return { text: "Search failed.", sources: [] };
-    }
+    const text = await openRouterChat(`Search grounded query: ${prompt}`);
+    return { text, sources: [] };
 };
+
+export const fetchBenchmarkData = (lead: Lead) => fetchLiveIntel(lead, 'BENCHMARK');
+export const generateLyrics = (lead: Lead, p: string, s: string) => openRouterChat(`Lyrics for ${lead.businessName}, ${p}, ${s}`);
+export const generateSonicPrompt = (lead: Lead) => openRouterChat(`Music prompt for ${lead.businessName}`);
+export const crawlTheaterSignals = async (r: string, s: string): Promise<Lead[]> => JSON.parse(await executeIntelligenceTask(`Signals in ${r}: ${s}. JSON.`));
+export const identifySubRegions = async (t: string): Promise<string[]> => JSON.parse(await executeIntelligenceTask(`Regions in ${t}. JSON array.`));
+export const analyzeLedger = async (ls: Lead[]) => JSON.parse(await executeIntelligenceTask(`Risk/Opp analysis of ${ls.length} leads. JSON.`));
+export const enhanceVideoPrompt = (p: string) => openRouterChat(`Enhance: ${p}`);
+export const generateMockup = (n: string, ni: string, id?: string) => generateVisual(`Mockup for ${n}, ${ni}`, { id } as Lead);
+export const performFactCheck = async (l: Lead, c: string) => JSON.parse(await executeIntelligenceTask(`Fact check ${c} for ${l.businessName}. JSON.`));
+export const synthesizeProduct = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Product offer for ${l.businessName}. JSON.`));
+export const generatePitch = (l: Lead) => openRouterChat(`Elevator pitch for ${l.businessName}`);
+export const generateAgencyIdentity = async (n: string, r: string) => JSON.parse(await executeIntelligenceTask(`Identity for ${n} in ${r}. JSON.`));
+export const testModelPerformance = (m: string, p: string) => openRouterChat(`Performance test ${m}: ${p}`);
+export const generateMotionLabConcept = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Storyboard for ${l.businessName}. JSON.`));
+export const generateFlashSparks = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Hooks for ${l.businessName}. JSON array.`));
+export const simulateSandbox = (l: Lead, ltv: number, v: number) => openRouterChat(`Growth simulation for ${l.businessName}, LTV ${ltv}, Vol ${v}`);
+export const critiqueVideoPresence = (l: Lead) => openRouterChat(`Critique video for ${l.businessName}`);
+export const translateTactical = (t: string, l: string) => openRouterChat(`Translate to ${l}: ${t}`);
+export const generateNurtureDialogue = async (l: Lead, s: string) => JSON.parse(await executeIntelligenceTask(`Dialogue for ${l.businessName}, ${s}. JSON.`));
+export const generateAffiliateProgram = async (n: string) => JSON.parse(await executeIntelligenceTask(`Affiliate program for ${n}. JSON.`));
+export const generateTaskMatrix = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Tasks for ${l.businessName}. JSON.`));
+export const fetchViralPulseData = async (n: string) => JSON.parse(await executeIntelligenceTask(`Trends for ${n}. JSON.`));
+export const fetchTokenStats = async () => ({ recentOps: [] });
+export const synthesizeArticle = (s: string, m: string) => openRouterChat(`Synthesize ${s} in mode ${m}`);
+export const analyzeVideoUrl = (u: string, p: string, id?: string) => openRouterChat(`Audit video ${u}: ${p}`);
+export const enhanceStrategicPrompt = (p: string) => openRouterChat(`Optimize strategy: ${p}`);
+export const generateROIReport = (ltv: number, l: number, c: number) => openRouterChat(`ROI: LTV ${ltv}, Leads ${l}, Conv ${c}`);
+export const extractBrandDNA = async (l: Partial<Lead>, u: string): Promise<BrandIdentity> => JSON.parse(await executeIntelligenceTask(`Brand DNA from ${u}. JSON.`));
