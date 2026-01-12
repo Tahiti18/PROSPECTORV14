@@ -66,9 +66,10 @@ const App: React.FC = () => {
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   
+  // SECURED ARMED STATE: Prioritize Environment Variables automatically
   const [isArmed, setIsArmed] = useState(() => {
     const keys = getStoredKeys();
-    return !!(keys.openRouter && keys.openRouter !== "undefined");
+    return !!(keys.openRouter && keys.openRouter !== "" && keys.openRouter !== "undefined");
   });
 
   useEffect(() => {
@@ -167,8 +168,8 @@ const App: React.FC = () => {
         {renderContent()}
         <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme="dark" />
         <footer className="fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t border-slate-800/50 px-10 py-2 flex justify-between items-center z-[100] bg-[#020617]/80 text-[9px] font-black uppercase tracking-widest text-slate-600 pointer-events-none">
-            <div className="flex gap-4"><span>SYSTEM: OPERATIONAL</span><span>V14.6.0 (ENTERPRISE_SYNC)</span></div>
-            <div className="flex gap-4"><span>CORE: GEMINI_3_FLASH</span><span>SERVICE: KIE_PROXY</span></div>
+            <div className="flex gap-4"><span>SYSTEM: OPERATIONAL</span><span>V14.6.1 (RAILWAY_SYNC)</span></div>
+            <div className="flex gap-4"><span>CORE: GEMINI_3_FLASH</span><span>SERVICE: OPENROUTER_REST</span></div>
         </footer>
       </LayoutZenith>
       <ToastContainer />

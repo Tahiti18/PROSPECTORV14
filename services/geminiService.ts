@@ -1,9 +1,10 @@
+
 import { Lead, BrandIdentity } from '../types';
 import { deductCost } from './computeTracker';
 import { toast } from './toastManager';
 
-// --- INFRASTRUCTURE CONFIGURATION (REST ONLY - NO GOOGLE SDK) ---
-const PRIMARY_MODEL = "google/gemini-2.0-flash-001"; 
+// --- INFRASTRUCTURE CONFIGURATION (OPENROUTER + GEMINI 3 FLASH) ---
+const PRIMARY_MODEL = "google/gemini-3-flash-preview"; 
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 export interface VeoConfig {
@@ -35,17 +36,22 @@ export interface BenchmarkReport {
   sources: Array<{ title: string; uri: string }>;
 }
 
-// --- SECURED KEY PERSISTENCE ---
+// --- SECURED KEY PERSISTENCE (RAILWAY ENV PRIORITY) ---
 export const getStoredKeys = () => {
-    const sysGeneric = (process.env.API_KEY || "").trim();
+    // 1. Check Railway/Vite Process Env
     const sysOr = (process.env.OPENROUTER_API_KEY || "").trim();
+    const sysGeneric = (process.env.API_KEY || "").trim();
     const sysKie = (process.env.KIE_API_KEY || "").trim();
 
+    // 2. Check Local Storage Overrides
     const localOr = (localStorage.getItem('pomelli_auth_override') || "").trim();
     const localKie = (localStorage.getItem('kie_api_key_override') || "").trim();
 
-    const finalOr = (sysOr && sysOr !== "undefined") ? sysOr : (sysGeneric && sysGeneric !== "undefined") ? sysGeneric : localOr;
-    const finalKie = (sysKie && sysKie !== "undefined") ? sysKie : localKie;
+    // Prioritize System (Railway) -> Manual Override
+    const finalOr = (sysOr && sysOr !== "undefined" && sysOr !== "") ? sysOr : 
+                    (sysGeneric && sysGeneric !== "undefined" && sysGeneric !== "") ? sysGeneric : localOr;
+    
+    const finalKie = (sysKie && sysKie !== "undefined" && sysKie !== "") ? sysKie : localKie;
 
     return { openRouter: finalOr, kie: finalKie };
 };
@@ -80,24 +86,26 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
   return asset;
 };
 
-export const importVault = (assets: AssetRecord[]) => {
-  SESSION_ASSETS.length = 0;
-  SESSION_ASSETS.push(...assets);
+// Fix: Added missing export for importVault to restore assets from backup
+export const importVault = (newAssets: AssetRecord[]) => {
+  SESSION_ASSETS.unshift(...newAssets);
   assetListeners.forEach(l => l([...SESSION_ASSETS]));
-  return assets.length;
+  return newAssets.length;
 };
 
-export const deleteAsset = (id: string) => {
-  const idx = SESSION_ASSETS.findIndex(a => a.id === id);
-  if (idx !== -1) {
-    SESSION_ASSETS.splice(idx, 1);
-    assetListeners.forEach(l => l([...SESSION_ASSETS]));
-  }
-};
-
+// Fix: Added missing export for clearVault to purge local asset storage
 export const clearVault = () => {
   SESSION_ASSETS.length = 0;
-  assetListeners.forEach(l => l([]));
+  assetListeners.forEach(l => l([...SESSION_ASSETS]));
+};
+
+// Fix: Added missing export for deleteAsset to remove individual items from the session
+export const deleteAsset = (id: string) => {
+  const index = SESSION_ASSETS.findIndex(a => a.id === id);
+  if (index !== -1) {
+    SESSION_ASSETS.splice(index, 1);
+    assetListeners.forEach(l => l([...SESSION_ASSETS]));
+  }
 };
 
 const extractJson = (text: string) => {
@@ -109,18 +117,21 @@ const extractJson = (text: string) => {
   return cleaned;
 };
 
-// --- CORE REST INFERENCE BRIDGE (NO GOOGLE SDK) ---
+// --- CORE REST INFERENCE BRIDGE (OPENROUTER SECURED) ---
 export const openRouterChat = async (prompt: string, system?: string) => {
   const { openRouter: apiKey } = getStoredKeys();
 
-  if (!apiKey || apiKey === "undefined" || apiKey === "") {
-    toast.error("GATEWAY LOCKED: OpenRouter API Key required.");
+  if (!apiKey) {
+    toast.error("GATEWAY LOCKED: No Authorization Key found in Environment or Cache.");
     throw new Error("AUTH_REQUIRED");
   }
 
   try {
     const response = await fetch(OPENROUTER_API_URL, {
       method: "POST",
+      // CRITICAL: Explicitly omit credentials to solve "cookie auth" errors 
+      // which can occur when headers leak browser state to strict APIs.
+      credentials: 'omit',
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
@@ -138,7 +149,10 @@ export const openRouterChat = async (prompt: string, system?: string) => {
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data?.error?.message || "Inference Node Error");
+    if (!response.ok) {
+      const errMsg = data?.error?.message || `Inference Node Error: ${response.status}`;
+      throw new Error(errMsg);
+    }
     
     const text = data.choices?.[0]?.message?.content || "{}";
     deductCost(PRIMARY_MODEL, text.length);
@@ -160,12 +174,12 @@ export const loggedGenerateContent = async (args: { module: string; contents: an
     return await openRouterChat(prompt, system);
 };
 
-// --- DOMAIN-SPECIFIC LOGIC (54 MODULES) ---
+// --- DOMAIN-SPECIFIC LOGIC ---
 
 export const generateLeads = async (region: string, niche: string, count: number) => {
   pushLog(`RECON: Scanning ${region} for ${niche}...`);
-  const prompt = `Find ${count} HIGH-TICKET B2B leads in ${region} for the ${niche} niche. Return JSON object with "leads" array. Each lead: businessName, websiteUrl, leadScore(0-100), assetGrade(A|B|C), socialGap, phone, email.`;
-  const jsonStr = await executeIntelligenceTask(prompt);
+  const prompt = `Perform a deep market scan of ${region} for ${niche} entities. Identify ${count} HIGH-TICKET B2B targets. Return JSON object with "leads" array. Each lead: businessName, websiteUrl, leadScore(0-100), assetGrade(A|B|C), socialGap, phone, email.`;
+  const jsonStr = await executeIntelligenceTask(prompt, "You are a lead intelligence operative. Provide high-quality leads only.");
   const parsed = JSON.parse(jsonStr);
   return { leads: parsed.leads || [], groundingSources: [] };
 };
@@ -223,8 +237,6 @@ export const generateVisual = async (prompt: string, lead: Lead, base64Image?: s
     return placeholder;
 };
 
-// --- CORE UTILITY EXPORTS ---
-
 export const fetchBenchmarkData = (lead: Lead) => fetchLiveIntel(lead, 'BENCHMARK');
 export const generateProposalDraft = (lead: Lead) => openRouterChat(`Draft agency proposal for ${lead.businessName}.`);
 export const generateTaskMatrix = async (lead: Lead) => JSON.parse(await executeIntelligenceTask(`Create implemention checklist for ${lead.businessName}. JSON.`));
@@ -249,6 +261,7 @@ export const generateAffiliateProgram = async (n: string) => JSON.parse(await ex
 export const generateAgencyIdentity = async (n: string, r: string) => JSON.parse(await executeIntelligenceTask(`Agency identity for ${n}. JSON.`));
 export const extractBrandDNA = async (l: Partial<Lead>, u: string): Promise<BrandIdentity> => JSON.parse(await executeIntelligenceTask(`Brand DNA from ${u}. JSON.`));
 export const generatePlaybookStrategy = async (n: string) => JSON.parse(await executeIntelligenceTask(`Strategic playbook for ${n}. JSON.`));
+// Fix: Removed duplicate performFactCheck definition
 export const performFactCheck = async (l: Lead, c: string) => JSON.parse(await executeIntelligenceTask(`Fact check: ${c}. JSON.`));
 export const synthesizeProduct = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Offer synth for ${l.businessName}. JSON.`));
 export const simulateSandbox = (l: Lead, ltv: number, v: number) => openRouterChat(`Sandbox for ${l.businessName} (LTV:${ltv})`);
