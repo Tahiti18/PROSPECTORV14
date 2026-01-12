@@ -43,7 +43,7 @@ const ModeIcon = ({ id, active }: { id: MainMode, active: boolean }) => {
 const SubModuleIcon = ({ id, active }: { id: SubModule; active: boolean }) => {
   const cn = active ? "text-emerald-400" : "text-slate-500 group-hover:text-emerald-300 transition-colors";
   const p = (paths: string[]) => (
-    <svg className={`w-5 h-5 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={`w-4 h-4 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       {paths.map((d, i) => <path key={i} d={d} />)}
     </svg>
   );
@@ -289,10 +289,8 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                                  onClick={() => setActiveModule(mod.id)}
                                  className={`w-full rounded-xl transition-all flex items-center group ${isSidebarExpanded ? 'px-3 py-2.5 justify-start gap-3' : 'p-3 justify-center'} ${isActive ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
                               >
-                                 {/* Icons only visible when collapsed */}
-                                 {!isSidebarExpanded ? (
-                                   <SubModuleIcon id={mod.id} active={isActive} />
-                                 ) : (
+                                 <SubModuleIcon id={mod.id} active={isActive} />
+                                 {isSidebarExpanded && (
                                    <span className="text-[10px] font-bold uppercase truncate">{mod.label}</span>
                                  )}
                               </button>
