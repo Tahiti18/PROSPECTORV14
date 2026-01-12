@@ -13,20 +13,36 @@ app.use(express.json({ limit: "10mb" }));
 const PORT = Number(process.env.PORT || 3000);
 
 // -----------------------------
+// DEBUG (does NOT reveal secrets)
+// -----------------------------
+app.get("/api/_debug/openrouter", (req, res) => {
+  const envKey = (process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "").trim();
+  const headerKey = String(req.headers["x-openrouter-key"] || "").trim();
+
+  const using = envKey ? "env" : headerKey ? "header" : "none";
+
+  res.json({
+    ok: true,
+    using,
+    hasEnvKey: !!envKey,
+    hasHeaderKey: !!headerKey
+  });
+});
+
+// -----------------------------
 // OpenRouter Proxy (SERVER-SIDE)
 // -----------------------------
 app.post("/api/openrouter/chat", async (req, res) => {
   try {
+    const envKey = (process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "").trim();
     const headerKey = String(req.headers["x-openrouter-key"] || "").trim();
 
-    const key = String(
-      (process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || headerKey || "")
-    ).trim();
+    const key = envKey || headerKey;
 
     if (!key) {
       return res.status(401).json({
         error: {
-          message: "Missing OPENROUTER_API_KEY on server (or x-openrouter-key header)",
+          message: "AUTH_REQUIRED: Missing OpenRouter key (set OPENROUTER_API_KEY in Railway Variables, or send x-openrouter-key)",
           code: 401
         }
       });
@@ -85,7 +101,6 @@ app.post("/api/openrouter/chat", async (req, res) => {
 const distPath = path.join(__dirname, "dist");
 app.use(express.static(distPath));
 
-// SPA fallback
 app.get("*", (_req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
