@@ -72,7 +72,6 @@ const CAPABILITIES: CapabilitySection[] = [
     color: "emerald",
     points: [
       { title: "Funnel Geometry Mapping", desc: "Visualizes the entire journey from TikTok ad to high-ticket client." },
-      // Fix: Removed 'id' property from the point object to satisfy the CapabilitySection interface
       { title: "Autonomous AI Concierge", desc: "Creates proof-of-concept AI chat agents to book meetings 24/7." },
       { title: "Offer Synthesis", desc: "Re-architects service bundles into high-value, 'no-brainer' offers." },
       { title: "Regional Market Discovery", desc: "Scans entire cities to find businesses most likely to buy transformation services." }

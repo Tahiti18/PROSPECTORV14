@@ -12,6 +12,19 @@ interface DashboardProps {
   onNavigate: (mode: MainMode, mod: SubModule) => void;
 }
 
+const DashboardIcon = ({ type }: { type: string }) => {
+  switch (type) {
+    case 'WORKFLOWS': return <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20V10M18 20V4M6 20v-4" /></svg>;
+    case 'RECORDS': return <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V7M4 7c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2M4 7c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2" /></svg>;
+    case 'SENT': return <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>;
+    case 'COST': return <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>;
+    case 'BLUEPRINT': return <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>;
+    case 'DISCOVERY': return <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+    case 'LEDGER': return <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 4.5z" /></svg>;
+    default: return null;
+  }
+};
+
 export const ExecutiveDashboard: React.FC<DashboardProps> = ({ leads, market, onNavigate }) => {
   const [activeWorkflows, setActiveWorkflows] = useState(0);
   const [outreachCount, setOutreachCount] = useState(0);
@@ -41,16 +54,16 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ leads, market, on
   }, []);
 
   const stats = [
-    { label: 'ACTIVE WORKFLOWS', status: activeWorkflows > 0 ? `${activeWorkflows} RUNNING` : 'IDLE', icon: '📊', desc: "Ongoing automated agency tasks." },
-    { label: 'SAVED PROSPECTS', status: `${leads.length} RECORDS`, icon: '💾', desc: "Total database volume." },
-    { label: 'MESSAGES (24H)', status: `${outreachCount} SENT`, icon: '✉️', desc: "Outreach activity." },
-    { label: 'OPERATING COST', status: `$${sessionCost.toFixed(2)}`, icon: '💰', desc: "Current session expenses." },
+    { label: 'ACTIVE WORKFLOWS', status: activeWorkflows > 0 ? `${activeWorkflows} RUNNING` : 'IDLE', icon: 'WORKFLOWS', desc: "Ongoing automated agency tasks." },
+    { label: 'SAVED PROSPECTS', status: `${leads.length} RECORDS`, icon: 'RECORDS', desc: "Total database volume." },
+    { label: 'MESSAGES (24H)', status: `${outreachCount} SENT`, icon: 'SENT', desc: "Outreach activity." },
+    { label: 'OPERATING COST', status: `$${sessionCost.toFixed(2)}`, icon: 'COST', desc: "Current session expenses." },
   ];
 
   const actions = [
-    { id: 'TRANSFORMATION_BLUEPRINT', mode: 'RESEARCH' as MainMode, title: 'VIEW BLUEPRINT', desc: 'SYSTEM CAPABILITIES', icon: '💎' },
-    { id: 'MARKET_DISCOVERY', mode: 'RESEARCH' as MainMode, title: 'SEARCH REGION', desc: 'FIND NEW CLIENTS', icon: '🔍' },
-    { id: 'PROSPECT_DATABASE', mode: 'RESEARCH' as MainMode, title: 'CLIENT LEDGER', desc: 'VIEW DATABASE', icon: '🗂️' },
+    { id: 'TRANSFORMATION_BLUEPRINT', mode: 'RESEARCH' as MainMode, title: 'VIEW BLUEPRINT', desc: 'SYSTEM CAPABILITIES', icon: 'BLUEPRINT' },
+    { id: 'MARKET_DISCOVERY', mode: 'RESEARCH' as MainMode, title: 'SEARCH REGION', desc: 'FIND NEW CLIENTS', icon: 'DISCOVERY' },
+    { id: 'PROSPECT_DATABASE', mode: 'RESEARCH' as MainMode, title: 'CLIENT LEDGER', desc: 'VIEW DATABASE', icon: 'LEDGER' },
   ];
 
   return (
@@ -76,10 +89,12 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ leads, market, on
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((node, i) => (
           <Tooltip key={i} content={node.desc} side="bottom">
-            <div className="bg-[#0b1021]/60 border border-slate-800 p-5 rounded-[24px] flex flex-col items-center group hover:border-emerald-500/40 transition-all cursor-default w-full shadow-lg">
-              <span className="text-2xl mb-2">{node.icon}</span>
+            <div className="bg-[#0b1021]/60 border border-slate-800 p-8 rounded-[24px] flex flex-col items-center group hover:border-emerald-500/40 transition-all cursor-default w-full shadow-lg">
+              <div className="text-emerald-500 mb-4 opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all">
+                <DashboardIcon type={node.icon} />
+              </div>
               <span className="text-[9px] font-black text-slate-600 tracking-[0.2em] uppercase mb-1">{node.label}</span>
-              <span className="text-sm font-black text-emerald-400 uppercase">{node.status}</span>
+              <span className="text-sm font-black text-white uppercase">{node.status}</span>
             </div>
           </Tooltip>
         ))}
@@ -109,7 +124,9 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ leads, market, on
          <div className="flex flex-col gap-4">
             {actions.map((action, i) => (
               <div key={i} onClick={() => onNavigate(action.mode, action.id as SubModule)} className="flex-1 bg-[#0b1021] border border-slate-800 p-6 rounded-[24px] group hover:border-emerald-500/40 transition-all cursor-pointer flex items-center gap-5">
-                <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-center text-xl shadow-inner">{action.icon}</div>
+                <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-2xl flex items-center justify-center text-emerald-500 shadow-inner">
+                  <DashboardIcon type={action.icon} />
+                </div>
                 <div>
                    <h2 className="text-xs font-black uppercase text-white mb-1 group-hover:text-emerald-400 transition-colors">{action.title}</h2>
                    <p className="text-[8px] font-bold text-slate-600 tracking-[0.2em] uppercase">{action.desc}</p>

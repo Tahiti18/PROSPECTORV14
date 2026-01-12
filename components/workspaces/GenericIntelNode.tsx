@@ -100,7 +100,6 @@ export const GenericIntelNode: React.FC<GenericIntelNodeProps> = ({ module, lead
   }
 
   // DEFAULT: OPS / SETTINGS / CATCH-ALL
-  // Renders a robust system status view instead of empty space
   return (
     <div className="max-w-5xl mx-auto py-12 animate-in fade-in duration-500">
       <div className="flex justify-between items-center mb-10">

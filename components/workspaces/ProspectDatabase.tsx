@@ -191,7 +191,8 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
               onClick={() => fileInputRef.current?.click()}
               className="px-6 py-3 bg-slate-900 border border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
-              <span>📥</span> IMPORT LEDGER
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              IMPORT LEDGER
             </button>
             <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
             
@@ -199,7 +200,8 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
               onClick={handleExport}
               className="px-6 py-3 bg-slate-900 border border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
-              <span>📤</span> EXPORT LEDGER
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+              EXPORT LEDGER
             </button>
          </div>
 
@@ -208,7 +210,8 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
             onClick={handleSaveAll}
             className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-600/20 active:scale-95 transition-all border-b-4 border-emerald-800 flex items-center gap-3"
          >
-            <span>💾</span> COMMIT ALL CHANGES
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            COMMIT ALL CHANGES
          </button>
       </div>
 
