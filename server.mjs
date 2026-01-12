@@ -12,46 +12,36 @@ app.use(express.json({ limit: "10mb" }));
 
 const PORT = Number(process.env.PORT || 3000);
 
+const getOpenRouterKey = () => {
+  const key = (process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "").trim();
+  return key;
+};
+
+const OPENROUTER_UPSTREAM = "https://openrouter.ai/api/v1/chat/completions";
+
 // -----------------------------
-// OpenRouter Debug
+// OpenRouter Ping (SERVER-SIDE)
 // -----------------------------
-app.get("/api/openrouter/debug-key", (req, res) => {
-  const envKey = (process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "").trim();
-  const headerKey = String(req.headers["x-openrouter-key"] || "").trim();
-
-  const using =
-    envKey ? "env" :
-    headerKey ? "header" :
-    "none";
-
-  res.json({
-    ok: true,
-    using,
-    hasEnvKey: !!envKey,
-    hasHeaderKey: !!headerKey
-  });
-});
-
-// Calls OpenRouter with a tiny test request (does NOT reveal your key)
-app.get("/api/openrouter/ping", async (req, res) => {
+app.get("/api/openrouter/ping", async (_req, res) => {
   try {
-    const envKey = (process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "").trim();
-    const headerKey = String(req.headers["x-openrouter-key"] || "").trim();
-    const key = envKey || headerKey;
+    const key = getOpenRouterKey();
 
     if (!key) {
       return res.status(401).json({
         ok: false,
-        error: { message: "Missing OpenRouter key (set OPENROUTER_API_KEY or provide x-openrouter-key)", code: 401 }
+        using: "env",
+        upstreamStatus: 401,
+        upstreamSample: { message: "Missing OPENROUTER_API_KEY on server", code: 401 }
       });
     }
 
+    // Minimal valid upstream request (tests Authorization header)
     const payload = {
       model: "google/gemini-2.0-flash-001",
       messages: [{ role: "user", content: "ping" }]
     };
 
-    const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const upstream = await fetch(OPENROUTER_UPSTREAM, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -63,61 +53,60 @@ app.get("/api/openrouter/ping", async (req, res) => {
     });
 
     const text = await upstream.text();
-    let parsed = null;
-    try { parsed = JSON.parse(text); } catch {}
 
-    res.status(200).json({
+    // Return diagnostic JSON without leaking your key
+    let sample = text;
+    try {
+      const parsed = JSON.parse(text);
+      sample = parsed?.error || parsed;
+    } catch {
+      // keep raw text
+    }
+
+    return res.status(200).json({
       ok: upstream.ok,
+      using: "env",
       upstreamStatus: upstream.status,
-      using: envKey ? "env" : "header",
-      upstreamSample: parsed ? (parsed?.choices?.[0]?.message?.content ?? parsed?.error ?? parsed) : text.slice(0, 300)
+      upstreamSample: sample
     });
   } catch (err) {
-    res.status(500).json({
+    return res.status(500).json({
       ok: false,
-      error: { message: err?.message || String(err), code: 500 }
+      using: "env",
+      upstreamStatus: 500,
+      upstreamSample: { message: err?.message || String(err), code: 500 }
     });
   }
 });
 
 // -----------------------------
-// OpenRouter Proxy (SERVER-SIDE)
+// OpenRouter Chat Proxy (SERVER-SIDE)
 // -----------------------------
 app.post("/api/openrouter/chat", async (req, res) => {
   try {
-    // Prefer env var on Railway; fallback to header from browser if env missing
-    const envKey = (process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "").trim();
-    const headerKey = String(req.headers["x-openrouter-key"] || "").trim();
-    const key = envKey || headerKey;
+    const key = getOpenRouterKey();
 
     if (!key) {
       return res.status(401).json({
-        error: {
-          message: "Missing OpenRouter key (set OPENROUTER_API_KEY or provide x-openrouter-key)",
-          code: 401
-        }
+        error: { message: "Missing OPENROUTER_API_KEY on server", code: 401 }
       });
     }
 
     const { prompt, systemInstruction, model } = req.body || {};
 
     if (!prompt || typeof prompt !== "string") {
-      return res.status(400).json({
-        error: { message: "Missing prompt", code: 400 }
-      });
+      return res.status(400).json({ error: { message: "Missing prompt", code: 400 } });
     }
 
     const payload = {
       model: model || "google/gemini-2.0-flash-001",
       messages: [
-        ...(systemInstruction
-          ? [{ role: "system", content: String(systemInstruction) }]
-          : []),
+        ...(systemInstruction ? [{ role: "system", content: String(systemInstruction) }] : []),
         { role: "user", content: prompt }
       ]
     };
 
-    const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const upstream = await fetch(OPENROUTER_UPSTREAM, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -138,10 +127,7 @@ app.post("/api/openrouter/chat", async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({
-      error: {
-        message: err?.message || String(err),
-        code: 500
-      }
+      error: { message: err?.message || String(err), code: 500 }
     });
   }
 });
@@ -152,7 +138,6 @@ app.post("/api/openrouter/chat", async (req, res) => {
 const distPath = path.join(__dirname, "dist");
 app.use(express.static(distPath));
 
-// SPA fallback
 app.get("*", (_req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
