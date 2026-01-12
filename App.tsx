@@ -69,7 +69,12 @@ const App: React.FC = () => {
   const [lockedLeadId, setLockedLeadId] = useState<string | null>(null);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [isArmed, setIsArmed] = useState(() => !!getStoredKeys().openRouter);
+  
+  // IMMEDIATELY CHECK FOR KEYS (ENV OR LOCAL)
+  const [isArmed, setIsArmed] = useState(() => {
+    const keys = getStoredKeys();
+    return !!(keys.openRouter && keys.openRouter !== "undefined");
+  });
   
   // --- SMOKE TEST INTERCEPT ---
   if (typeof window !== 'undefined' && window.location.pathname === '/__smoketest_phase1') {
@@ -87,7 +92,9 @@ const App: React.FC = () => {
     } catch (e) { console.error("Hydration failed", e); }
     setIsHydrated(true);
 
-    const unsubDb = db.subscribe((newLeads) => { setLeads(newLeads); });
+    const unsubDb = db.subscribe((newLeads) => { 
+        setLeads([...newLeads]); 
+    });
     return () => { unsubDb(); };
   }, []);
 
@@ -208,7 +215,7 @@ const App: React.FC = () => {
         {renderContent()}
         <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme="dark" />
         <footer className="fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t border-slate-800/50 px-10 py-2 flex justify-between items-center z-[100] bg-[#020617]/80 text-[9px] font-black uppercase tracking-widest text-slate-600 pointer-events-none">
-            <div className="flex gap-4"><span>SYSTEM: ONLINE</span><span>V14.3.2 (PERSISTENT)</span></div>
+            <div className="flex gap-4"><span>SYSTEM: ONLINE</span><span>V14.3.8 (PERSISTENT)</span></div>
             <div className="flex gap-4"><span>ENGINE: OPENROUTER</span><span>MEM: 45MB</span></div>
         </footer>
       </LayoutComponent>
