@@ -1,105 +1,94 @@
 import express from "express";
+import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-app.use(express.json({ limit: "20mb" }));
+app.use(cors());
+app.use(express.json({ limit: "10mb" }));
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const PORT = Number(process.env.PORT || 3000);
 
-function pickKey(req) {
-  // Prefer Railway env var (correct way)
-  const envKey = (process.env.OPENROUTER_API_KEY || "").trim();
-  if (envKey) return envKey;
-
-  // Optional fallback (if your UI is sending a key in the body)
-  const bodyKey =
-    (req.body?.openRouterKey || req.body?.apiKey || req.body?.key || "").trim();
-  if (bodyKey) return bodyKey;
-
-  return "";
-}
-
-// Backwards compatible: support BOTH routes
-app.post(["/api/openrouter/chat", "/api/proxy/openrouter"], async (req, res) => {
+// -----------------------------
+// OpenRouter Proxy (SERVER-SIDE)
+// -----------------------------
+app.post("/api/openrouter/chat", async (req, res) => {
   try {
-    const key = pickKey(req);
+    const key =
+      (process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "").trim();
+
     if (!key) {
       return res.status(401).json({
         error: {
-          message:
-            "OPENROUTER_API_KEY missing on server. Set it in Railway Variables.",
-          code: 401,
-        },
+          message: "Missing OPENROUTER_API_KEY on server",
+          code: 401
+        }
       });
     }
 
-    const {
-      prompt = "",
-      systemInstruction = "",
-      model = "google/gemini-2.0-flash-001",
-      // allow advanced callers to send messages directly:
-      messages,
-      temperature,
-      max_tokens,
-    } = req.body || {};
+    const { prompt, systemInstruction, model } = req.body || {};
 
-    const finalMessages =
-      Array.isArray(messages) && messages.length
-        ? messages
-        : [
-            ...(systemInstruction
-              ? [{ role: "system", content: systemInstruction }]
-              : []),
-            { role: "user", content: String(prompt) },
-          ];
+    if (!prompt || typeof prompt !== "string") {
+      return res.status(400).json({
+        error: { message: "Missing prompt", code: 400 }
+      });
+    }
 
     const payload = {
-      model,
-      messages: finalMessages,
-      ...(typeof temperature === "number" ? { temperature } : {}),
-      ...(typeof max_tokens === "number" ? { max_tokens } : {}),
+      model: model || "google/gemini-2.0-flash-001",
+      messages: [
+        ...(systemInstruction
+          ? [{ role: "system", content: String(systemInstruction) }]
+          : []),
+        { role: "user", content: prompt }
+      ]
     };
 
-    const upstream = await fetch(OPENROUTER_URL, {
+    const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${key}`,
-        // optional but recommended by OpenRouter:
-        "HTTP-Referer": process.env.OR_REFERER || "https://prospector.local",
-        "X-Title": process.env.OR_TITLE || "ProspectorV14",
+        // Optional but recommended by OpenRouter:
+        "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "https://prospector.local",
+        "X-Title": process.env.OPENROUTER_APP_NAME || "ProspectorOS"
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payload)
     });
 
     const text = await upstream.text();
     res.status(upstream.status);
 
-    // pass through JSON if possible
+    // Pass through JSON if possible, otherwise raw text
     try {
       res.json(JSON.parse(text));
     } catch {
-      res.send(text);
+      res.type("text/plain").send(text);
     }
   } catch (err) {
     res.status(500).json({
-      error: { message: String(err?.message || err), code: 500 },
+      error: {
+        message: err?.message || String(err),
+        code: 500
+      }
     });
   }
 });
 
-// Serve the built frontend (dist)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// -----------------------------
+// Serve Vite build (dist)
+// -----------------------------
 const distPath = path.join(__dirname, "dist");
-
 app.use(express.static(distPath));
+
+// SPA fallback
 app.get("*", (_req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
