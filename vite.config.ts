@@ -66,7 +66,8 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
 };
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
+  // Fix: Property 'cwd' does not exist on type 'Process'. Cast to any to access Node.js process.cwd() in build environment.
+  const env = loadEnv(mode, (process as any).cwd(), '');
 
   return {
     plugins: [

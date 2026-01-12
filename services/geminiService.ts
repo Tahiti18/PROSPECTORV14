@@ -292,4 +292,36 @@ export const generateFlashSparks = async (lead: Lead) => JSON.parse(await execut
 export const generateMockup = async (n: string, ni: string, id?: string) => generateVisual(`Mockup for ${n}`, { id } as Lead);
 export const generatePitch = (lead: Lead) => openRouterChat(`Pitch for ${lead.businessName}.`);
 export const generateSonicPrompt = (lead: Lead) => openRouterChat(`Sonic prompt for ${lead.businessName}.`);
-export const generateLyrics = (lead: Lead, t: string, ty: string) => openRouterChat(`Lyrics for
+export const generateLyrics = (lead: Lead, t: string, ty: string) => openRouterChat(`Lyrics for ${lead.businessName}.`);
+export const enhanceVideoPrompt = (p: string) => openRouterChat(`Enhance video: ${p}`);
+export const enhanceStrategicPrompt = (p: string) => openRouterChat(`Optimize strategy: ${p}`);
+export const fetchViralPulseData = async (n: string) => JSON.parse(await executeIntelligenceTask(`Trends for ${n}. JSON.`));
+export const identifySubRegions = async (t: string): Promise<string[]> => JSON.parse(await executeIntelligenceTask(`Sectors in ${t}. JSON.`));
+export const crawlTheaterSignals = async (s: string, sig: string): Promise<Lead[]> => JSON.parse(await executeIntelligenceTask(`Leads in ${s}: ${sig}. JSON.`));
+export const analyzeLedger = async (ls: Lead[]) => JSON.parse(await executeIntelligenceTask(`Analysis of ${ls.length} leads. JSON.`));
+export const analyzeVideoUrl = (u: string, p: string, id?: string) => openRouterChat(`Audit video ${u}: ${p}`);
+export const synthesizeArticle = (s: string, m: string) => openRouterChat(`Analyze source: ${s}`);
+export const testModelPerformance = (m: string, p: string) => openRouterChat(`Benchmark: ${p}`);
+export const generateMotionLabConcept = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Storyboard for ${l.businessName}. JSON.`));
+export const generateAffiliateProgram = async (n: string) => JSON.parse(await executeIntelligenceTask(`Affiliate program for ${n}. JSON.`));
+export const generateAgencyIdentity = async (n: string, r: string) => JSON.parse(await executeIntelligenceTask(`Agency identity for ${n}. JSON.`));
+export const extractBrandDNA = async (l: Partial<Lead>, u: string): Promise<BrandIdentity> => JSON.parse(await executeIntelligenceTask(`Brand DNA from ${u}. JSON.`));
+export const generatePlaybookStrategy = async (n: string) => JSON.parse(await executeIntelligenceTask(`Strategic playbook for ${n}. JSON.`));
+export const performFactCheck = async (l: Lead, c: string) => JSON.parse(await executeIntelligenceTask(`Fact check: ${c}. JSON.`));
+export const synthesizeProduct = async (l: Lead) => JSON.parse(await executeIntelligenceTask(`Offer synth for ${l.businessName}. JSON.`));
+export const simulateSandbox = (l: Lead, ltv: number, v: number) => openRouterChat(`Sandbox for ${l.businessName} (LTV:${ltv})`);
+export const critiqueVideoPresence = (l: Lead) => openRouterChat(`Video presence for ${l.businessName}.`);
+export const translateTactical = (t: string, lang: string) => openRouterChat(`Translate to ${lang}: ${t}`);
+export const fetchTokenStats = async () => ({ recentOps: [] });
+export const analyzeVisual = async (data: string, mimeType: string, prompt: string) => openRouterChat(`Analyze vision: ${prompt}`);
+export const queryRealtimeAgent = async (prompt: string) => {
+    const { google } = getStoredKeys();
+    if (!google) return { text: "Grounded search requires Google API Key.", sources: [] };
+    const ai = new GoogleGenAI({ apiKey: google });
+    const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: { tools: [{ googleSearch: {} }] },
+    });
+    return { text: response.text || "", sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] };
+};
