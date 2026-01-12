@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -6,36 +7,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.disable("x-powered-by");
+app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 const PORT = Number(process.env.PORT || 3000);
-
-// -----------------------------
-// Health (optional but useful)
-// -----------------------------
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, ts: Date.now() });
-});
 
 // -----------------------------
 // OpenRouter Proxy (SERVER-SIDE)
 // -----------------------------
 app.post("/api/openrouter/chat", async (req, res) => {
   try {
-    // 1) Prefer Railway env var (correct production setup)
-    const envKey = (process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || "").trim();
-
-    // 2) Optional fallback: allow client-supplied key ONLY if env key is missing
-    // (matches geminiService.ts behavior sending 'x-openrouter-key')
     const headerKey = String(req.headers["x-openrouter-key"] || "").trim();
 
-    const key = envKey || headerKey;
+    const key = String(
+      (process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_KEY || headerKey || "")
+    ).trim();
 
     if (!key) {
       return res.status(401).json({
         error: {
-          message: "Authorization required: Missing OPENROUTER_API_KEY (or x-openrouter-key)",
+          message: "Missing OPENROUTER_API_KEY on server (or x-openrouter-key header)",
           code: 401
         }
       });
@@ -64,7 +55,6 @@ app.post("/api/openrouter/chat", async (req, res) => {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${key}`,
-        // Optional but recommended by OpenRouter:
         "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "https://prospector.local",
         "X-Title": process.env.OPENROUTER_APP_NAME || "ProspectorOS"
       },
