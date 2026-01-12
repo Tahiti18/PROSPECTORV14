@@ -40,26 +40,30 @@ export interface BenchmarkReport {
 // --- SECURED KEY PERSISTENCE (RAILWAY ENV PRIORITY) ---
 const sanitizeKey = (k: any): string => {
   if (!k || k === 'undefined' || k === 'null' || k === '') return '';
-  return String(k).replace(/['"]/g, '').trim();
+  // Force removal of surrounding quotes that Railway/Vite sometimes inject
+  return String(k).trim().replace(/^["']|["']$/g, '');
 };
 
 export const getStoredKeys = () => {
+    // Railway/Vite environment variables are pre-defined in vite.config.ts
     const sysGeneric = sanitizeKey(process.env.API_KEY);
     const sysOr = sanitizeKey(process.env.OPENROUTER_API_KEY);
+    const sysKie = sanitizeKey(process.env.KIE_API_KEY);
     
     const localOr = sanitizeKey(localStorage.getItem('pomelli_auth_override'));
     const localKie = sanitizeKey(localStorage.getItem('kie_api_key_override'));
 
-    // OpenRouter Key priority: Explicit OR Env -> Generic API Env (if OR format) -> Local Override
+    // OpenRouter Key priority: Explicit OR Env -> Generic API Env (if looks like OR key) -> Local Override
+    // Note: OpenRouter keys usually start with 'sk-or-v1-'
     const effectiveOr = sysOr || (sysGeneric.startsWith('sk-or-') ? sysGeneric : '') || localOr;
     
-    // Google Key priority: Generic API Env (if NOT OR format) -> empty
+    // Google SDK Key priority: Generic API Env (if NOT OR format) -> empty
     const effectiveGoogle = (sysGeneric && !sysGeneric.startsWith('sk-or-')) ? sysGeneric : "";
 
     return { 
         openRouter: effectiveOr, 
         google: effectiveGoogle,
-        kie: localKie || sanitizeKey(process.env.KIE_API_KEY)
+        kie: sysKie || localKie || ""
     };
 };
 
@@ -121,39 +125,23 @@ const extractJson = (text: string) => {
   return cleaned;
 };
 
-// --- CORE REST INFERENCE BRIDGE (SDK PREFERRED) ---
+// --- CORE REST INFERENCE BRIDGE ---
 export const openRouterChat = async (prompt: string, system?: string) => {
   const { openRouter, google } = getStoredKeys();
 
-  // RULE: Always use the SDK if we have a Google key
-  if (google) {
-    const ai = new GoogleGenAI({ apiKey: google });
-    try {
-      const response = await ai.models.generateContent({
-        model: PRIMARY_MODEL,
-        contents: prompt,
-        config: system ? { systemInstruction: system } : undefined,
-      });
-      const text = response.text || "{}";
-      deductCost(PRIMARY_MODEL, text.length);
-      return text;
-    } catch (e: any) {
-      pushLog(`SDK_FAULT: ${e.message}`);
-      if (e.message?.includes('auth') || e.message?.includes('401')) throw new Error("AUTH_REQUIRED");
-      throw e;
-    }
-  }
-
-  // FALLBACK: OpenRouter (Manual Fetch)
+  // If a Google Key is found in environment, we can optionally use the SDK here, 
+  // but "get this lead back online using the open router API" means we prioritize OpenRouter for text tasks.
+  
   if (!openRouter) {
-    toast.error("GATEWAY LOCKED: No Authorization Key found.");
+    pushLog("AUTH_REQUIRED: No OpenRouter key in environment or storage.");
+    toast.error("GATEWAY LOCKED: Authorization Key required.");
     throw new Error("AUTH_REQUIRED");
   }
 
   try {
     const response = await fetch(OPENROUTER_API_URL, {
       method: "POST",
-      credentials: 'omit', // CRITICAL: Omit cookies to prevent 401 'No cookie auth' conflicts
+      credentials: 'omit', // Prevent browser from sending cookies that cause OR 401s
       headers: {
         "Authorization": `Bearer ${openRouter}`,
         "Content-Type": "application/json",
@@ -163,7 +151,7 @@ export const openRouterChat = async (prompt: string, system?: string) => {
       body: JSON.stringify({
         model: `google/${PRIMARY_MODEL}`,
         messages: [
-          { role: "system", content: system || "You are Prospector OS Intelligence. Output JSON." },
+          { role: "system", content: system || "You are Prospector OS Intelligence. Output valid JSON." },
           { role: "user", content: prompt }
         ]
       })
@@ -171,13 +159,16 @@ export const openRouterChat = async (prompt: string, system?: string) => {
 
     const data = await response.json();
     if (!response.ok) {
-        const errorMsg = data?.error?.message || "OpenRouter Error";
+        const errorMsg = data?.error?.message || "OpenRouter Gateway Error";
+        pushLog(`AUTH_FAILURE: ${errorMsg}`);
+        // If it's a 401, we might need to reset keys
         if (response.status === 401) {
-            pushLog(`AUTH_FAILURE: ${errorMsg}`);
+            localStorage.removeItem('pomelli_auth_override');
             throw new Error("AUTH_REQUIRED");
         }
         throw new Error(errorMsg);
     }
+    
     const text = data.choices?.[0]?.message?.content || "{}";
     deductCost(PRIMARY_MODEL, text.length);
     return text;
@@ -204,7 +195,8 @@ export const generateLeads = async (region: string, niche: string, count: number
   pushLog(`RECON: Scanning ${region} for ${niche}...`);
   const prompt = `Identify ${count} high-ticket B2B targets in ${region} for ${niche}. Return JSON: { "leads": [{ "businessName": "", "websiteUrl": "", "leadScore": 0, "assetGrade": "A", "socialGap": "", "phone": "", "email": "" }] }`;
   const jsonStr = await executeIntelligenceTask(prompt);
-  return { leads: JSON.parse(jsonStr).leads || [], groundingSources: [] };
+  const parsed = JSON.parse(jsonStr);
+  return { leads: parsed.leads || [], groundingSources: [] };
 };
 
 export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
@@ -234,6 +226,7 @@ export const generateVideoPayload = async (prompt: string, leadId?: string, star
     const payload = {
         prompt,
         image: startImage ? startImage.split(',')[1] : undefined,
+        lastFrame: lastFrame ? lastFrame.split(',')[1] : undefined,
         aspectRatio: config?.aspectRatio || '16:9',
         resolution: config?.resolution || '720p'
     };
@@ -248,7 +241,10 @@ export const generateVideoPayload = async (prompt: string, leadId?: string, star
 
 export const generateAudioPitch = async (text: string, voiceName: string = 'Kore', leadId?: string) => {
     const { google } = getStoredKeys();
-    if (!google) return "";
+    if (!google) {
+        pushLog("TTS_SKIPPED: Missing Google API Key for Direct SDK task.");
+        return "";
+    }
     const ai = new GoogleGenAI({ apiKey: google });
     try {
         const response = await ai.models.generateContent({
@@ -273,7 +269,10 @@ export const generateAudioPitch = async (text: string, voiceName: string = 'Kore
 
 export const generateVisual = async (prompt: string, lead: Lead, base64Image?: string) => {
     const { google } = getStoredKeys();
-    if (!google) return "";
+    if (!google) {
+        pushLog("IMAGE_SKIPPED: Missing Google API Key for Direct SDK task.");
+        return "";
+    }
     const ai = new GoogleGenAI({ apiKey: google });
     try {
         const contents: any = { parts: [{ text: prompt }] };
@@ -284,12 +283,16 @@ export const generateVisual = async (prompt: string, lead: Lead, base64Image?: s
             model: 'gemini-2.5-flash-image',
             contents,
         });
-        for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData) {
-                const base64: string = part.inlineData.data;
-                const url = `data:image/png;base64,${base64}`;
-                saveAsset('IMAGE', prompt.slice(0, 20), url, 'VISUAL_STUDIO', lead.id);
-                return url;
+        
+        const candidate = response.candidates?.[0];
+        if (candidate?.content?.parts) {
+            for (const part of candidate.content.parts) {
+                if (part.inlineData?.data) {
+                    const base64: string = part.inlineData.data;
+                    const url = `data:image/png;base64,${base64}`;
+                    saveAsset('IMAGE', prompt.slice(0, 20), url, 'VISUAL_STUDIO', lead.id);
+                    return url;
+                }
             }
         }
     } catch (e: any) {
@@ -328,7 +331,23 @@ export const simulateSandbox = (l: Lead, ltv: number, v: number) => openRouterCh
 export const critiqueVideoPresence = (l: Lead) => openRouterChat(`Video presence for ${l.businessName}.`);
 export const translateTactical = (t: string, lang: string) => openRouterChat(`Translate to ${lang}: ${t}`);
 export const fetchTokenStats = async () => ({ recentOps: [] });
-export const analyzeVisual = async (data: string, mimeType: string, prompt: string) => openRouterChat(`Analyze vision: ${prompt}`);
+
+export const analyzeVisual = async (data: string, mimeType: string, prompt: string) => {
+    const { google } = getStoredKeys();
+    if (!google) return openRouterChat(`Analyze image prompt: ${prompt}`);
+    const ai = new GoogleGenAI({ apiKey: google });
+    const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: {
+            parts: [
+                { inlineData: { data, mimeType } },
+                { text: prompt }
+            ]
+        },
+    });
+    return response.text || "Analysis complete.";
+};
+
 export const queryRealtimeAgent = async (prompt: string) => {
     const { google } = getStoredKeys();
     if (!google) return { text: "Grounded search requires Google API Key.", sources: [] };
@@ -339,7 +358,11 @@ export const queryRealtimeAgent = async (prompt: string) => {
             contents: prompt,
             config: { tools: [{ googleSearch: {} }] },
         });
-        return { text: response.text || "", sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] };
+        
+        const text = response.text || "";
+        const grounding = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        
+        return { text, sources: grounding || [] };
     } catch (e: any) {
         pushLog(`SEARCH_ERROR: ${e.message}`);
         return { text: "Search failed.", sources: [] };
