@@ -42,34 +42,66 @@ const ModeIcon = ({ id, active }: { id: MainMode, active: boolean }) => {
 
 const SubModuleIcon = ({ id, active }: { id: SubModule; active: boolean }) => {
   const cn = active ? "text-emerald-400" : "text-slate-500 group-hover:text-emerald-300 transition-colors";
-  const p = (path: string) => (
+  const p = (paths: string[]) => (
     <svg className={`w-5 h-5 ${cn}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d={path} />
+      {paths.map((d, i) => <path key={i} d={d} />)}
     </svg>
   );
 
   switch(id) {
-    case 'EXECUTIVE_DASHBOARD': return p("M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z");
-    case 'TRANSFORMATION_BLUEPRINT': return p("M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5");
-    case 'USER_GUIDE': return p("M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zm20 0h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z");
-    case 'MARKET_DISCOVERY': return p("M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM12 8v4M12 16h.01");
-    case 'AUTOMATED_SEARCH': return p("M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z");
-    case 'PROSPECT_DATABASE': return p("M4 7V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3M4 7h16M4 7v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7M9 11h6M9 15h6");
-    case 'STRATEGY_CENTER': return p("M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5");
-    case 'PIPELINE': return p("M4 6h16M4 12h16M4 18h16");
-    case 'VISUAL_STUDIO': return p("M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z");
-    case 'BRAND_DNA': return p("M2 12h20M2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6");
-    case 'MOCKUPS_4K': return p("M2 12h20M2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6");
-    case 'VIDEO_PRODUCTION': return p("M23 7l-7 5 7 5V7zM1 5h15v14H1z");
-    case 'SONIC_STUDIO': return p("M9 18V5l12-2v13M9 10a3 3 0 1 0 0 6 3 3 0 0 0 0-6z");
-    case 'CAMPAIGN_ORCHESTRATOR': return p("M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z");
-    case 'PROPOSALS': return p("M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6");
-    case 'AGENCY_PLAYBOOK': return p("M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 4.5z");
-    case 'BILLING': return p("M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6");
-    case 'SETTINGS': return p("M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z");
-    case 'NEXUS_GRAPH': return p("M5 12h14M12 5l7 7-7 7");
-    case 'TIMELINE': return p("M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z");
-    default: return p("M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z");
+    // RESEARCH
+    case 'EXECUTIVE_DASHBOARD': return p(["M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", "M9 22V12h6v10"]);
+    case 'TRANSFORMATION_BLUEPRINT': return p(["M12 2L2 7l10 5 10-5-10-5z", "M2 17l10 5 10-5", "M2 12l10 5 10-5"]);
+    case 'USER_GUIDE': return p(["M4 19.5A2.5 2.5 0 0 1 6.5 17H20", "M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"]);
+    case 'MARKET_DISCOVERY': return p(["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z", "M12 8v4", "M12 16h.01"]);
+    case 'AUTOMATED_SEARCH': return p(["M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z", "M12 7v5l3 3"]);
+    case 'PROSPECT_DATABASE': return p(["M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"]);
+    case 'PIPELINE': return p(["M4 6h16", "M4 12h16", "M4 18h16"]);
+    case 'STRATEGY_CENTER': return p(["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"]);
+    case 'ANALYTICS_HUB': return p(["M21.21 15.89A10 10 0 118 2.83", "M22 12A10 10 0 0012 2v10z"]);
+    case 'BENCHMARK': return p(["M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6", "M15 3h6v6", "M10 14L21 3"]);
+    case 'VISUAL_ANALYSIS': return p(["M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z", "M12 9a3 3 0 100 6 3 3 0 000-6z"]);
+    case 'STRATEGIC_REASONING': return p(["M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"]);
+    case 'MARKET_TRENDS': return p(["M23 6l-9.5 9.5-5-5L1 18", "M17 6h6v6"]);
+    
+    // DESIGN
+    case 'VISUAL_STUDIO': return p(["M12 19l7-7 3 3-7 7-3-3z", "M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"]);
+    case 'BRAND_DNA': return p(["M4.5 16.5c-1.5 1.26-2 3.5-2 3.5s2.24-.5 3.5-2L16.5 7.5L13.5 4.5z", "M15 6l3 3"]);
+    case 'MOCKUPS_4K': return p(["M2 8a2 2 0 012-2h16a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8z", "M6 14h12"]);
+    case 'PRODUCT_SYNTHESIS': return p(["M12 2L2 7l10 5 10-5-10-5z", "M2 17l10 5 10-5"]);
+    case 'CONTENT_IDEATION': return p(["M9.663 17h4.673", "M12 3v1", "M21 12h-1", "M4 12H3", "M12 18v2"]);
+    case 'ASSET_LIBRARY': return p(["M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"]);
+    
+    // MEDIA
+    case 'VIDEO_PRODUCTION': return p(["M23 7l-7 5 7 5V7z", "M1 5h15v14H1z"]);
+    case 'VIDEO_AUDIT': return p(["M15 10l5 5-5 5", "M4 4v16h16V4H4z"]);
+    case 'VIDEO_INSIGHTS': return p(["M2 12h20", "M12 2v20"]);
+    case 'MOTION_LAB': return p(["M13 2L3 14h9l-1 8 10-12h-9l1-8z"]);
+    case 'SONIC_STUDIO': return p(["M9 18V5l12-2v13", "M9 10a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"]);
+    case 'MEETING_NOTES': return p(["M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7", "M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"]);
+    
+    // OUTREACH
+    case 'CAMPAIGN_ORCHESTRATOR': return p(["M22 2L11 13", "M22 2l-7 20-4-9-9-4 20-7z"]);
+    case 'PROPOSALS': return p(["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z", "M14 2v6h6"]);
+    case 'SEQUENCER': return p(["M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"]);
+    case 'ROI_CALCULATOR': return p(["M4 2h16a2 2 0 012 2v16a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2zm4 4h8", "M8 10h8", "M8 14h8", "M8 18h8"]);
+    case 'PRESENTATION_BUILDER': return p(["M2 16h20", "M2 16v2a2 2 0 002 2h16a2 2 0 002-2v-2", "M2 16V4a2 2 0 012-2h16a2 2 0 012 2v12"]);
+    case 'DEMO_SANDBOX': return p(["M5 3v18l15-9L5 3z"]);
+    case 'AI_CONCIERGE': return p(["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2", "M12 7a4 4 0 100-8 4 4 0 000 8z"]);
+    case 'ELEVATOR_PITCH': return p(["M18 8a3 3 0 100-6 3 3 0 000 6z", "M6 15a3 3 0 100-6 3 3 0 000 6z"]);
+    case 'FUNNEL_MAP': return p(["M22 3H2l8 9.46V19l4 2v-8.54L22 3z"]);
+    
+    // ADMIN
+    case 'AGENCY_PLAYBOOK': return p(["M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 0 4 4.5z"]);
+    case 'BILLING': return p(["M12 1v22", "M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"]);
+    case 'SETTINGS': return p(["M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33"]);
+    case 'EXPORT_DATA': return p(["M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4", "M7 10l5 5 5-5", "M12 15V3"]);
+    case 'CALENDAR': return p(["M19 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2z", "M16 2v4", "M8 2v4", "M3 10h18"]);
+    case 'TIMELINE': return p(["M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"]);
+    case 'TASK_MANAGER': return p(["M9 11l3 3L22 4", "M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"]);
+    case 'USAGE_STATS': return p(["M18 20V10", "M12 20V4", "M6 20v-7"]);
+    
+    default: return p(["M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"]);
   }
 };
 
@@ -265,7 +297,7 @@ export const LayoutZenith: React.FC<LayoutProps> = ({
                               <button
                                  key={mod.id}
                                  onClick={() => setActiveModule(mod.id)}
-                                 className={`w-full rounded-xl transition-all flex items-center group ${isSidebarExpanded ? 'px-3 py-2.5 justify-start gap-3' : 'p-3 justify-center'} ${isActive ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
+                                 className={`w-full rounded-xl transition-all flex items-center group ${isSidebarExpanded ? 'px-3 py-2.5 justify-start' : 'p-3 justify-center'} ${isActive ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'}`}
                               >
                                  {/* Icons only visible when collapsed */}
                                  {!isSidebarExpanded ? (

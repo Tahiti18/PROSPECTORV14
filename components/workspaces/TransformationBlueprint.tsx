@@ -114,9 +114,9 @@ export const TransformationBlueprint: React.FC<TransformationBlueprintProps> = (
             <div className="flex-1 w-full">
               <div className={`aspect-square md:aspect-video rounded-[64px] bg-[#0b1021] border border-slate-800 p-16 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl group transition-all hover:border-${cap.color}-500/30`}>
                  <div className={`absolute inset-0 bg-${cap.color}-500/5 opacity-0 group-hover:opacity-100 transition-opacity`}></div>
-                 <span className="text-9xl mb-8 relative z-10 transition-transform group-hover:scale-110 duration-700">{cap.icon}</span>
+                 <span className="text-8xl mb-8 relative z-10 transition-transform group-hover:scale-110 duration-700">{cap.icon}</span>
                  <div className="text-center relative z-10">
-                   <h3 className={`text-4xl font-black italic text-white uppercase tracking-tighter mb-2`}>{cap.title}</h3>
+                   <h3 className={`text-2xl font-black italic text-white uppercase tracking-tighter mb-2`}>{cap.title}</h3>
                    <p className={`text-[10px] font-black text-${cap.color}-400 uppercase tracking-[0.5em]`}>{cap.subtitle}</p>
                  </div>
                  {/* Decorative elements */}
@@ -129,7 +129,7 @@ export const TransformationBlueprint: React.FC<TransformationBlueprintProps> = (
             <div className="flex-1 space-y-10">
                <div className="space-y-4">
                   <span className={`text-[11px] font-black text-${cap.color}-500 uppercase tracking-[0.4em] block`}>Vector 0{i+1}</span>
-                  <h2 className="text-5xl font-black text-white uppercase tracking-tighter leading-none italic">{cap.title}</h2>
+                  <h2 className="text-2xl font-black text-white uppercase tracking-tighter leading-none italic">{cap.title}</h2>
                </div>
                <div className="space-y-8">
                   {cap.points.map((point, pi) => (
