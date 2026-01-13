@@ -1,24 +1,19 @@
+
 {
-  "name": "prospector-os-intel-engine",
+  "name": "pomelli-lead-intel-engine",
   "private": true,
   "version": "14.5.3",
   "type": "module",
-  "engines": {
-    "node": ">=18"
-  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "start": "node server.mjs"
+    "start": "vite preview --host 0.0.0.0 --port $PORT"
   },
   "dependencies": {
-    "@google/genai": "^1.35.0",
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "node-fetch": "^3.3.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "@google/genai": "^1.35.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

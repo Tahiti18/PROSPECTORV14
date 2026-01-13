@@ -18,21 +18,37 @@ export const MarketDiscovery: React.FC<MarketDiscoveryProps> = ({ market, onLead
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleScan = async () => {
+    if (!market) {
+        toast.error("Please select a target market.");
+        return;
+    }
     setLoading(true);
     try {
       const result = await generateLeads(market, niche || 'Business', volume);
-      const formatted = result.leads.map((l: any, i: number) => ({
+      if (!result.leads || !Array.isArray(result.leads)) {
+          throw new Error("Invalid response structure from AI.");
+      }
+
+      const formatted: Lead[] = result.leads.map((l: any, i: number) => ({
         ...l, 
-        id: l.id || `L-${Date.now()}-${i}`, 
+        id: `L-${Date.now()}-${i}`, 
         status: 'cold', 
         outreachStatus: 'cold', 
-        rank: l.rank || i + 1, 
+        rank: i + 1, 
         city: l.city || market, 
-        niche: l.niche || niche
+        niche: l.niche || niche || 'AI Transformation',
+        leadScore: l.leadScore || 85,
+        assetGrade: l.assetGrade || 'A'
       }));
+
+      // Commit to DB
+      const currentLeads = db.getLeads();
+      db.saveLeads([...currentLeads, ...formatted]);
+      
       onLeadsGenerated(formatted);
-      toast.success(`${formatted.length} Businesses identified and saved.`);
+      toast.success(`${formatted.length} Businesses identified and saved to Ledger.`);
     } catch (e: any) {
+      console.error(e);
       toast.error(`Discovery Interrupted: ${e.message}`);
     } finally {
       setLoading(false);
@@ -73,12 +89,6 @@ export const MarketDiscovery: React.FC<MarketDiscoveryProps> = ({ market, onLead
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleSaveAll = () => {
-    const leads = db.getLeads();
-    db.saveLeads(leads);
-    toast.success("LEDGER_COMMIT_SUCCESSFUL");
   };
 
   if (loading) return <div className="py-20"><Loader /></div>;
@@ -127,15 +137,13 @@ export const MarketDiscovery: React.FC<MarketDiscoveryProps> = ({ market, onLead
         </button>
       </div>
 
-      {/* DATA MANAGEMENT FOOTER */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 p-10 bg-[#0b1021]/80 border-2 border-slate-800 rounded-[32px] shadow-xl relative z-10">
          <div className="flex gap-4">
             <button 
               onClick={() => fileInputRef.current?.click()}
               className="px-6 py-3 bg-slate-900 border-2 border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              IMPORT LEDGER
+              <span>⬆️</span> IMPORT LEDGER
             </button>
             <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
             
@@ -143,17 +151,15 @@ export const MarketDiscovery: React.FC<MarketDiscoveryProps> = ({ market, onLead
               onClick={handleExport}
               className="px-6 py-3 bg-slate-900 border-2 border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-              EXPORT LEDGER
+              <span>⬇️</span> EXPORT LEDGER
             </button>
          </div>
 
          <button 
-            onClick={handleSaveAll}
+            onClick={() => toast.success("DATABASE SYNCHRONIZED")}
             className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800 flex items-center gap-3"
          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            COMMIT ALL CHANGES
+            <span>💾</span> COMMIT ALL CHANGES
          </button>
       </div>
     </div>

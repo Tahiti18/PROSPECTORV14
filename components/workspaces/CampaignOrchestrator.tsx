@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Lead, MainMode, SubModule } from '../../types';
 import { SESSION_ASSETS, orchestrateBusinessPackage } from '../../services/geminiService';
-import { dossierStorage, StrategicDossier } from '../../services/dossierStorage';
+import { dossierStorage } from '../../services/dossierStorage';
 import { OutreachModal } from './OutreachModal';
 import { toast } from '../../services/toastManager';
 
@@ -15,35 +15,29 @@ interface CampaignOrchestratorProps {
 }
 
 export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ leads, lockedLead, onNavigate, onLockLead, onUpdateLead }) => {
-  const [selectedLeadId, setSelectedLeadId] = useState<string>(lockedLead?.id || '');
   const [packageData, setPackageData] = useState<any>(null);
-  const [currentDossier, setCurrentDossier] = useState<StrategicDossier | null>(null);
   const [isOrchestrating, setIsOrchestrating] = useState(false);
   const [activeTab, setActiveTab] = useState<'strategy' | 'narrative' | 'content' | 'outreach' | 'visual' | 'funnel'>('strategy');
   const [isOutreachOpen, setIsOutreachOpen] = useState(false);
   
-  const targetLead = leads.find(l => l.id === selectedLeadId);
-  
   const leadAssets = useMemo(() => {
-    if (!targetLead) return [];
-    return SESSION_ASSETS.filter(a => a.leadId === targetLead.id);
-  }, [targetLead]);
+    if (!lockedLead) return [];
+    return SESSION_ASSETS.filter(a => a.leadId === lockedLead.id);
+  }, [lockedLead]);
 
   useEffect(() => {
-    if (targetLead) {
-      const savedDossiers = dossierStorage.getAllByLead(targetLead.id);
+    if (lockedLead) {
+      const savedDossiers = dossierStorage.getAllByLead(lockedLead.id);
       if (savedDossiers.length > 0) {
-        setCurrentDossier(savedDossiers[0]);
         setPackageData(savedDossiers[0].data);
       } else {
-        setCurrentDossier(null);
         setPackageData(null);
       }
     }
-  }, [targetLead?.id]);
+  }, [lockedLead?.id]);
 
   const handleOrchestrate = async () => {
-    if (!targetLead) {
+    if (!lockedLead) {
         toast.info("Target identification required.");
         return;
     }
@@ -52,11 +46,10 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
     
     try {
       toast.neural("FORGE: Initiating High-Density Intelligence Sweep...");
-      const result = await orchestrateBusinessPackage(targetLead, leadAssets);
+      const result = await orchestrateBusinessPackage(lockedLead, leadAssets);
       
-      const saved = dossierStorage.save(targetLead, result, leadAssets.map(a => a.id));
+      dossierStorage.save(lockedLead, result, leadAssets.map(a => a.id));
       setPackageData(result);
-      setCurrentDossier(saved);
       toast.success("FORGE: Multi-Tab Intelligence Mesh Synchronized.");
     } catch (e: any) {
       console.error(e);
@@ -66,13 +59,39 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
     }
   };
 
-  const EmptyState = ({ section }: { section: string }) => (
-    <div className="py-20 flex flex-col items-center justify-center opacity-30 border-2 border-dashed border-slate-800 rounded-[40px] text-center px-10">
-       <span className="text-5xl mb-6 grayscale">📦</span>
-       <h4 className="text-sm font-black uppercase tracking-widest text-slate-500">{section} STAGING</h4>
-       <p className="text-[10px] font-bold uppercase tracking-widest mt-3 text-slate-600 italic">INITIATE FORGE TO LOAD DATA MESH</p>
-    </div>
-  );
+  const handleLocalSelect = (id: string) => {
+    if (!id) return;
+    onLockLead(id);
+  };
+
+  if (!lockedLead) {
+      return (
+          <div className="max-w-4xl mx-auto py-40 text-center space-y-12 animate-in fade-in duration-700">
+              <span className="text-8xl block grayscale opacity-20">🎯</span>
+              <div className="space-y-4">
+                  <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter">Mission Target Selection</h2>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.4em] max-w-sm mx-auto">
+                      Establish a primary prospect to initialize the high-density campaign forge.
+                  </p>
+              </div>
+              <div className="max-w-md mx-auto">
+                 <select 
+                    onChange={(e) => handleLocalSelect(e.target.value)}
+                    className="w-full bg-[#0b1021] border-2 border-slate-800 rounded-2xl px-6 py-5 text-sm font-bold text-slate-400 focus:border-emerald-500 outline-none appearance-none cursor-pointer uppercase italic text-center"
+                 >
+                    <option value="">-- SELECT TARGET FROM LEDGER --</option>
+                    {leads.map(l => <option key={l.id} value={l.id}>{l.businessName}</option>)}
+                 </select>
+                 <button 
+                    onClick={() => onNavigate('RESEARCH', 'PROSPECT_DATABASE')}
+                    className="mt-6 text-[9px] font-black text-slate-600 hover:text-emerald-500 uppercase tracking-widest transition-colors"
+                 >
+                    OR OPEN MASTER LEDGER
+                 </button>
+              </div>
+          </div>
+      );
+  }
 
   return (
     <div className="max-w-[1600px] mx-auto py-8 space-y-10 animate-in fade-in duration-700">
@@ -83,59 +102,28 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
             CAMPAIGN <span className="text-emerald-500 not-italic">FORGE</span>
           </h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.4em] mt-2 italic">
-            SECURED NEURAL CORE GATEWAY
+            SECURED NEURAL CORE GATEWAY: {lockedLead.businessName.toUpperCase()}
           </p>
+        </div>
+        <div className="flex gap-4">
+            <select 
+                value={lockedLead.id}
+                onChange={(e) => handleLocalSelect(e.target.value)}
+                className="bg-[#0b1021] border border-slate-800 rounded-xl px-4 py-2 text-[10px] font-black text-slate-400 uppercase outline-none focus:border-emerald-500"
+            >
+                {leads.map(l => <option key={l.id} value={l.id}>{l.businessName}</option>)}
+            </select>
+            <button 
+                onClick={handleOrchestrate}
+                disabled={isOrchestrating}
+                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-10 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] transition-all shadow-xl active:scale-95 border-b-4 border-emerald-800"
+            >
+                {isOrchestrating ? 'ORCHESTRATING...' : 'INITIATE CAMPAIGN FORGE'}
+            </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-        <div className="lg:col-span-4 space-y-6">
-           <div className="bg-[#0b1021] border border-slate-800 rounded-[40px] p-10 shadow-2xl space-y-10">
-              <div className="space-y-4">
-                 <label className="text-[10px] font-black text-emerald-500 uppercase tracking-widest ml-1">MISSION_TARGET</label>
-                 <div className="bg-[#020617] border border-slate-800 rounded-2xl p-4 shadow-inner">
-                    {targetLead ? (
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-black text-white uppercase italic tracking-tight">{targetLead.businessName}</span>
-                            <button onClick={() => setSelectedLeadId('')} className="text-slate-600 hover:text-rose-500 transition-colors">×</button>
-                        </div>
-                    ) : (
-                        <select 
-                          value={selectedLeadId}
-                          onChange={(e) => setSelectedLeadId(e.target.value)}
-                          className="w-full bg-transparent border-none text-sm font-bold text-slate-500 focus:outline-none cursor-pointer appearance-none uppercase italic"
-                        >
-                           <option value="">-- SELECT TARGET --</option>
-                           {leads.map(l => (
-                             <option key={l.id} value={l.id}>{l.businessName}</option>
-                           ))}
-                        </select>
-                    )}
-                 </div>
-              </div>
-
-              {targetLead && (
-                <button 
-                  onClick={handleOrchestrate}
-                  disabled={isOrchestrating}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-6 rounded-2xl text-[12px] font-black uppercase tracking-[0.3em] transition-all shadow-xl active:scale-95 border-b-4 border-emerald-800"
-                >
-                  {isOrchestrating ? 'ORCHESTRATING...' : 'INITIATE CAMPAIGN FORGE'}
-                </button>
-              )}
-              
-              {packageData && (
-                <button 
-                  onClick={() => setIsOutreachOpen(true)}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all"
-                >
-                  🚀 LAUNCH OUTREACH MODAL
-                </button>
-              )}
-           </div>
-        </div>
-
-        <div className="lg:col-span-8">
+      <div className="grid grid-cols-1 gap-10">
            <div className="bg-[#0b1021] border border-slate-800 rounded-[48px] min-h-[700px] flex flex-col shadow-2xl relative overflow-hidden">
               {isOrchestrating && (
                  <div className="absolute inset-0 bg-[#020617]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center space-y-8 p-20 text-center animate-in fade-in">
@@ -154,6 +142,7 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
               {!packageData && !isOrchestrating ? (
                  <div className="absolute inset-0 flex flex-col items-center justify-center opacity-10 text-center space-y-6">
                     <span className="text-9xl font-black italic text-slate-700 uppercase tracking-tighter">STANDBY</span>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.4em]">CLICK INITIATE FORGE ABOVE TO START</p>
                  </div>
               ) : (
                  <div className="flex flex-col h-full animate-in zoom-in-95 duration-500">
@@ -183,26 +172,22 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
                     <div className="flex-1 p-12 overflow-y-auto custom-scrollbar bg-[#020617]">
                        {activeTab === 'strategy' && (
                           <div className="space-y-10">
-                             {packageData?.presentation?.slides?.length > 0 ? (
-                                <>
-                                   <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">{packageData.presentation.title || "STRATEGY Blueprint"}</h2>
-                                   <div className="grid gap-6">
-                                      {packageData.presentation.slides.map((s: any, i: number) => (
-                                        <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] group hover:border-emerald-500/30 transition-all">
-                                           <h3 className="text-xl font-bold text-white uppercase mb-4">#{i+1}: {s?.title || 'Segment'}</h3>
-                                           <ul className="space-y-3">
-                                              {(s?.bullets || []).map((b: string, j: number) => (
-                                                <li key={j} className="text-sm text-slate-400 flex items-start gap-3">
-                                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5" />
-                                                   {b}
-                                                </li>
-                                              ))}
-                                           </ul>
-                                        </div>
-                                      ))}
-                                   </div>
-                                </>
-                             ) : <EmptyState section="STRATEGY" />}
+                             <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">{packageData?.presentation?.title || "STRATEGY Blueprint"}</h2>
+                             <div className="grid gap-6">
+                                {packageData?.presentation?.slides?.map((s: any, i: number) => (
+                                <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] group hover:border-emerald-500/30 transition-all">
+                                    <h3 className="text-xl font-bold text-white uppercase mb-4">#{i+1}: {s?.title || 'Segment'}</h3>
+                                    <ul className="space-y-3">
+                                        {(s?.bullets || []).map((b: string, j: number) => (
+                                        <li key={j} className="text-sm text-slate-400 flex items-start gap-3">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5" />
+                                            {b}
+                                        </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                ))}
+                             </div>
                           </div>
                        )}
 
@@ -218,19 +203,17 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
 
                        {activeTab === 'outreach' && (
                           <div className="space-y-8">
-                             {packageData?.outreach?.emailSequence?.length > 0 ? (
-                                packageData.outreach.emailSequence.map((e: any, i: number) => (
-                                   <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4 shadow-xl">
-                                      <div className="flex justify-between items-center">
-                                          <p className="text-sm font-bold text-white uppercase tracking-tight">
-                                            <span className="text-slate-500 font-black">SUBJECT:</span> {e?.subject || "Draft"}
-                                          </p>
-                                          <span className="text-[9px] font-black text-emerald-500 px-2 py-1 bg-emerald-900/20 rounded">EMAIL_{i+1}</span>
-                                      </div>
-                                      <p className="text-xs text-slate-400 whitespace-pre-wrap font-mono leading-relaxed bg-black/30 p-6 rounded-2xl border border-slate-800/50">{e?.body || "..."}</p>
-                                   </div>
-                                ))
-                             ) : <EmptyState section="OUTREACH" />}
+                             {packageData?.outreach?.emailSequence?.map((e: any, i: number) => (
+                                <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4 shadow-xl">
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-sm font-bold text-white uppercase tracking-tight">
+                                        <span className="text-slate-500 font-black">SUBJECT:</span> {e?.subject || "Draft"}
+                                        </p>
+                                        <span className="text-[9px] font-black text-emerald-500 px-2 py-1 bg-emerald-900/20 rounded">EMAIL_{i+1}</span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 whitespace-pre-wrap font-mono leading-relaxed bg-black/30 p-6 rounded-2xl border border-slate-800/50">{e?.body || "..."}</p>
+                                </div>
+                             ))}
                           </div>
                        )}
 
@@ -249,19 +232,6 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
                                     </div>
                                 </div>
                             ))}
-                            {!packageData?.funnel && <EmptyState section="FUNNEL" />}
-                          </div>
-                       )}
-
-                       {activeTab === 'content' && (
-                          <div className="space-y-6">
-                            {packageData?.contentPack?.map((post: any, i: number) => (
-                                <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4">
-                                    <span className="px-3 py-1 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 rounded-lg text-[9px] font-black uppercase tracking-widest">{post.platform} // {post.type}</span>
-                                    <p className="text-slate-300 text-sm italic">"{post.caption}"</p>
-                                </div>
-                            ))}
-                            {!packageData?.contentPack && <EmptyState section="CONTENT" />}
                           </div>
                        )}
 
@@ -279,24 +249,41 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
                                     </div>
                                 ))}
                             </div>
-                            {!packageData?.visualDirection && <EmptyState section="VISUALS" />}
                           </div>
                        )}
+
+                       {activeTab === 'content' && (
+                          <div className="space-y-6">
+                            {packageData?.contentPack?.map((c: any, i: number) => (
+                                <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4">
+                                    <span className="px-3 py-1 bg-emerald-900/20 text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest">{c.platform} // {c.type}</span>
+                                    <p className="text-slate-300 text-sm italic">"{c.caption}"</p>
+                                </div>
+                            ))}
+                          </div>
+                       )}
+                    </div>
+                    
+                    <div className="p-8 border-t border-slate-800 bg-slate-900/50 flex justify-end">
+                        <button 
+                            onClick={() => setIsOutreachOpen(true)}
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white px-12 py-5 rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95"
+                        >
+                            DEPLOY OUTREACH HUB
+                        </button>
                     </div>
                  </div>
               )}
            </div>
-        </div>
       </div>
 
-      {currentDossier && targetLead && (
+      {packageData && lockedLead && (
         <OutreachModal 
           isOpen={isOutreachOpen}
           onClose={() => setIsOutreachOpen(false)}
-          dossier={currentDossier}
-          lead={targetLead}
+          dossier={{ data: packageData }}
+          lead={lockedLead}
           onUpdateLead={onUpdateLead}
-          onSent={() => {}} 
         />
       )}
     </div>
