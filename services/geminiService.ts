@@ -2,21 +2,18 @@ import { Lead, BrandIdentity } from '../types';
 import { deductCost } from './computeTracker';
 
 /**
- * LOCK-IN RULES:
+ * RULES:
  * - Browser NEVER calls OpenRouter directly.
- * - Browser calls our same-origin proxy: POST /api/openrouter/chat
- * - Proxy attaches Authorization: Bearer <OPENROUTER_API_KEY>
- *
- * This prevents: "Authorization required" / "No cookie auth credentials found"
+ * - Browser calls same-origin proxy: POST /api/openrouter/chat
+ * - Proxy attaches Authorization server-side.
  */
 
-// Public route implemented in vite.config.ts middleware
 export const OPENROUTER_PROXY_PATH = '/api/openrouter/chat';
 
-// Default model (override per-call if needed)
-export const PRIMARY_MODEL = 'google/gemini-2.0-flash-001';
+// Use a stable model string you actually have access to.
+// If your UI shows GEMINI_3_FLASH, keep your current model mapping there.
+export const PRIMARY_MODEL = 'google/gemini-3-flash-preview';
 
-// Stable system instruction
 export const SYSTEM_INSTRUCTION = `
 You are Prospector OS.
 When asked for JSON, output VALID JSON only (no markdown fences).
@@ -60,7 +57,7 @@ export interface LoggedGenerateParams {
   reasoningDepth?: 'LOW' | 'MEDIUM' | 'HIGH';
   isClientFacing?: boolean;
   contents: any;
-  config?: any; // keep for callers that pass config
+  config?: any;
 }
 
 // -------------------- State (Assets/Vault) --------------------
@@ -78,7 +75,9 @@ export const pushLog = (msg: string) => {
 export const subscribeToAssets = (listener: (assets: AssetRecord[]) => void) => {
   assetListeners.add(listener);
   listener(SESSION_ASSETS);
-  return () => assetListeners.delete(listener);
+  return () => {
+    assetListeners.delete(listener);
+  };
 };
 
 export const saveAsset = (
@@ -177,33 +176,6 @@ const safeJsonParse = <T = any>(s: string, fallback: T): T => {
   }
 };
 
-const ensureLeadShape = (lead: any, idx: number): Lead => {
-  const id = typeof lead?.id === 'string' && lead.id.trim() ? lead.id : uuidLike();
-  const rank = typeof lead?.rank === 'number' ? lead.rank : idx + 1;
-
-  return {
-    id,
-    rank,
-    businessName: String(lead?.businessName || '').trim(),
-    websiteUrl: String(lead?.websiteUrl || lead?.website || '').trim(),
-    niche: String(lead?.niche || '').trim(),
-    city: String(lead?.city || '').trim(),
-    phone: String(lead?.phone || '').trim(),
-    email: String(lead?.email || '').trim(),
-    leadScore: Number.isFinite(lead?.leadScore) ? Number(lead.leadScore) : 0,
-    assetGrade: (lead?.assetGrade === 'A' || lead?.assetGrade === 'B' || lead?.assetGrade === 'C') ? lead.assetGrade : 'B',
-    socialGap: String(lead?.socialGap || '').trim(),
-    visualProof: String(lead?.visualProof || '').trim(),
-    bestAngle: String(lead?.bestAngle || '').trim(),
-    personalizedHook: String(lead?.personalizedHook || '').trim(),
-    brandIdentity: lead?.brandIdentity,
-    campaigns: lead?.campaigns,
-    status: lead?.status,
-    outreachStatus: lead?.outreachStatus,
-    notes: lead?.notes
-  } as Lead;
-};
-
 // Compatibility shim (older code imports getAI())
 export const getAI = () => null;
 
@@ -213,17 +185,20 @@ export const openRouterChat = async (
   system?: string,
   model: string = PRIMARY_MODEL
 ): Promise<string> => {
-  if (!prompt || !String(prompt).trim()) {
-    throw new Error('Client payload missing prompt/messages');
+  const keys = getStoredKeys();
+  const safePrompt = (prompt ?? '').toString().trim();
+
+  if (!safePrompt) {
+    throw new Error('Client attempted to call OpenRouter with an empty prompt');
   }
 
-  const keys = getStoredKeys();
-
+  // IMPORTANT: Always send OpenAI chat-completions format
   const body = {
-    // proxy will normalize into messages[]
-    prompt,
-    systemInstruction: system || SYSTEM_INSTRUCTION,
-    model
+    model,
+    messages: [
+      { role: 'system', content: system || SYSTEM_INSTRUCTION },
+      { role: 'user', content: safePrompt }
+    ]
   };
 
   const res = await fetch(OPENROUTER_PROXY_PATH, {
@@ -239,8 +214,7 @@ export const openRouterChat = async (
 
   if (!res.ok) {
     pushLog(`OpenRouter Proxy Error (${res.status}): ${rawText}`);
-    const statusText = res.status === 401 ? 'Unauthorized (Check Key)' : `Error ${res.status}`;
-    throw new Error(`OpenRouter Error (${statusText}): ${rawText}`);
+    throw new Error(`OpenRouter Error (${res.status}): ${rawText}`);
   }
 
   const data = safeJsonParse<any>(rawText, null);
@@ -272,28 +246,84 @@ export const loggedGenerateContent = async (params: LoggedGenerateParams): Promi
   }
 };
 
+// -------------------- FIX: groundedLeadSearch (required by AutomatedSearch.tsx) --------------------
+export const groundedLeadSearch = async (
+  query: string,
+  region: string,
+  count: number = 10,
+  model: string = PRIMARY_MODEL
+): Promise<{ leads: Lead[]; groundingSources: Array<{ title: string; uri: string }> }> => {
+  const prompt = `
+You are a lead intelligence engine.
+
+Task:
+- Find ${count} real businesses for the query: "${query}"
+- Region focus: "${region}"
+- Return VALID JSON ONLY in this exact shape:
+
+{
+  "leads": [
+    {
+      "id": "string",
+      "rank": 1,
+      "businessName": "string",
+      "websiteUrl": "https://...",
+      "city": "string",
+      "niche": "string",
+      "leadScore": 0,
+      "assetGrade": "A",
+      "socialGap": "string"
+    }
+  ],
+  "sources": [
+    { "title": "string", "uri": "https://..." }
+  ]
+}
+
+Rules:
+- Always include id and rank.
+- websiteUrl must be a valid URL when possible.
+- No markdown.
+`.trim();
+
+  const jsonStr = await executeIntelligenceTask(prompt, SYSTEM_INSTRUCTION);
+  const parsed = safeJsonParse<any>(jsonStr, { leads: [], sources: [] });
+
+  const leads: Lead[] = (parsed.leads || []).map((l: any, idx: number) => ({
+    id: (l?.id || uuidLike()).toString(),
+    rank: Number.isFinite(l?.rank) ? Number(l.rank) : idx + 1,
+    businessName: (l?.businessName || '').toString(),
+    websiteUrl: (l?.websiteUrl || '').toString(),
+    city: (l?.city || '').toString(),
+    niche: (l?.niche || '').toString(),
+    leadScore: Number.isFinite(l?.leadScore) ? Number(l.leadScore) : 0,
+    assetGrade: (l?.assetGrade || 'B').toString(),
+    socialGap: (l?.socialGap || '').toString()
+  }));
+
+  const sources = Array.isArray(parsed.sources) ? parsed.sources : [];
+  return { leads, groundingSources: sources };
+};
+
 // -------------------- Core: Lead Discovery --------------------
 export const generateLeads = async (region: string, niche: string, count: number) => {
   pushLog(`RECON: ${region} | ${niche} | count=${count}`);
 
   const prompt = `
 Find ${count} high-ticket B2B leads in ${region} for ${niche}.
-Return VALID JSON ONLY in this exact shape:
+Return VALID JSON ONLY in this shape:
 {
   "leads": [
     {
+      "id": "string",
+      "rank": 1,
       "businessName": "",
       "websiteUrl": "",
       "city": "",
       "niche": "",
       "leadScore": 0,
       "assetGrade": "A",
-      "socialGap": "",
-      "phone": "",
-      "email": "",
-      "visualProof": "",
-      "bestAngle": "",
-      "personalizedHook": ""
+      "socialGap": ""
     }
   ]
 }
@@ -302,13 +332,22 @@ Return VALID JSON ONLY in this exact shape:
   const jsonStr = await executeIntelligenceTask(prompt);
   const parsed = safeJsonParse<any>(jsonStr, { leads: [] });
 
-  const rawLeads = Array.isArray(parsed?.leads) ? parsed.leads : [];
-  const leads: Lead[] = rawLeads.map((l: any, idx: number) => ensureLeadShape(l, idx));
+  const leads: Lead[] = (parsed.leads || []).map((l: any, idx: number) => ({
+    id: (l?.id || uuidLike()).toString(),
+    rank: Number.isFinite(l?.rank) ? Number(l.rank) : idx + 1,
+    businessName: (l?.businessName || '').toString(),
+    websiteUrl: (l?.websiteUrl || '').toString(),
+    city: (l?.city || '').toString(),
+    niche: (l?.niche || niche || '').toString(),
+    leadScore: Number.isFinite(l?.leadScore) ? Number(l.leadScore) : 0,
+    assetGrade: (l?.assetGrade || 'B').toString(),
+    socialGap: (l?.socialGap || '').toString()
+  }));
 
   return { leads, groundingSources: [] as any[] };
 };
 
-// -------------------- Text modules --------------------
+// -------------------- Text modules (keep signatures stable) --------------------
 export const orchestrateBusinessPackage = async (lead: Lead, _assets: any[]) => {
   const json = await executeIntelligenceTask(
     `Create outreach assets for ${lead.businessName}. Return VALID JSON with presentation, narrative, outreach, and visual direction.`
@@ -392,8 +431,7 @@ export const crawlTheaterSignals = async (sector: string, signal: string) => {
     `Identify 3 businesses in ${sector} showing signal="${signal}". Return VALID JSON: { "leads": [ ... ] }`
   );
   const parsed = safeJsonParse<any>(json, { leads: [] });
-  const raw = Array.isArray(parsed?.leads) ? parsed.leads : [];
-  return raw.map((l: any, idx: number) => ensureLeadShape(l, idx));
+  return (parsed.leads || []).map((l: any) => ({ ...l, id: uuidLike() }));
 };
 
 export const generatePlaybookStrategy = async (niche: string) => {
@@ -439,9 +477,7 @@ export const generateMotionLabConcept = async (lead: Lead) => {
 };
 
 export const generateFlashSparks = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(
-    `Generate 6 viral sparks for ${lead.businessName}. Return VALID JSON array of ideas.`
-  );
+  const json = await executeIntelligenceTask(`Generate 6 viral sparks for ${lead.businessName}. Return VALID JSON array.`);
   return safeJsonParse<any[]>(json, []);
 };
 
@@ -503,10 +539,8 @@ export const enhanceVideoPrompt = async (prompt: string) => {
   return await executeIntelligenceTask(`Enhance this video prompt for cinematic 4K: ${prompt}. Return plain text.`);
 };
 
-// -------------------- Media stubs (kept for UI compatibility) --------------------
-export const generateVisual = async (_prompt: string, _lead: Lead, _base64Image?: string) => {
-  return null as any;
-};
+// Media stubs kept for UI compatibility
+export const generateVisual = async (_prompt: string, _lead: Lead, _base64Image?: string) => null as any;
 
 export const analyzeVisual = async (_base64: string, _mimeType: string, prompt: string) => {
   return await executeIntelligenceTask(`Visual analysis task: ${prompt}. Return plain text.`);
@@ -532,9 +566,7 @@ export const generateVideoPayload = async (
   return null as any;
 };
 
-export const generateAudioPitch = async (_text: string, _voiceName: string = 'Kore', _leadId?: string) => {
-  return null as any;
-};
+export const generateAudioPitch = async (_text: string, _voiceName: string = 'Kore', _leadId?: string) => null as any;
 
 export const generateLyrics = async (lead: Lead, theme: string, type: string) => {
   return await executeIntelligenceTask(
