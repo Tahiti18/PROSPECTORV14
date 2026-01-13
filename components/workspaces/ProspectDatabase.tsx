@@ -62,6 +62,20 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
     }
   };
 
+  const handleDelete = (id: string) => {
+    if (confirm("Permanently remove this target from the ledger?")) {
+        db.deleteLead(id);
+        toast.info("Target removed.");
+    }
+  };
+
+  const handlePurge = () => {
+    if (confirm("CRITICAL: Wipe all leads from the ledger? This cannot be undone.")) {
+        db.saveLeads([]);
+        toast.info("Ledger purged.");
+    }
+  };
+
   const handleExport = () => {
     const dataStr = JSON.stringify(leads, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
@@ -84,7 +98,7 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
         try {
             const imported = JSON.parse(ev.target?.result as string);
             if (Array.isArray(imported)) {
-                db.saveLeads(imported);
+                db.upsertLeads(imported);
                 toast.success(`IMPORTED ${imported.length} RECORDS`);
             } else {
                 toast.error("INVALID_FILE_STRUCTURE");
@@ -147,7 +161,7 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">STATUS</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">GROWTH OPPORTUNITY</th>
                 <th onClick={() => handleSort('leadScore')} className="cursor-pointer px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hover:text-white text-right">SCORE</th>
-                <th className="w-32 px-6 py-4"></th>
+                <th className="w-48 px-6 py-4"></th>
               </tr>
             </thead>
             <tbody className="divide-y-2 divide-slate-800/50">
@@ -174,10 +188,20 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
                     </td>
                     <td className="px-6 py-4 max-w-sm"><p className="text-[10px] font-medium text-slate-400 line-clamp-1 italic">"{lead.socialGap}"</p></td>
                     <td className="px-6 py-4 text-right"><span className="text-2xl font-black italic text-emerald-500">{lead.leadScore}</span></td>
-                    <td className="px-6 py-4 text-right"><button onClick={() => onInspect(lead.id)} className="px-4 py-2 bg-white text-black hover:bg-emerald-500 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95">AUDIT</button></td>
+                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                        <button onClick={() => onInspect(lead.id)} className="px-4 py-2 bg-white text-black hover:bg-emerald-500 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95">AUDIT</button>
+                        <button onClick={() => handleDelete(lead.id)} className="p-2 text-slate-700 hover:text-rose-500 transition-colors">×</button>
+                    </td>
                   </tr>
                 );
               })}
+              {sortedLeads.length === 0 && (
+                <tr>
+                    <td colSpan={7} className="py-20 text-center text-slate-600 italic uppercase tracking-widest text-xs">
+                        Ledger Empty. Use Market Discovery to identify prospects.
+                    </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -191,7 +215,7 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
               className="px-6 py-3 bg-slate-900 border-2 border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              IMPORT LEDGER
+              IMPORT
             </button>
             <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
             
@@ -200,7 +224,14 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
               className="px-6 py-3 bg-slate-900 border-2 border-slate-700 text-slate-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-              EXPORT LEDGER
+              EXPORT
+            </button>
+
+            <button 
+              onClick={handlePurge}
+              className="px-6 py-3 bg-rose-950/20 border-2 border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+            >
+              PURGE
             </button>
          </div>
 
@@ -209,7 +240,7 @@ export const ProspectDatabase: React.FC<{ leads: Lead[], lockedLeadId: string | 
             className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800 flex items-center gap-3"
          >
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            COMMIT ALL CHANGES
+            FORCE COMMIT ALL
          </button>
       </div>
 

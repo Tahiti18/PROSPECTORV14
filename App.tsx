@@ -59,8 +59,9 @@ const STORAGE_KEY_REGION = 'prospector_os_region_v1';
 const App: React.FC = () => {
   const [activeMode, setActiveMode] = useState<MainMode>('RESEARCH');
   const [activeModule, setActiveModule] = useState<SubModule>('EXECUTIVE_DASHBOARD');
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [region, setRegion] = useState<string>('LOS ANGELES, USA');
+  // Initialize leads from DB immediately to avoid empty state flash
+  const [leads, setLeads] = useState<Lead[]>(() => db.getLeads());
+  const [region, setRegion] = useState<string>(() => localStorage.getItem(STORAGE_KEY_REGION) || 'LOS ANGELES, USA');
   const [lockedLeadId, setLockedLeadId] = useState<string | null>(() => {
     return localStorage.getItem('pomelli_locked_lead_id');
   });
@@ -68,15 +69,12 @@ const App: React.FC = () => {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    try {
-      const savedLeads = db.getLeads();
-      const savedRegion = localStorage.getItem(STORAGE_KEY_REGION);
-      if (savedLeads.length > 0) setLeads(savedLeads);
-      if (savedRegion) setRegion(savedRegion);
-    } catch (e) { console.error("Hydration failed", e); }
+    // The subscription will now also hydrate the state immediately on mount
+    const unsubDb = db.subscribe((newLeads) => { 
+      setLeads([...newLeads]); 
+    });
+    
     setIsHydrated(true);
-
-    const unsubDb = db.subscribe((newLeads) => { setLeads([...newLeads]); });
     return () => { unsubDb(); };
   }, []);
 
@@ -144,7 +142,6 @@ const App: React.FC = () => {
       case 'MEETING_NOTES': return <MeetingNotes />;
       case 'CAMPAIGN_ORCHESTRATOR': return <CampaignOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={handleLockLead} onUpdateLead={handleUpdateLead} />;
       
-      // Fixed: Specific Routing for Sell/Outreach sub-modules
       case 'PROPOSALS': 
       case 'ROI_CALCULATOR': 
       case 'SEQUENCER': 

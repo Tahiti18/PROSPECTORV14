@@ -23,7 +23,6 @@ function safeParse(raw: string | null): unknown {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-// Drops invalid runs silently during read
 function normalizeRunsMap(maybeRuns: unknown): Record<string, AutomationRun> {
   if (!isRecord(maybeRuns)) return {};
   const out: Record<string, AutomationRun> = {};
@@ -39,91 +38,49 @@ function writeDb(db: DbV1) {
   } catch (e: any) {
     console.error("[AutoDB] Write failed", e);
     if (e.name === 'QuotaExceededError' || e.code === 22) {
-      toast.error("STORAGE FULL: Cannot save automation run. Please export and clear old data.");
+      toast.error("STORAGE FULL: Cannot save automation run.");
     }
   }
 }
 
-/**
- * CORE DB LOGIC
- * Strategy: Strict on Write, Tolerant on Read.
- */
 const getDbInternal = (): DbV1 => {
   const raw = localStorage.getItem(DB_KEY);
   const parsed = safeParse(raw);
 
-  // Case 1: Modern shape: { version: 1, runs: {...} }
   if (isRecord(parsed) && "runs" in parsed) {
     const runs = normalizeRunsMap((parsed as any).runs);
     const normalized: DbV1 = { version: 1, runs };
-
-    const versionOk = (parsed as any).version === 1;
-    const runsSameSize = isRecord((parsed as any).runs) && Object.keys((parsed as any).runs).length === Object.keys(runs).length;
-
-    // Persist only if we normalized something (fixes missing version or filters invalid runs)
-    if (!versionOk || !runsSameSize) writeDb(normalized);
     return normalized;
   }
 
-  // Case 2: Legacy root-map: { [runId]: AutomationRun } (Parsed object, no 'runs' key)
   if (isRecord(parsed)) {
-    console.warn("[AutoDB] Migrating legacy DB structure to v1 schema");
     const legacyRuns = normalizeRunsMap(parsed);
-    const migrated: DbV1 = { version: 1, runs: legacyRuns };
-    writeDb(migrated); // one-time fix
-    return migrated;
+    return { version: 1, runs: legacyRuns };
   }
 
-  // Case 3: Empty/corrupt/missing
-  const fresh: DbV1 = { version: 1, runs: {} };
-  // Only write fresh if we had data that was corrupt to self-heal
-  if (raw) writeDb(fresh);
-  return fresh;
+  return { version: 1, runs: {} };
 };
 
 export const db = {
-  // --- MUTEX LOCKING (Jitter + Read-Back) ---
-  
   acquireMutex: async (ownerId: string, ttlMs: number = 5000): Promise<boolean> => {
-    // 1. Random Jitter (10-40ms) to desync competing tabs
     await sleep(Math.random() * 30 + 10);
-
     const now = Date.now();
     const raw = localStorage.getItem(MUTEX_KEY);
-    
-    // 2. Read Existing & Check TTL
     if (raw) {
       try {
         const lock = JSON.parse(raw);
-        if (lock.expiresAt > now && lock.ownerId !== ownerId) {
-          return false; // Valid lock by someone else
-        }
-      } catch (e) {
-        // Corrupt lock, treat as free
-      }
+        if (lock.expiresAt > now && lock.ownerId !== ownerId) return false;
+      } catch (e) {}
     }
-
-    // 3. Attempt Write
     const newLock = { ownerId, expiresAt: now + ttlMs };
-    try {
-        localStorage.setItem(MUTEX_KEY, JSON.stringify(newLock));
-    } catch (e) {
-        return false; // Write failed (quota?)
-    }
-    
-    // 4. Sleep to allow race conditions to settle
+    localStorage.setItem(MUTEX_KEY, JSON.stringify(newLock));
     await sleep(25);
-    
-    // 5. Read-back Verification
     const verify = localStorage.getItem(MUTEX_KEY);
     if (!verify) return false;
-    
     try {
       const verifyLock = JSON.parse(verify);
       return verifyLock.ownerId === ownerId;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   },
 
   releaseMutex: (ownerId: string) => {
@@ -131,19 +88,15 @@ export const db = {
     if (raw) {
       try {
         const lock = JSON.parse(raw);
-        if (lock.ownerId === ownerId) {
-          localStorage.removeItem(MUTEX_KEY);
-        }
-      } catch (e) {
-        localStorage.removeItem(MUTEX_KEY); 
-      }
+        if (lock.ownerId === ownerId) localStorage.removeItem(MUTEX_KEY);
+      } catch (e) { localStorage.removeItem(MUTEX_KEY); }
     }
   },
 
-  // --- LEAD MANAGEMENT ---
-
   subscribe: (listener: Listener) => {
     listeners.add(listener);
+    // Immediately emit current state to new subscriber
+    listener(db.getLeads());
     return () => { listeners.delete(listener); };
   },
 
@@ -154,68 +107,85 @@ export const db = {
   },
 
   saveLeads: (leads: Lead[]) => {
+    if (!leads || !Array.isArray(leads)) {
+      console.warn("Attempted to save invalid leads array to DB.");
+      return;
+    }
     try {
         localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
-        listeners.forEach(l => l(leads));
+        // Broadcast to all active listeners (App.tsx state)
+        listeners.forEach(l => l([...leads]));
+        console.log(`[Persistence] ${leads.length} records committed to local storage.`);
     } catch (e: any) {
         console.error("Save Leads Failed", e);
         if (e.name === 'QuotaExceededError') {
-            toast.error("STORAGE FULL: Leads not saved. Export data to free up space.");
+            toast.error("STORAGE FULL: Export data to free up space.");
         }
     }
+  },
+
+  upsertLeads: (newLeads: Lead[]) => {
+    const current = db.getLeads();
+    const currentMap = new Map(current.map(l => [l.id, l]));
+    
+    newLeads.forEach(nl => {
+      // Use businessName + website as a secondary key if ID is generic
+      const existing = current.find(e => 
+        e.id === nl.id || 
+        (e.businessName === nl.businessName && e.websiteUrl === nl.websiteUrl)
+      );
+
+      if (existing) {
+        currentMap.set(existing.id, { ...existing, ...nl, id: existing.id });
+      } else {
+        currentMap.set(nl.id, nl);
+      }
+    });
+
+    const merged = Array.from(currentMap.values());
+    db.saveLeads(merged);
+    return merged;
+  },
+
+  deleteLead: (id: string) => {
+    const current = db.getLeads();
+    const updated = current.filter(l => l.id !== id);
+    db.saveLeads(updated);
   },
 
   clearStaleLocks: () => {
     const leads = db.getLeads();
     const now = Date.now();
     let updated = false;
-
     const cleaned = leads.map(l => {
       if (l.locked) {
-        const isExpired = !l.lockExpiresAt || !Number.isFinite(l.lockExpiresAt) || l.lockExpiresAt! < now;
+        const isExpired = !l.lockExpiresAt || l.lockExpiresAt < now;
         if (isExpired) {
-          console.warn(`[AutoDB] Clearing stale lock on lead ${l.id}`);
           updated = true;
-          return { 
-            ...l, 
-            locked: false, 
-            lockedByRunId: undefined, 
-            lockedAt: undefined, 
-            lockExpiresAt: undefined 
-          };
+          return { ...l, locked: false, lockedByRunId: undefined };
         }
       }
       return l;
     });
-
     if (updated) db.saveLeads(cleaned);
   },
 
   forceUnlockAll: () => {
     const leads = db.getLeads();
-    const cleaned = leads.map(l => ({
-        ...l,
-        locked: false,
-        lockedByRunId: undefined,
-        lockedAt: undefined,
-        lockExpiresAt: undefined
-    }));
-    db.saveLeads(cleaned); // Notifies listeners
+    const cleaned = leads.map(l => ({ ...l, locked: false, lockedByRunId: undefined }));
+    db.saveLeads(cleaned);
     toast.success(`SYSTEM OVERRIDE: ${leads.length} TARGETS UNLOCKED.`);
   },
 
-  // --- RUN MANAGEMENT (Normalized) ---
-
   getRun: (id: string): AutomationRun | null => {
     const dbObj = getDbInternal();
-    const run = dbObj.runs[id];
-    return run ? run : null;
+    return dbObj.runs[id] || null;
   },
 
   saveRun: (run: AutomationRun) => {
     const dbObj = getDbInternal();
     dbObj.runs[run.id] = run;
-    writeDb(dbObj); // Always strict write V1 shape
+    writeDb(dbObj);
   },
 
   listRuns: (): AutomationRun[] => {

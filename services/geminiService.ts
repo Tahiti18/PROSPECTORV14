@@ -31,10 +31,6 @@ export interface BenchmarkReport {
   sources: Array<{ title: string; uri: string }>;
 }
 
-// Fix: Added missing VeoConfig type exported for use in VideoPitch.tsx
-/**
- * VeoConfig type for video generation parameters.
- */
 export type VeoConfig = {
   aspectRatio: '16:9' | '9:16';
   resolution: '720p' | '1080p';
@@ -46,10 +42,6 @@ export const getStoredKeys = () => ({
   kie: process.env.KIE_API_KEY || "" 
 });
 
-// Fix: Added missing setStoredKeys exported member for use in SettingsNode and SecurityGateway
-/**
- * Persists keys to the current session context.
- */
 export const setStoredKeys = (openRouter: string, kie: string) => {
   pushLog("INFRASTRUCTURE: GATEWAY KEYS UPDATED");
 };
@@ -80,15 +72,32 @@ export const saveAsset = (type: AssetRecord['type'], title: string, data: string
 
 const extractJson = (text: string) => {
   if (!text) return "{}";
+  // Remove markdown code blocks
   let cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  if (start !== -1 && end !== -1) return cleaned.substring(start, end + 1);
+  
+  // Find boundaries of the first valid JSON object or array
+  const startObj = cleaned.indexOf('{');
+  const startArr = cleaned.indexOf('[');
+  
+  let start = -1;
+  let end = -1;
+
+  if (startObj !== -1 && (startArr === -1 || startObj < startArr)) {
+    start = startObj;
+    end = cleaned.lastIndexOf('}');
+  } else if (startArr !== -1) {
+    start = startArr;
+    end = cleaned.lastIndexOf(']');
+  }
+
+  if (start !== -1 && end !== -1 && end > start) {
+    return cleaned.substring(start, end + 1);
+  }
+  
   return cleaned;
 };
 
 export const executeIntelligenceTask = async (prompt: string, system?: string) => {
-  // Fix: Initializing GoogleGenAI inside task for fresh API key usage
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const response = await ai.models.generateContent({
     model: PRIMARY_MODEL,
@@ -114,24 +123,15 @@ export const generateLeads = async (region: string, niche: string, count: number
 export const generateVisual = async (prompt: string, lead: Lead, sourceImage?: string): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   pushLog(`IMAGE_GEN: Forging visual for ${lead.businessName}...`);
-  
   const contents: any[] = [{ text: prompt }];
   if (sourceImage && sourceImage.includes('base64,')) {
-    contents.push({
-      inlineData: {
-        data: sourceImage.split('base64,')[1],
-        mimeType: 'image/png'
-      }
-    });
+    contents.push({ inlineData: { data: sourceImage.split('base64,')[1], mimeType: 'image/png' } });
   }
-
   const response = await ai.models.generateContent({
     model: IMAGE_MODEL,
     contents: { parts: contents }
   });
-
   let imageUrl = "";
-  // Fix: Iterating through parts to find image part per guidelines
   for (const part of response.candidates?.[0]?.content?.parts || []) {
     if (part.inlineData) {
       imageUrl = `data:image/png;base64,${part.inlineData.data}`;
@@ -170,8 +170,17 @@ export const generateOutreachSequence = async (lead: Lead) => {
 };
 
 export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
-  const prompt = `Complete campaign orchestration for ${lead.businessName}. Output UI_BLOCKS format.`;
-  return JSON.parse(await executeIntelligenceTask(prompt));
+  const prompt = `Architect an exhaustive multi-layered campaign for ${lead.businessName}. 
+  Context: ${lead.socialGap}.
+  Return strictly JSON with these exact root keys: 
+  "presentation": { "title": "Strategy Blueprint", "slides": [{ "title": "Slide Title", "bullets": ["Bullet 1", "Bullet 2"] }] }, 
+  "narrative": "A professional 3-paragraph executive summary", 
+  "outreach": { "emailSequence": [{ "subject": "Intro", "body": "Body text" }] }, 
+  "funnel": [{ "title": "Stage Name", "description": "Details", "conversionGoal": "Action" }], 
+  "contentPack": [{ "platform": "Instagram", "type": "Reel", "caption": "Caption text" }], 
+  "visualDirection": { "brandMood": "Description", "aiImagePrompts": [{ "use_case": "Hero Image", "prompt": "Prompt text" }] }`;
+  const jsonStr = await executeIntelligenceTask(prompt);
+  return JSON.parse(extractJson(jsonStr));
 };
 
 export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
@@ -215,7 +224,6 @@ export const extractBrandDNA = async (lead: Partial<Lead>, url: string): Promise
 
 export const queryRealtimeAgent = async (prompt: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-  // Fix: Using correct tool name googleSearch per guidelines
   const res = await ai.models.generateContent({ model: PRIMARY_MODEL, contents: prompt, config: { tools: [{ googleSearch: {} }] } });
   return { text: res.text || "", sources: res.candidates?.[0]?.groundingMetadata?.groundingChunks || [] };
 };
@@ -249,55 +257,33 @@ export const generateNurtureDialogue = async (l: Lead, s: string) => {
   return res.dialogue || [];
 };
 
-// Fix: Added missing generatePlaybookStrategy exported member for use in ScoringRubricView
-/**
- * Generates strategic playbook steps for a niche.
- */
 export const generatePlaybookStrategy = async (niche: string) => {
-  const prompt = `Architect a master methodology and scoring rubric for an AI agency specializing in ${niche}. Return JSON: { "strategyName": "...", "steps": [{ "title": "...", "tactic": "..." }] }`;
+  const prompt = `Architect a master methodology for an AI agency in ${niche}. Return JSON: { "strategyName": "...", "steps": [{ "title": "...", "tactic": "..." }] }`;
   const jsonStr = await executeIntelligenceTask(prompt);
   return JSON.parse(extractJson(jsonStr));
 };
 
-// Fix: Added missing analyzeLedger exported member for use in AnalyticsHub
-/**
- * Analyzes the entire ledger of leads.
- */
 export const analyzeLedger = async (leads: Lead[]) => {
-  const prompt = `Analyze the following lead database for risks and opportunities: ${JSON.stringify(leads.map(l => ({ name: l.businessName, niche: l.niche, score: l.leadScore })))}. Return JSON: { "risk": "...", "opportunity": "..." }`;
+  const prompt = `Analyze lead database for risks/ops: ${JSON.stringify(leads.map(l => ({ name: l.businessName, score: l.leadScore })))}. Return JSON: { "risk": "...", "opportunity": "..." }`;
   const jsonStr = await executeIntelligenceTask(prompt);
   return JSON.parse(extractJson(jsonStr));
 };
 
-// Fix: Added missing enhanceVideoPrompt exported member for use in VideoPitch
-/**
- * Enhances a video prompt for higher fidelity.
- */
 export const enhanceVideoPrompt = async (p: string) => {
-  const prompt = `Enhance this cinematic video prompt for maximum visual fidelity: ${p}. Output only the enhanced prompt text.`;
+  const prompt = `Enhance video prompt: ${p}. Output raw text.`;
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const res = await ai.models.generateContent({ model: PRIMARY_MODEL, contents: prompt });
   return res.text || p;
 };
 
-// Fix: Added missing fetchBenchmarkData exported member for use in BenchmarkNode
-/**
- * Fetches technical benchmark data for a lead.
- */
 export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> => {
-  const prompt = `Perform a deep technical benchmark for ${lead.businessName} (${lead.websiteUrl}). Return JSON with fields: entityName, missionSummary, visualStack, sonicStack, featureGap, businessModel, designSystem, deepArchitecture, sources.`;
+  const prompt = `Technical benchmark for ${lead.businessName}. Return JSON.`;
   const jsonStr = await executeIntelligenceTask(prompt);
   return JSON.parse(extractJson(jsonStr));
 };
 
-// --- STUBS ---
-// Fix: Updated generateVideoPayload signature to accept 5 arguments to resolve VideoPitch.tsx error
-/**
- * Modified generateVideoPayload to accept 5 arguments as required by VideoPitch.tsx.
- */
 export const generateVideoPayload = async (p: string, id?: string, img?: string, lastFrame?: string, config?: VeoConfig) => "task-123";
 export const generateAudioPitch = async (t: string, v: string, id?: string) => "audio-url";
-export const generateProposalDraftLegacy = async (l: Lead) => "";
 export const generateROIReport = async (l: number, v: number, c: number) => "ROI Report text";
 export const generateSonicPrompt = async (l: Lead) => "music prompt";
 export const generateLyrics = async (l: Lead, p: string, t: string) => "lyrics";

@@ -31,7 +31,7 @@ export const MarketDiscovery: React.FC<MarketDiscoveryProps> = ({ market, onLead
 
       const formatted: Lead[] = result.leads.map((l: any, i: number) => ({
         ...l, 
-        id: `L-${Date.now()}-${i}`, 
+        id: l.id || `L-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 5)}`, 
         status: 'cold', 
         outreachStatus: 'cold', 
         rank: i + 1, 
@@ -41,12 +41,11 @@ export const MarketDiscovery: React.FC<MarketDiscoveryProps> = ({ market, onLead
         assetGrade: l.assetGrade || 'A'
       }));
 
-      // Commit to DB
-      const currentLeads = db.getLeads();
-      db.saveLeads([...currentLeads, ...formatted]);
+      // Merging new findings into database with deduplication logic
+      const mergedLeads = db.upsertLeads(formatted);
       
       onLeadsGenerated(formatted);
-      toast.success(`${formatted.length} Businesses identified and saved to Ledger.`);
+      toast.success(`${formatted.length} Businesses identified and synchronized with Ledger.`);
     } catch (e: any) {
       console.error(e);
       toast.error(`Discovery Interrupted: ${e.message}`);
@@ -89,6 +88,12 @@ export const MarketDiscovery: React.FC<MarketDiscoveryProps> = ({ market, onLead
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleManualCommit = () => {
+    const currentLeads = db.getLeads();
+    db.saveLeads(currentLeads);
+    toast.success("DATABASE SYNCHRONIZED AND PERSISTED");
   };
 
   if (loading) return <div className="py-20"><Loader /></div>;
@@ -156,7 +161,7 @@ export const MarketDiscovery: React.FC<MarketDiscoveryProps> = ({ market, onLead
          </div>
 
          <button 
-            onClick={() => toast.success("DATABASE SYNCHRONIZED")}
+            onClick={handleManualCommit}
             className="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800 flex items-center gap-3"
          >
             <span>💾</span> COMMIT ALL CHANGES

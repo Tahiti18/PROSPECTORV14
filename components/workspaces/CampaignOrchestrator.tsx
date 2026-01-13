@@ -5,6 +5,7 @@ import { SESSION_ASSETS, orchestrateBusinessPackage } from '../../services/gemin
 import { dossierStorage } from '../../services/dossierStorage';
 import { OutreachModal } from './OutreachModal';
 import { toast } from '../../services/toastManager';
+import { FormattedOutput } from '../common/FormattedOutput';
 
 interface CampaignOrchestratorProps {
   leads: Lead[];
@@ -173,21 +174,23 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
                        {activeTab === 'strategy' && (
                           <div className="space-y-10">
                              <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">{packageData?.presentation?.title || "STRATEGY Blueprint"}</h2>
-                             <div className="grid gap-6">
-                                {packageData?.presentation?.slides?.map((s: any, i: number) => (
-                                <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] group hover:border-emerald-500/30 transition-all">
-                                    <h3 className="text-xl font-bold text-white uppercase mb-4">#{i+1}: {s?.title || 'Segment'}</h3>
-                                    <ul className="space-y-3">
-                                        {(s?.bullets || []).map((b: string, j: number) => (
-                                        <li key={j} className="text-sm text-slate-400 flex items-start gap-3">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5" />
-                                            {b}
-                                        </li>
-                                        ))}
-                                    </ul>
+                             {packageData?.presentation?.slides ? (
+                                <div className="grid gap-6">
+                                    {packageData.presentation.slides.map((s: any, i: number) => (
+                                    <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] group hover:border-emerald-500/30 transition-all">
+                                        <h3 className="text-xl font-bold text-white uppercase mb-4">#{i+1}: {s?.title || 'Segment'}</h3>
+                                        <ul className="space-y-3">
+                                            {(s?.bullets || []).map((b: string, j: number) => (
+                                            <li key={j} className="text-sm text-slate-400 flex items-start gap-3">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5" />
+                                                {b}
+                                            </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    ))}
                                 </div>
-                                ))}
-                             </div>
+                             ) : <FormattedOutput content={JSON.stringify(packageData)} />}
                           </div>
                        )}
 
@@ -197,41 +200,45 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
                                 EXECUTIVE_NARRATIVE
                              </h3>
-                             <p className="text-xl text-slate-300 italic font-medium leading-relaxed font-serif whitespace-pre-wrap">{packageData?.narrative || "Narrative synthesis pending..."}</p>
+                             <FormattedOutput content={packageData?.narrative || "Synthesis pending."} />
                           </div>
                        )}
 
                        {activeTab === 'outreach' && (
                           <div className="space-y-8">
-                             {packageData?.outreach?.emailSequence?.map((e: any, i: number) => (
-                                <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4 shadow-xl">
-                                    <div className="flex justify-between items-center">
-                                        <p className="text-sm font-bold text-white uppercase tracking-tight">
-                                        <span className="text-slate-500 font-black">SUBJECT:</span> {e?.subject || "Draft"}
-                                        </p>
-                                        <span className="text-[9px] font-black text-emerald-500 px-2 py-1 bg-emerald-900/20 rounded">EMAIL_{i+1}</span>
-                                    </div>
-                                    <p className="text-xs text-slate-400 whitespace-pre-wrap font-mono leading-relaxed bg-black/30 p-6 rounded-2xl border border-slate-800/50">{e?.body || "..."}</p>
-                                </div>
-                             ))}
+                             {packageData?.outreach?.emailSequence ? (
+                                packageData.outreach.emailSequence.map((e: any, i: number) => (
+                                   <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4 shadow-xl">
+                                       <div className="flex justify-between items-center">
+                                           <p className="text-sm font-bold text-white uppercase tracking-tight">
+                                           <span className="text-slate-500 font-black">SUBJECT:</span> {e?.subject || "Draft"}
+                                           </p>
+                                           <span className="text-[9px] font-black text-emerald-500 px-2 py-1 bg-emerald-900/20 rounded">EMAIL_{i+1}</span>
+                                       </div>
+                                       <FormattedOutput content={e?.body} />
+                                   </div>
+                                ))
+                             ) : <FormattedOutput content={JSON.stringify(packageData?.outreach)} />}
                           </div>
                        )}
 
                        {activeTab === 'funnel' && (
                           <div className="space-y-8">
-                            {packageData?.funnel?.map((f: any, i: number) => (
-                                <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] flex items-center gap-8 group hover:border-emerald-500/30 transition-all">
-                                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-black italic">{i+1}</div>
-                                    <div className="flex-1">
-                                        <h4 className="text-lg font-black text-white uppercase tracking-widest">{f.title}</h4>
-                                        <p className="text-sm text-slate-500 mt-1">{f.description}</p>
+                            {packageData?.funnel ? (
+                                packageData.funnel.map((f: any, i: number) => (
+                                    <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] flex items-center gap-8 group hover:border-emerald-500/30 transition-all">
+                                        <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-black italic">{i+1}</div>
+                                        <div className="flex-1">
+                                            <h4 className="text-lg font-black text-white uppercase tracking-widest">{f.title}</h4>
+                                            <p className="text-sm text-slate-500 mt-1">{f.description}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-[8px] font-black text-emerald-500 uppercase block">GOAL</span>
+                                            <span className="text-xs font-bold text-white uppercase">{f.conversionGoal}</span>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <span className="text-[8px] font-black text-emerald-500 uppercase block">GOAL</span>
-                                        <span className="text-xs font-bold text-white uppercase">{f.conversionGoal}</span>
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            ) : <FormattedOutput content={JSON.stringify(packageData?.funnel)} />}
                           </div>
                        )}
 
@@ -239,7 +246,7 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
                           <div className="space-y-8">
                             <div className="bg-emerald-950/20 border border-emerald-500/20 p-8 rounded-[32px]">
                                 <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-4">MOOD & ART DIRECTION</h4>
-                                <p className="text-slate-300 text-sm leading-relaxed">{packageData?.visualDirection?.brandMood || "Art direction required."}</p>
+                                <FormattedOutput content={packageData?.visualDirection?.brandMood} />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {packageData?.visualDirection?.aiImagePrompts?.map((p: any, i: number) => (
@@ -254,12 +261,14 @@ export const CampaignOrchestrator: React.FC<CampaignOrchestratorProps> = ({ lead
 
                        {activeTab === 'content' && (
                           <div className="space-y-6">
-                            {packageData?.contentPack?.map((c: any, i: number) => (
-                                <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4">
-                                    <span className="px-3 py-1 bg-emerald-900/20 text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest">{c.platform} // {c.type}</span>
-                                    <p className="text-slate-300 text-sm italic">"{c.caption}"</p>
-                                </div>
-                            ))}
+                            {packageData?.contentPack ? (
+                                packageData.contentPack.map((c: any, i: number) => (
+                                    <div key={i} className="bg-slate-900 border border-slate-800 p-8 rounded-[32px] space-y-4">
+                                        <span className="px-3 py-1 bg-emerald-900/20 text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest">{c.platform} // {c.type}</span>
+                                        <p className="text-slate-300 text-sm italic">"{c.caption}"</p>
+                                    </div>
+                                ))
+                            ) : <FormattedOutput content={JSON.stringify(packageData?.contentPack)} />}
                           </div>
                        )}
                     </div>
