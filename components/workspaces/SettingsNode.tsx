@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { db } from '../../services/automation/db';
 import { toast } from '../../services/toastManager';
 import { getStoredKeys, setStoredKeys } from '../../services/geminiService';
 
 export const SettingsNode: React.FC = () => {
-  const [keys, setKeys] = useState(getStoredKeys());
+  const [keys, setKeys] = useState({ openRouter: "", google: "", kie: "" });
+
+  useEffect(() => {
+    setKeys(getStoredKeys());
+  }, []);
 
   const handleSaveKeys = () => {
-    setStoredKeys(keys.openRouter, keys.kie);
-    toast.success("INFRASTRUCTURE SECURED: Keys persisted to browser.");
+    setStoredKeys(keys.openRouter, keys.kie, keys.google);
+    toast.success("INFRASTRUCTURE SECURED: Keys persisted to local storage.");
+    // Refresh local state to confirm
+    setKeys(getStoredKeys());
   };
 
   const handleForceUnlock = () => {
@@ -31,7 +38,19 @@ export const SettingsNode: React.FC = () => {
             
             <div className="space-y-8">
                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">OPENROUTER AUTHORIZATION</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">PRIMARY GOOGLE API KEY (GEMINI 3 PRO / FLASH)</label>
+                  <input 
+                    type="password"
+                    value={keys.google}
+                    onChange={(e) => setKeys({...keys, google: e.target.value})}
+                    className="w-full bg-[#020617] border border-slate-800 rounded-2xl px-6 py-5 text-emerald-400 font-mono text-sm focus:border-emerald-500 outline-none transition-all shadow-inner"
+                    placeholder="Enter Google API Key..."
+                  />
+                  <p className="text-[9px] text-slate-600 italic">Required for Core Intelligence and Image Generation.</p>
+               </div>
+
+               <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">OPENROUTER AUTHORIZATION (BACKUP STRATEGY)</label>
                   <input 
                     type="password"
                     value={keys.openRouter}
@@ -42,7 +61,7 @@ export const SettingsNode: React.FC = () => {
                </div>
 
                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">KIE MEDIA CORE KEY</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">KIE MEDIA CORE KEY (VEO 3.1 & SUNO)</label>
                   <input 
                     type="password"
                     value={keys.kie}
@@ -54,7 +73,7 @@ export const SettingsNode: React.FC = () => {
 
                <button 
                  onClick={handleSaveKeys}
-                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-6 rounded-2xl text-[12px] font-black uppercase tracking-[0.4em] shadow-2xl transition-all border-b-4 border-emerald-800 active:scale-95"
+                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-6 rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] shadow-2xl transition-all border-b-4 border-emerald-800 active:scale-95"
                >
                   SAVE INFRASTRUCTURE KEYS
                </button>
