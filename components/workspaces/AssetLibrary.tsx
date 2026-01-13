@@ -1,26 +1,74 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { AssetRecord, subscribeToAssets, deleteAsset } from '../../services/geminiService';
 
-import React, { useState, useEffect } from 'react';
-import { AssetRecord, subscribeToAssets } from '../../services/geminiService';
+const safeCleanup = (maybeCleanup: any) => {
+  return () => {
+    try {
+      if (typeof maybeCleanup === 'function') maybeCleanup();
+    } catch {
+      // ignore
+    }
+  };
+};
 
-export const AssetLibrary: React.FC = () => {
+export default function AssetLibrary() {
   const [assets, setAssets] = useState<AssetRecord[]>([]);
+  const [filter, setFilter] = useState<'ALL' | AssetRecord['type']>('ALL');
 
   useEffect(() => {
-    const unsubscribe = subscribeToAssets(setAssets);
-    return () => unsubscribe();
+    const unsub = subscribeToAssets((a) => setAssets(a));
+    return safeCleanup(unsub);
   }, []);
 
+  const filtered = useMemo(() => {
+    if (filter === 'ALL') return assets;
+    return assets.filter((a) => a.type === filter);
+  }, [assets, filter]);
+
   return (
-    <div className="max-w-6xl mx-auto py-8 space-y-12 animate-in fade-in duration-500">
-      <h1 className="text-4xl font-bold uppercase text-white">ASSET <span className="text-emerald-600">LIBRARY</span></h1>
-      <div className="grid grid-cols-3 gap-6">
-         {assets.map(a => (
-           <div key={a.id} className="bg-[#0b1021] border border-slate-800 p-6 rounded-3xl">
-              <span className="text-[10px] font-black text-emerald-500 uppercase">{a.type}</span>
-              <h4 className="text-white font-bold mt-2 truncate">{a.title}</h4>
-           </div>
-         ))}
+    <div style={{ padding: 16 }}>
+      <h2 style={{ margin: '0 0 12px 0' }}>Asset Library</h2>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <button onClick={() => setFilter('ALL')}>All</button>
+        <button onClick={() => setFilter('TEXT')}>Text</button>
+        <button onClick={() => setFilter('IMAGE')}>Image</button>
+        <button onClick={() => setFilter('VIDEO')}>Video</button>
+        <button onClick={() => setFilter('AUDIO')}>Audio</button>
       </div>
+
+      {filtered.length === 0 ? (
+        <div style={{ opacity: 0.7 }}>No assets found.</div>
+      ) : (
+        <div style={{ display: 'grid', gap: 10 }}>
+          {filtered.map((a) => (
+            <div
+              key={a.id}
+              style={{
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 10,
+                padding: 12
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>
+                    [{a.type}] {a.title}
+                  </div>
+                  <div style={{ opacity: 0.7, fontSize: 12 }}>
+                    {new Date(a.timestamp).toLocaleString()} {a.module ? `• ${a.module}` : ''}
+                  </div>
+                </div>
+                <button onClick={() => deleteAsset(a.id)}>Delete</button>
+              </div>
+
+              <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-word', opacity: 0.9 }}>
+                {a.data}
+              </pre>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-};
+}
