@@ -32,8 +32,6 @@ import { SonicStudio } from './components/workspaces/SonicStudio';
 import { MeetingNotes } from './components/workspaces/MeetingNotes';
 import { CampaignOrchestrator } from './components/workspaces/CampaignOrchestrator';
 import { SellWorkspace } from './components/workspaces/SellWorkspace';
-import { BillingNode } from './components/workspaces/BillingNode';
-import { AffiliateNode } from './components/workspaces/AffiliateNode';
 import { IdentityNode } from './components/workspaces/IdentityNode';
 import { SystemConfig } from './components/workspaces/SystemConfig';
 import { ExportNode } from './components/workspaces/ExportNode';
@@ -53,29 +51,24 @@ import { ToastContainer } from './components/ToastContainer';
 import { db } from './services/automation/db';
 import { UserGuide } from './components/workspaces/UserGuide';
 import { TransformationBlueprint } from './components/workspaces/TransformationBlueprint';
+import { BillingNode } from './components/workspaces/BillingNode';
+import { AffiliateNode } from './components/workspaces/AffiliateNode';
 
 const STORAGE_KEY_REGION = 'prospector_os_region_v1';
 
 const App: React.FC = () => {
   const [activeMode, setActiveMode] = useState<MainMode>('RESEARCH');
   const [activeModule, setActiveModule] = useState<SubModule>('EXECUTIVE_DASHBOARD');
-  // Initialize leads from DB immediately to avoid empty state flash
   const [leads, setLeads] = useState<Lead[]>(() => db.getLeads());
   const [region, setRegion] = useState<string>(() => localStorage.getItem(STORAGE_KEY_REGION) || 'LOS ANGELES, USA');
-  const [lockedLeadId, setLockedLeadId] = useState<string | null>(() => {
-    return localStorage.getItem('pomelli_locked_lead_id');
-  });
+  const [lockedLeadId, setLockedLeadId] = useState<string | null>(() => localStorage.getItem('pomelli_locked_lead_id'));
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    // The subscription will now also hydrate the state immediately on mount
-    const unsubDb = db.subscribe((newLeads) => { 
-      setLeads([...newLeads]); 
-    });
-    
+    const unsubDb = db.subscribe((newLeads) => { setLeads([...newLeads]); });
     setIsHydrated(true);
-    return () => { unsubDb(); };
+    return () => unsubDb();
   }, []);
 
   useEffect(() => {
@@ -96,10 +89,7 @@ const App: React.FC = () => {
     db.saveLeads(updated);
   };
 
-  const navigate = (mode: MainMode, mod: SubModule) => { 
-    setActiveMode(mode); 
-    setActiveModule(mod); 
-  };
+  const navigate = (mode: MainMode, mod: SubModule) => { setActiveMode(mode); setActiveModule(mod); };
 
   const handleLockLead = (id: string) => {
     setLockedLeadId(id);
@@ -141,19 +131,8 @@ const App: React.FC = () => {
       case 'SONIC_STUDIO': return <SonicStudio lead={lockedLead} />;
       case 'MEETING_NOTES': return <MeetingNotes />;
       case 'CAMPAIGN_ORCHESTRATOR': return <CampaignOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={handleLockLead} onUpdateLead={handleUpdateLead} />;
-      
-      case 'PROPOSALS': 
-      case 'ROI_CALCULATOR': 
-      case 'SEQUENCER': 
-      case 'PRESENTATION_BUILDER': 
-      case 'DEMO_SANDBOX': 
-      case 'DRAFTING': 
-      case 'SALES_COACH': 
-      case 'AI_CONCIERGE': 
-      case 'ELEVATOR_PITCH': 
-      case 'FUNNEL_MAP': 
+      case 'PROPOSALS': case 'ROI_CALCULATOR': case 'SEQUENCER': case 'PRESENTATION_BUILDER': case 'DEMO_SANDBOX': case 'DRAFTING': case 'SALES_COACH': case 'AI_CONCIERGE': case 'ELEVATOR_PITCH': case 'FUNNEL_MAP': 
         return <SellWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
-
       case 'BILLING': return <BillingNode />;
       case 'AFFILIATE': return <AffiliateNode />;
       case 'IDENTITY': return <IdentityNode />;
@@ -184,7 +163,7 @@ const App: React.FC = () => {
         {renderContent()}
         <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} onSelect={navigate} theme="dark" />
         <footer className="fixed bottom-0 left-0 right-0 backdrop-blur-3xl border-t border-slate-800/50 px-10 py-2 flex justify-between items-center z-[100] bg-[#020617]/80 text-[9px] font-black uppercase tracking-widest text-slate-600 pointer-events-none">
-            <div className="flex gap-4"><span>SYSTEM: OPERATIONAL</span><span>V14.6.2 (RAILWAY_HARDENED)</span></div>
+            <div className="flex gap-4"><span>SYSTEM: OPERATIONAL</span><span>V14.8 (STRIPE_RESTORED)</span></div>
             <div className="flex gap-4">
                 <span>CORE: GEMINI_3_FLASH</span>
                 <span>TARGET: {lockedLead ? lockedLead.businessName.toUpperCase() : 'NO TARGET LOCKED'}</span>

@@ -2,17 +2,12 @@
 import { Lead, BrandIdentity } from '../types';
 import { deductCost } from './computeTracker';
 import { toast } from './toastManager';
-import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
-// --- INFRASTRUCTURE CONFIGURATION ---
+// --- CORE ENGINE CONFIGURATION ---
+// Categorically hardcoded to Flash per instructions.
 const PRIMARY_MODEL = "gemini-3-flash-preview"; 
 const IMAGE_MODEL = "gemini-2.5-flash-image";
-
-const KEY_STORE = {
-  OR: 'prospector_os_or_key',
-  KIE: 'prospector_os_kie_key',
-  GOOGLE: 'prospector_os_google_key'
-};
 
 export interface AssetRecord {
   id: string;
@@ -40,25 +35,6 @@ export interface BenchmarkReport {
 export type VeoConfig = {
   aspectRatio: '16:9' | '9:16';
   resolution: '720p' | '1080p';
-};
-
-// --- KEY PERSISTENCE ENGINE ---
-
-export const getStoredKeys = () => {
-  if (typeof window === 'undefined') return { openRouter: "", google: "", kie: "" };
-  return { 
-    openRouter: localStorage.getItem(KEY_STORE.OR) || process.env.API_KEY || "", 
-    google: localStorage.getItem(KEY_STORE.GOOGLE) || process.env.API_KEY || "", 
-    kie: localStorage.getItem(KEY_STORE.KIE) || process.env.KIE_API_KEY || "" 
-  };
-};
-
-export const setStoredKeys = (openRouter: string, kie: string, google?: string) => {
-  if (typeof window === 'undefined') return;
-  if (openRouter) localStorage.setItem(KEY_STORE.OR, openRouter);
-  if (kie) localStorage.setItem(KEY_STORE.KIE, kie);
-  if (google) localStorage.setItem(KEY_STORE.GOOGLE, google);
-  pushLog("INFRASTRUCTURE: GATEWAY KEYS UPDATED AND PERSISTED");
 };
 
 export const SESSION_ASSETS: AssetRecord[] = [];
@@ -105,16 +81,7 @@ const extractJson = (text: string) => {
 // --- CORE GENERATION ENGINE ---
 
 export const executeIntelligenceTask = async (prompt: string, system?: string) => {
-  const keys = getStoredKeys();
-  const activeKey = keys.google || keys.openRouter;
-  
-  if (!activeKey) {
-    const error = "MISSING_API_GATEWAY: Please enter your key in Admin > System Settings.";
-    toast.error(error);
-    throw new Error(error);
-  }
-
-  const ai = new GoogleGenAI({ apiKey: activeKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const response = await ai.models.generateContent({
     model: PRIMARY_MODEL,
     contents: prompt,
@@ -128,7 +95,7 @@ export const executeIntelligenceTask = async (prompt: string, system?: string) =
   return text;
 };
 
-// --- DOMAIN LOGIC ---
+// --- DOMAIN LOGIC (ALL USING PRIMARY_MODEL) ---
 
 export const generateLeads = async (region: string, niche: string, count: number) => {
   const prompt = `Find ${count} real businesses in ${region} specializing in ${niche}. Return JSON: { "leads": [{ "businessName": "", "websiteUrl": "", "leadScore": 85, "assetGrade": "A", "socialGap": "Specific vulnerability", "city": "${region}", "niche": "${niche}", "phone": "", "email": "" }] }`;
@@ -137,11 +104,7 @@ export const generateLeads = async (region: string, niche: string, count: number
 };
 
 export const generateVisual = async (prompt: string, lead: Lead, sourceImage?: string): Promise<string> => {
-  const keys = getStoredKeys();
-  const activeKey = keys.google || keys.openRouter;
-  if (!activeKey) throw new Error("API_KEY_REQUIRED");
-
-  const ai = new GoogleGenAI({ apiKey: activeKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   pushLog(`IMAGE_GEN: Forging visual for ${lead.businessName}...`);
   const contents: any[] = [{ text: prompt }];
   if (sourceImage && sourceImage.includes('base64,')) {
@@ -176,8 +139,7 @@ export const generateProposalDraft = async (l: Lead) => {
 
 export const generatePitch = async (l: Lead) => {
   const prompt = `Create a 30-second high-impact elevator pitch for ${l.businessName}. Focus on their specific gap: ${l.socialGap}. Output only the raw text of the pitch, no JSON.`;
-  const keys = getStoredKeys();
-  const ai = new GoogleGenAI({ apiKey: keys.google || keys.openRouter });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const res = await ai.models.generateContent({ model: PRIMARY_MODEL, contents: prompt });
   return res.text || "";
 };
@@ -194,7 +156,7 @@ export const orchestrateBusinessPackage = async (lead: Lead, assets: any[]) => {
   const prompt = `Architect an exhaustive multi-layered campaign for ${lead.businessName}. 
   Context: ${lead.socialGap}.
   Return strictly JSON with these exact root keys: 
-  "presentation": { "title": "Strategy Blueprint", "slides": [{ "title": "Slide Title", "bullets": ["Bullet 1", "Bullet 2"] }] }, 
+  "presentation": { "title": "Strategy Blueprint", "slides": [{ "title": "Slide Title", "bullets": ["Bullet 2"] }] }, 
   "narrative": "A professional 3-paragraph executive summary", 
   "outreach": { "emailSequence": [{ "subject": "Intro", "body": "Body text" }] }, 
   "funnel": [{ "title": "Stage Name", "description": "Details", "conversionGoal": "Action" }], 
@@ -244,22 +206,19 @@ export const extractBrandDNA = async (lead: Partial<Lead>, url: string): Promise
 };
 
 export const queryRealtimeAgent = async (prompt: string) => {
-  const keys = getStoredKeys();
-  const ai = new GoogleGenAI({ apiKey: keys.google || keys.openRouter });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const res = await ai.models.generateContent({ model: PRIMARY_MODEL, contents: prompt, config: { tools: [{ googleSearch: {} }] } });
   return { text: res.text || "", sources: res.candidates?.[0]?.groundingMetadata?.groundingChunks || [] };
 };
 
 export const openRouterChat = async (p: string, s?: string) => {
-  const keys = getStoredKeys();
-  const ai = new GoogleGenAI({ apiKey: keys.google || keys.openRouter });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const res = await ai.models.generateContent({ model: PRIMARY_MODEL, contents: p, config: { systemInstruction: s } });
   return res.text || "";
 };
 
 export const analyzeVisual = async (data: string, mime: string, prompt: string) => {
-  const keys = getStoredKeys();
-  const ai = new GoogleGenAI({ apiKey: keys.google || keys.openRouter });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const res = await ai.models.generateContent({ model: PRIMARY_MODEL, contents: { parts: [{ inlineData: { data, mimeType: mime } }, { text: prompt }] } });
   return res.text || "";
 };
@@ -295,8 +254,7 @@ export const analyzeLedger = async (leads: Lead[]) => {
 
 export const enhanceVideoPrompt = async (p: string) => {
   const prompt = `Enhance video prompt: ${p}. Output raw text.`;
-  const keys = getStoredKeys();
-  const ai = new GoogleGenAI({ apiKey: keys.google || keys.openRouter });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const res = await ai.models.generateContent({ model: PRIMARY_MODEL, contents: prompt });
   return res.text || p;
 };
@@ -330,3 +288,5 @@ export const loggedGenerateContent = (args: any) => openRouterChat(args.contents
 export const importVault = (a: any) => 0;
 export const clearVault = () => {};
 export const deleteAsset = (id: string) => {};
+export const getStoredKeys = () => ({ openRouter: "", google: "", kie: "" });
+export const setStoredKeys = (or: string, kie: string, google?: string) => {};
