@@ -6,17 +6,15 @@ import { deductCost } from './computeTracker';
  * - Browser NEVER calls OpenRouter directly.
  * - Browser calls our same-origin proxy: POST /api/openrouter/chat
  * - Proxy attaches Authorization: Bearer <OPENROUTER_API_KEY>
- *
- * This prevents: "Authorization required" / "No cookie auth credentials found"
  */
 
 // Public route implemented in vite.config.ts middleware
 export const OPENROUTER_PROXY_PATH = '/api/openrouter/chat';
 
-// Default model (you can change later)
-export const PRIMARY_MODEL = 'google/gemini-2.0-flash-001';
+// OpenRouter model id for Gemini 3 Flash Preview
+export const PRIMARY_MODEL = 'google/gemini-3-flash-preview'; //  [oai_citation:2‡OpenRouter](https://openrouter.ai/google/gemini-3-flash-preview?utm_source=chatgpt.com)
 
-// Stable system instruction (prevents undefined build/runtime issues)
+// Stable system instruction
 export const SYSTEM_INSTRUCTION = `
 You are Prospector OS.
 When asked for JSON, output VALID JSON only (no markdown fences).
@@ -60,7 +58,7 @@ export interface LoggedGenerateParams {
   reasoningDepth?: 'LOW' | 'MEDIUM' | 'HIGH';
   isClientFacing?: boolean;
   contents: any;
-  config?: any; // IMPORTANT: keep for callers that pass config
+  config?: any;
 }
 
 // -------------------- State (Assets/Vault) --------------------
@@ -127,6 +125,7 @@ export const importVault = (assets: AssetRecord[]) => {
 };
 
 // -------------------- Key storage (local) --------------------
+// Optional fallback (only used if you decide to support x-openrouter-key server-side)
 const OR_KEY = 'POMELLI_OPENROUTER_KEY';
 const KIE_KEY = 'POMELLI_KIE_KEY';
 
@@ -190,18 +189,19 @@ export const openRouterChat = async (
 ): Promise<string> => {
   const keys = getStoredKeys();
 
+  // IMPORTANT: Send OpenRouter/OpenAI-style chat payload (not custom {prompt, systemInstruction})
   const body = {
-    prompt,
-    systemInstruction: system || SYSTEM_INSTRUCTION,
-    model
+    model,
+    messages: [
+      { role: 'system', content: system || SYSTEM_INSTRUCTION },
+      { role: 'user', content: prompt }
+    ]
   };
 
   const res = await fetch(OPENROUTER_PROXY_PATH, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      // Optional fallback if Railway env var is not set:
-      // Proxy will only use this if OPENROUTER_API_KEY is missing server-side.
       ...(keys.openRouter ? { 'x-openrouter-key': keys.openRouter } : {})
     },
     body: JSON.stringify(body)
@@ -468,9 +468,6 @@ export const enhanceVideoPrompt = async (prompt: string) => {
 };
 
 // -------------------- Media stubs (kept for UI compatibility) --------------------
-// You already use KIE Suno via services/kieSunoService.ts.
-// These stay as non-breaking placeholders until you wire more KIE endpoints.
-
 export const generateVisual = async (_prompt: string, _lead: Lead, _base64Image?: string) => {
   return null as any;
 };
