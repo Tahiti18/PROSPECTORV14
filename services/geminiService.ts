@@ -1,27 +1,15 @@
 import { Lead, BrandIdentity } from '../types';
 import { deductCost } from './computeTracker';
 
-/**
- * LOCK-IN RULES:
- * - Browser NEVER calls OpenRouter directly.
- * - Browser calls our same-origin proxy: POST /api/openrouter/chat
- * - Proxy attaches Authorization: Bearer <OPENROUTER_API_KEY>
- */
-
-// Public route implemented in vite.config.ts middleware
 export const OPENROUTER_PROXY_PATH = '/api/openrouter/chat';
+export const PRIMARY_MODEL = 'google/gemini-3-flash-preview';
 
-// OpenRouter model id for Gemini 3 Flash Preview
-export const PRIMARY_MODEL = 'google/gemini-3-flash-preview'; //  [oai_citation:2‡OpenRouter](https://openrouter.ai/google/gemini-3-flash-preview?utm_source=chatgpt.com)
-
-// Stable system instruction
 export const SYSTEM_INSTRUCTION = `
 You are Prospector OS.
 When asked for JSON, output VALID JSON only (no markdown fences).
 Keep output structured and usable.
 `.trim();
 
-// -------------------- Types --------------------
 export interface AssetRecord {
   id: string;
   type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO';
@@ -61,7 +49,6 @@ export interface LoggedGenerateParams {
   config?: any;
 }
 
-// -------------------- State (Assets/Vault) --------------------
 export const SESSION_ASSETS: AssetRecord[] = [];
 export const PRODUCTION_LOGS: string[] = [];
 const assetListeners = new Set<(assets: AssetRecord[]) => void>();
@@ -124,8 +111,6 @@ export const importVault = (assets: AssetRecord[]) => {
   return SESSION_ASSETS.length;
 };
 
-// -------------------- Key storage (local) --------------------
-// Optional fallback (only used if you decide to support x-openrouter-key server-side)
 const OR_KEY = 'POMELLI_OPENROUTER_KEY';
 const KIE_KEY = 'POMELLI_KIE_KEY';
 
@@ -134,9 +119,7 @@ export const setStoredKeys = (openRouter?: string, kie?: string) => {
     if (typeof window === 'undefined') return;
     if (openRouter) window.localStorage.setItem(OR_KEY, openRouter.trim());
     if (kie) window.localStorage.setItem(KIE_KEY, kie.trim());
-  } catch {
-    // ignore
-  }
+  } catch {}
 };
 
 export const getStoredKeys = () => {
@@ -151,7 +134,6 @@ export const getStoredKeys = () => {
   }
 };
 
-// -------------------- Helpers --------------------
 const extractJson = (text: string) => {
   if (!text) return '';
   const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
@@ -178,10 +160,8 @@ const safeJsonParse = <T = any>(s: string, fallback: T): T => {
   }
 };
 
-// Compatibility shim (older code imports getAI())
 export const getAI = () => null;
 
-// -------------------- OpenRouter (via proxy) --------------------
 export const openRouterChat = async (
   prompt: string,
   system?: string,
@@ -189,12 +169,16 @@ export const openRouterChat = async (
 ): Promise<string> => {
   const keys = getStoredKeys();
 
-  // IMPORTANT: Send OpenRouter/OpenAI-style chat payload (not custom {prompt, systemInstruction})
+  const safePrompt = (prompt ?? '').toString().trim();
+  if (!safePrompt) {
+    throw new Error('Client attempted to call OpenRouter with an empty prompt');
+  }
+
   const body = {
     model,
     messages: [
       { role: 'system', content: system || SYSTEM_INSTRUCTION },
-      { role: 'user', content: prompt }
+      { role: 'user', content: safePrompt }
     ]
   };
 
@@ -211,11 +195,9 @@ export const openRouterChat = async (
 
   if (!res.ok) {
     pushLog(`OpenRouter Proxy Error (${res.status}): ${rawText}`);
-    const statusText = res.status === 401 ? 'Unauthorized (Check Key)' : `Error ${res.status}`;
-    throw new Error(`OpenRouter Error (${statusText}): ${rawText}`);
+    throw new Error(`OpenRouter Error (${res.status}): ${rawText}`);
   }
 
-  // Proxy returns OpenRouter JSON; but handle plain text too.
   const data = safeJsonParse<any>(rawText, null);
   if (data && typeof data === 'object') {
     return data?.choices?.[0]?.message?.content ?? data?.text ?? '';
@@ -228,7 +210,6 @@ export const executeIntelligenceTask = async (prompt: string, system?: string) =
   return extractJson(raw);
 };
 
-// Keep API-compatible export
 export const loggedGenerateContent = async (params: LoggedGenerateParams): Promise<string> => {
   const model = params.model || PRIMARY_MODEL;
   const contentStr = typeof params.contents === 'string' ? params.contents : JSON.stringify(params.contents ?? {});
@@ -245,7 +226,6 @@ export const loggedGenerateContent = async (params: LoggedGenerateParams): Promi
   }
 };
 
-// -------------------- Core: Lead Discovery --------------------
 export const generateLeads = async (region: string, niche: string, count: number) => {
   pushLog(`RECON: ${region} | ${niche} | count=${count}`);
 
@@ -269,11 +249,10 @@ Return VALID JSON ONLY in this shape:
 
   const jsonStr = await executeIntelligenceTask(prompt);
   const parsed = safeJsonParse<any>(jsonStr, { leads: [] });
-
   return { leads: parsed.leads || [], groundingSources: [] as any[] };
 };
 
-// -------------------- Text modules (keep signatures stable) --------------------
+// The rest of your exports stay unchanged…
 export const orchestrateBusinessPackage = async (lead: Lead, _assets: any[]) => {
   const json = await executeIntelligenceTask(
     `Create outreach assets for ${lead.businessName}. Return VALID JSON with presentation, narrative, outreach, and visual direction.`
@@ -467,10 +446,7 @@ export const enhanceVideoPrompt = async (prompt: string) => {
   return await executeIntelligenceTask(`Enhance this video prompt for cinematic 4K: ${prompt}. Return plain text.`);
 };
 
-// -------------------- Media stubs (kept for UI compatibility) --------------------
-export const generateVisual = async (_prompt: string, _lead: Lead, _base64Image?: string) => {
-  return null as any;
-};
+export const generateVisual = async (_prompt: string, _lead: Lead, _base64Image?: string) => null as any;
 
 export const analyzeVisual = async (_base64: string, _mimeType: string, prompt: string) => {
   return await executeIntelligenceTask(`Visual analysis task: ${prompt}. Return plain text.`);
@@ -496,9 +472,7 @@ export const generateVideoPayload = async (
   return null as any;
 };
 
-export const generateAudioPitch = async (_text: string, _voiceName: string = 'Kore', _leadId?: string) => {
-  return null as any;
-};
+export const generateAudioPitch = async (_text: string, _voiceName: string = 'Kore', _leadId?: string) => null as any;
 
 export const generateLyrics = async (lead: Lead, theme: string, type: string) => {
   return await executeIntelligenceTask(
