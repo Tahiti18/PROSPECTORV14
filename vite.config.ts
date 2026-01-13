@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import type { IncomingMessage, ServerResponse } from 'http';
 
-const PROXY_VERSION = 'openrouter-normalize-v3-2026-01-13';
+const PROXY_VERSION = 'openrouter-normalize-v4-with-version-endpoint-2026-01-13';
 
 const readBody = async (req: IncomingMessage) => {
   const buffers: Buffer[] = [];
@@ -10,13 +10,10 @@ const readBody = async (req: IncomingMessage) => {
   return Buffer.concat(buffers).toString('utf8');
 };
 
-const sendJson = (res: ServerResponse, status: number, data: any, extraHeaders?: Record<string, string>) => {
+const sendJson = (res: ServerResponse, status: number, data: any) => {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('X-Prospector-Proxy', PROXY_VERSION);
-  if (extraHeaders) {
-    for (const [k, v] of Object.entries(extraHeaders)) res.setHeader(k, v);
-  }
   res.end(JSON.stringify(data));
 };
 
@@ -35,7 +32,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
       if (!url.startsWith('/api/kie')) return next();
 
       const KIE_KEY = env.KIE_API_KEY || env.KIE_KEY || process.env.KIE_API_KEY;
-      if (!KIE_KEY) return sendJson(res, 500, { error: 'Missing KIE_API_KEY' });
+      if (!KIE_KEY) return sendJson(res, 500, { ok: false, error: { message: 'Missing KIE_API_KEY' } });
 
       const KIE_GENERATE_BASE = 'https://api.kie.ai/api/v1/generate';
 
@@ -43,10 +40,7 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         const bodyStr = await readBody(req);
         const upstreamRes = await fetch(KIE_GENERATE_BASE, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${KIE_KEY}`
-          },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${KIE_KEY}` },
           body: bodyStr
         });
         const parsed = await upstreamRes.json().catch(() => ({}));
@@ -64,9 +58,9 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
         return sendJson(res, upstreamRes.status, parsed);
       }
 
-      return sendJson(res, 404, { error: 'KIE Route Invalid' });
+      return sendJson(res, 404, { ok: false, error: { message: 'KIE Route Invalid' } });
     } catch (e: any) {
-      return sendJson(res, 500, { error: e?.message || 'Internal Proxy Error' });
+      return sendJson(res, 500, { ok: false, error: { message: e?.message || 'Internal KIE Proxy Error' } });
     }
   };
 };
@@ -75,11 +69,17 @@ const createOpenRouterMiddleware = (env: Record<string, string>) => {
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     try {
       const url = req.url || '';
+
+      // Version endpoint (proves which code is live)
+      if (req.method === 'GET' && url.startsWith('/api/openrouter/version')) {
+        return sendJson(res, 200, { ok: true, proxyVersion: PROXY_VERSION });
+      }
+
       if (!url.startsWith('/api/openrouter')) return next();
 
-      // Allow /api/openrouter/chat and /api/openrouter/chat?...
+      // Chat endpoint
       if (!(req.method === 'POST' && url.startsWith('/api/openrouter/chat'))) {
-        return sendJson(res, 404, { error: 'OpenRouter Route Invalid' });
+        return sendJson(res, 404, { ok: false, error: { message: 'OpenRouter Route Invalid' } });
       }
 
       const headerKey = (req.headers['x-openrouter-key'] as string | undefined)?.trim() || '';
@@ -87,20 +87,16 @@ const createOpenRouterMiddleware = (env: Record<string, string>) => {
         env.OPENROUTER_API_KEY || env.API_KEY || process.env.OPENROUTER_API_KEY || headerKey;
 
       if (!OPENROUTER_KEY) {
-        return sendJson(res, 500, { error: 'Missing OPENROUTER_API_KEY' });
+        return sendJson(res, 500, { ok: false, error: { message: 'Missing OPENROUTER_API_KEY' } });
       }
 
-      // Read & parse body (this is where empty bodies can happen)
       const raw = await readBody(req);
       const incoming = safeParseJson(raw) || {};
 
       // Normalize model
-      const model =
-        incoming.model ||
-        incoming.modelStr ||
-        'google/gemini-3-flash-preview';
+      const model = incoming.model || incoming.modelStr || 'google/gemini-3-flash-preview';
 
-      // Normalize prompt/system from multiple legacy shapes
+      // Accept legacy fields
       const system =
         (typeof incoming.systemInstruction === 'string' ? incoming.systemInstruction : '') ||
         (typeof incoming.system === 'string' ? incoming.system : '') ||
@@ -115,7 +111,6 @@ const createOpenRouterMiddleware = (env: Record<string, string>) => {
       // Normalize messages
       let messages: any[] | null = Array.isArray(incoming.messages) ? incoming.messages : null;
 
-      // If messages missing, build from system+prompt
       if (!messages) {
         const built: any[] = [];
         if (system.trim()) built.push({ role: 'system', content: system });
@@ -123,34 +118,22 @@ const createOpenRouterMiddleware = (env: Record<string, string>) => {
         messages = built;
       }
 
-      // Final guard: must have at least one non-empty content
       const hasContent =
         Array.isArray(messages) &&
         messages.some((m) => (m?.content || '').toString().trim().length > 0);
 
       if (!hasContent) {
-        // DO NOT call OpenRouter with garbage. Return a useful debug error.
-        return sendJson(
-          res,
-          400,
-          {
-            ok: false,
-            error: {
-              message: 'Client payload missing prompt/messages',
-              code: 400
-            },
-            debug: {
-              proxyVersion: PROXY_VERSION,
-              rawBodyLength: (raw || '').length,
-              receivedKeys: Object.keys(incoming || {}),
-              receivedHasMessages: Array.isArray(incoming.messages),
-              receivedPromptType: typeof incoming.prompt
-            }
-          },
-          {
-            'X-Prospector-Debug': 'missing-prompt'
+        return sendJson(res, 400, {
+          ok: false,
+          error: { message: 'Client payload missing prompt/messages', code: 400 },
+          debug: {
+            proxyVersion: PROXY_VERSION,
+            rawBodyLength: (raw || '').length,
+            receivedKeys: Object.keys(incoming || {}),
+            receivedHasMessages: Array.isArray(incoming.messages),
+            receivedPromptType: typeof incoming.prompt
           }
-        );
+        });
       }
 
       const payload = { model, messages };
@@ -167,12 +150,9 @@ const createOpenRouterMiddleware = (env: Record<string, string>) => {
       });
 
       const parsed = await upstreamRes.json().catch(() => ({}));
-
-      // Include proxy version header on ALL responses to prove you’re on the new build
-      res.setHeader('X-Prospector-Proxy', PROXY_VERSION);
       return sendJson(res, upstreamRes.status, parsed);
     } catch (e: any) {
-      return sendJson(res, 500, { error: e?.message || 'Internal OpenRouter Proxy Error' });
+      return sendJson(res, 500, { ok: false, error: { message: e?.message || 'Internal OpenRouter Proxy Error' } });
     }
   };
 };
@@ -180,7 +160,6 @@ const createOpenRouterMiddleware = (env: Record<string, string>) => {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
-  // Make env visible to middleware at runtime (Railway)
   for (const [k, v] of Object.entries(env)) {
     if (typeof v === 'string' && v.length > 0 && !process.env[k]) {
       process.env[k] = v;
