@@ -28,26 +28,32 @@ const createKieProxyMiddleware = (env: Record<string, string>) => {
 
       const KIE_GENERATE_BASE = 'https://api.kie.ai/api/v1/generate';
 
-      if (req.method === 'POST' && (url.includes('/submit') || url.includes('/suno_submit') || url.includes('/video_submit'))) {
+      if (
+        req.method === 'POST' &&
+        (url.includes('/submit') || url.includes('/suno_submit') || url.includes('/video_submit'))
+      ) {
         const bodyStr = await readBody(req);
         const upstreamRes = await fetch(KIE_GENERATE_BASE, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${KIE_KEY}`,
+            Authorization: `Bearer ${KIE_KEY}`
           },
-          body: bodyStr,
+          body: bodyStr
         });
         const parsed = await upstreamRes.json().catch(() => ({}));
         return sendJson(res, upstreamRes.status, parsed);
       }
 
-      if (req.method === 'GET' && (url.includes('/status/') || url.includes('/record-info') || url.includes('/suno/record-info'))) {
+      if (
+        req.method === 'GET' &&
+        (url.includes('/status/') || url.includes('/record-info') || url.includes('/suno/record-info'))
+      ) {
         const u = new URL(req.url!, `http://${req.headers.host}`);
         const taskId = u.pathname.split('/').pop() || u.searchParams.get('taskId') || '';
         const upstreamUrl = `${KIE_GENERATE_BASE}/record-info?taskId=${encodeURIComponent(taskId)}`;
         const upstreamRes = await fetch(upstreamUrl, {
-          headers: { 'Authorization': `Bearer ${KIE_KEY}` },
+          headers: { Authorization: `Bearer ${KIE_KEY}` }
         });
         const parsed = await upstreamRes.json().catch(() => ({}));
         return sendJson(res, upstreamRes.status, parsed);
@@ -71,7 +77,10 @@ const createOpenRouterMiddleware = (env: Record<string, string>) => {
         return sendJson(res, 404, { error: 'OpenRouter Route Invalid' });
       }
 
-      const OPENROUTER_KEY = env.OPENROUTER_API_KEY || env.API_KEY || process.env.OPENROUTER_API_KEY;
+      const headerKey = (req.headers['x-openrouter-key'] as string | undefined)?.trim() || '';
+
+      const OPENROUTER_KEY =
+        env.OPENROUTER_API_KEY || env.API_KEY || process.env.OPENROUTER_API_KEY || headerKey;
 
       if (!OPENROUTER_KEY) {
         return sendJson(res, 500, { error: 'Server configuration error: Missing OPENROUTER_API_KEY' });
@@ -83,12 +92,12 @@ const createOpenRouterMiddleware = (env: Record<string, string>) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENROUTER_KEY}`,
+          Authorization: `Bearer ${OPENROUTER_KEY}`,
           // Optional but recommended by OpenRouter:
           'HTTP-Referer': 'https://prospectorv14-production.up.railway.app',
-          'X-Title': 'ProspectorV14',
+          'X-Title': 'ProspectorV14'
         },
-        body: bodyStr,
+        body: bodyStr
       });
 
       const parsed = await upstreamRes.json().catch(() => ({}));
@@ -121,19 +130,19 @@ export default defineConfig(({ mode }) => {
         configurePreviewServer(server) {
           server.middlewares.use(createKieProxyMiddleware(env));
           server.middlewares.use(createOpenRouterMiddleware(env));
-        },
-      },
+        }
+      }
     ],
     // IMPORTANT: do NOT inject server keys into the client bundle
     server: {
       host: '0.0.0.0',
       port: Number(process.env.PORT) || 5173,
-      allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost'],
+      allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost']
     },
     preview: {
       host: '0.0.0.0',
       port: Number(process.env.PORT) || 4173,
-      allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost'],
-    },
+      allowedHosts: ['prospectorv14-production.up.railway.app', '.railway.app', 'localhost']
+    }
   };
 });
