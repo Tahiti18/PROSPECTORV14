@@ -31,6 +31,7 @@ import { MotionLab } from './components/workspaces/MotionLab';
 import { SonicStudio } from './components/workspaces/SonicStudio';
 import { MeetingNotes } from './components/workspaces/MeetingNotes';
 import { CampaignOrchestrator } from './components/workspaces/CampaignOrchestrator';
+import { SellWorkspace } from './components/workspaces/SellWorkspace';
 import { BillingNode } from './components/workspaces/BillingNode';
 import { AffiliateNode } from './components/workspaces/AffiliateNode';
 import { IdentityNode } from './components/workspaces/IdentityNode';
@@ -142,6 +143,20 @@ const App: React.FC = () => {
       case 'SONIC_STUDIO': return <SonicStudio lead={lockedLead} />;
       case 'MEETING_NOTES': return <MeetingNotes />;
       case 'CAMPAIGN_ORCHESTRATOR': return <CampaignOrchestrator leads={leads} lockedLead={lockedLead} onNavigate={navigate} onLockLead={handleLockLead} onUpdateLead={handleUpdateLead} />;
+      
+      // Fixed: Specific Routing for Sell/Outreach sub-modules
+      case 'PROPOSALS': 
+      case 'ROI_CALCULATOR': 
+      case 'SEQUENCER': 
+      case 'PRESENTATION_BUILDER': 
+      case 'DEMO_SANDBOX': 
+      case 'DRAFTING': 
+      case 'SALES_COACH': 
+      case 'AI_CONCIERGE': 
+      case 'ELEVATOR_PITCH': 
+      case 'FUNNEL_MAP': 
+        return <SellWorkspace activeModule={activeModule} leads={leads} lockedLead={lockedLead} />;
+
       case 'BILLING': return <BillingNode />;
       case 'AFFILIATE': return <AffiliateNode />;
       case 'IDENTITY': return <IdentityNode />;

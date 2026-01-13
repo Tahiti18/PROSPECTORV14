@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface UIBlock {
@@ -27,20 +28,20 @@ const executiveSanitize = (text: string): string => {
   if (typeof text !== 'string') return String(text);
   return text
     .replace(/```json/gi, '')
-    .replace(/```/g, '')
+    .replace(/```/gi, '')
+    .replace(/[{}"]/g, (m) => m === '"' ? '' : m) // Soft clean for text
     .trim();
 };
 
 const promoteToStrategicReport = (text: string): UIBlocks => {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  const title = lines[0] || "INTELLIGENCE REPORT";
   return {
     format: 'ui_blocks',
-    title: title.toUpperCase(),
+    title: "Intelligence Briefing",
     subtitle: "NEURAL SYNTHESIS",
     sections: [
       {
-        heading: "RAW INTELLIGENCE",
+        heading: "STRATEGIC OVERVIEW",
         body: [{ type: 'p', content: text }]
       }
     ]
@@ -53,22 +54,29 @@ export const FormattedOutput: React.FC<FormattedOutputProps> = ({ content, class
   try {
     let uiData: UIBlocks | null = null;
 
-    // Aggressive JSON isolation
-    const start = content.indexOf('{');
-    const end = content.lastIndexOf('}');
-    if (start !== -1 && end !== -1) {
+    // Detect if content is a JSON string
+    const trimmed = content.trim();
+    if (trimmed.startsWith('{')) {
       try {
-        const jsonStr = content.substring(start, end + 1);
-        const parsed = JSON.parse(jsonStr);
-        if (parsed.sections || parsed.format === 'ui_blocks' || parsed.presentation) {
-          uiData = parsed;
+        const parsed = JSON.parse(trimmed);
+        // Handle direct UI_BLOCKS or wrapped in keys
+        if (parsed.sections) uiData = parsed;
+        else if (parsed.proposal) uiData = parsed.proposal;
+        else if (parsed.pitch) uiData = promoteToStrategicReport(parsed.pitch);
+        else {
+            // Flatten generic JSON into a readable report
+            uiData = {
+                format: 'ui_blocks',
+                sections: Object.entries(parsed).map(([key, val]) => ({
+                    heading: key.replace(/_/g, ' ').toUpperCase(),
+                    body: [{ type: 'p', content: typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val) }]
+                }))
+            };
         }
       } catch (e) {
-        // Fallback to text
+        uiData = promoteToStrategicReport(content);
       }
-    }
-
-    if (!uiData) {
+    } else {
       uiData = promoteToStrategicReport(content);
     }
 
@@ -79,41 +87,48 @@ export const FormattedOutput: React.FC<FormattedOutputProps> = ({ content, class
       switch (block.type) {
         case 'hero':
           return (
-            <div key={idx} className="mb-12 p-10 bg-emerald-600 rounded-[40px] shadow-2xl relative overflow-hidden">
-              <p className="text-2xl font-black text-white italic tracking-tight leading-tight relative z-10">"{cleaned}"</p>
+            <div key={idx} className="mb-12 p-12 bg-emerald-600 rounded-[40px] shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -mr-16 -mt-16"></div>
+              <p className="text-3xl font-black text-white italic tracking-tight leading-tight relative z-10">"{cleaned}"</p>
             </div>
           );
         case 'p':
-          return <p key={idx} className="text-slate-300 leading-relaxed mb-8 text-lg font-medium opacity-90">{cleaned}</p>;
+          return <p key={idx} className="text-slate-300 leading-relaxed mb-8 text-xl font-medium opacity-90">{cleaned}</p>;
         case 'bullets':
           const list = Array.isArray(block.content) ? block.content : [];
           return (
-            <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            <div key={idx} className="grid grid-cols-1 gap-4 mb-12">
               {list.map((item: string, i: number) => (
-                <div key={i} className="bg-slate-900 border border-slate-800 p-6 rounded-[24px] flex items-start gap-4">
-                  <div className="mt-1.5 w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                  <span className="font-bold text-slate-100 uppercase tracking-wide text-xs">{item}</span>
+                <div key={i} className="bg-slate-900 border border-slate-800 p-6 rounded-[24px] flex items-start gap-4 group hover:border-emerald-500/30 transition-all">
+                  <div className="mt-1.5 w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+                  <span className="font-bold text-slate-100 uppercase tracking-wide text-sm">{item}</span>
                 </div>
               ))}
             </div>
           );
+        case 'heading':
+          return <h3 key={idx} className="text-2xl font-black text-white uppercase tracking-tighter italic mb-6 border-b border-slate-800 pb-2">{cleaned}</h3>;
         default:
-          return <p key={idx} className="text-slate-400 text-xs mb-4 italic opacity-50">{JSON.stringify(cleaned)}</p>;
+          return <p key={idx} className="text-slate-400 text-sm mb-4 leading-relaxed italic">{String(cleaned)}</p>;
       }
     };
 
     return (
-      <div className={`space-y-16 animate-in fade-in duration-1000 ${className}`}>
+      <div className={`space-y-16 animate-in fade-in duration-1000 max-w-4xl mx-auto ${className}`}>
         {uiData?.title && (
-          <div className="border-b-2 border-slate-800 pb-10">
-            <h1 className="text-6xl font-black text-white uppercase tracking-tighter italic leading-none mb-4">{executiveSanitize(uiData.title)}</h1>
-            {uiData.subtitle && <p className="text-emerald-500 font-black uppercase tracking-[0.6em] text-[10px]">{executiveSanitize(uiData.subtitle)}</p>}
+          <div className="border-b-2 border-slate-800 pb-10 mb-12">
+            <h1 className="text-5xl font-black text-white uppercase tracking-tighter italic leading-none mb-4">{uiData.title}</h1>
+            {uiData.subtitle && <p className="text-emerald-500 font-black uppercase tracking-[0.6em] text-[10px]">{uiData.subtitle}</p>}
           </div>
         )}
 
         {(uiData?.sections || []).map((section, sIdx) => (
-          <section key={sIdx} className="space-y-8">
-            <h2 className="text-[12px] font-black text-emerald-400 uppercase tracking-[0.5em] italic opacity-50">{executiveSanitize(section?.heading || "INTEL SEGMENT")}</h2>
+          <section key={sIdx} className="space-y-8 mb-20">
+            <div className="flex items-center gap-4">
+                <div className="h-px bg-slate-800 flex-1"></div>
+                <h2 className="text-[12px] font-black text-emerald-400 uppercase tracking-[0.5em] italic">{section?.heading || "SEGMENT"}</h2>
+                <div className="h-px bg-slate-800 flex-1"></div>
+            </div>
             <div className="px-4">
               {(section?.body || []).map((block, bIdx) => renderBlock(block, bIdx))}
             </div>
@@ -122,15 +137,10 @@ export const FormattedOutput: React.FC<FormattedOutputProps> = ({ content, class
       </div>
     );
   } catch (fatalError) {
-    console.error("NEURAL_RENDER_CRITICAL_FAILURE", fatalError);
     return (
-      <div className="p-12 border-2 border-dashed border-rose-500/20 rounded-[40px] text-center bg-rose-500/5 space-y-6">
-        <div className="w-16 h-16 bg-rose-500/20 rounded-2xl flex items-center justify-center text-rose-500 text-4xl mx-auto shadow-xl">!</div>
-        <div>
-          <p className="text-rose-400 font-black uppercase tracking-[0.4em] mb-2">NEURAL RENDERING EXCEPTION</p>
-          <p className="text-[10px] text-slate-500 uppercase font-bold italic">REASON: MALFORMED DATA STRUCTURE DETECTED. RE-GENERATE RECOMMENDED.</p>
-        </div>
-        <div className="bg-black/50 p-8 rounded-3xl text-slate-500 font-mono text-[9px] whitespace-pre-wrap text-left border border-slate-800 leading-relaxed overflow-hidden max-h-64">
+      <div className="p-12 border-2 border-dashed border-rose-500/20 rounded-[40px] text-center bg-rose-500/5">
+        <p className="text-rose-400 font-black uppercase tracking-[0.4em] mb-4">NEURAL RENDERING EXCEPTION</p>
+        <div className="bg-black/50 p-8 rounded-3xl text-slate-400 font-mono text-[11px] whitespace-pre-wrap text-left">
           {content}
         </div>
       </div>

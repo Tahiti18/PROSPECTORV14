@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Lead } from '../../types';
 import { generateVisual, saveAsset, generateVideoPayload } from '../../services/geminiService';
+import { toast } from '../../services/toastManager';
 
 interface VisualStudioProps {
   leads: Lead[];
@@ -18,30 +19,21 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
   const [mode, setMode] = useState<'GENERATE' | 'EDIT'>('GENERATE');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const EDIT_PRESETS = [
-    { label: '✂️ REMOVE BG', prompt: 'Remove the background from this image. Solid white background.' },
-    { label: '➕ ADD OBJECT', prompt: 'Add a [object] to the scene naturally.' },
-    { label: '🎨 CYBERPUNK', prompt: 'Transform into cyberpunk style, neon lights, futuristic city.' },
-    { label: '✏️ SKETCH', prompt: 'Convert to a pencil sketch drawing.' },
-    { label: '💡 STUDIO LIGHT', prompt: 'Enhance with professional studio lighting, soft shadows.' },
-    { label: '🚀 FUTURISTIC', prompt: 'Make it look futuristic and high-tech.' }
-  ];
-
   useEffect(() => {
     if (lockedLead) {
         if (mode === 'GENERATE') {
             if (lockedLead.brandIdentity) {
-                setPrompt(`Professional brand asset for ${lockedLead.businessName}. Style: ${lockedLead.brandIdentity.visualTone}. Colors: ${lockedLead.brandIdentity.colors.join(', ')}. Context: High-end corporate imagery.`);
+                setPrompt(`High-end professional brand asset for ${lockedLead.businessName}. Style: ${lockedLead.brandIdentity.visualTone}. Colors: ${lockedLead.brandIdentity.colors.join(', ')}. Commercial 4K photography.`);
             } else {
-                setPrompt(`High-end minimalist branding for ${lockedLead.businessName}, luxury aesthetic, 4k render.`);
+                setPrompt(`Luxury minimalist branding for ${lockedLead.businessName}, high-fidelity, 4K render, cinematic lighting.`);
             }
         } else {
-            setPrompt("Add a neon sign saying 'OPEN' to the background.");
+            setPrompt("Add sophisticated professional elements to the background.");
         }
     } else {
-        setPrompt(mode === 'GENERATE' ? 'A futuristic workspace with neon accents.' : 'Turn this into a pencil sketch.');
+        setPrompt(mode === 'GENERATE' ? 'Futuristic AI agency workspace with clean geometry.' : 'Enhance professional lighting.');
     }
-  }, [lockedLead, mode]);
+  }, [lockedLead?.id, mode]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,18 +50,23 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
   const handleGenerate = async () => {
     if (!prompt) return;
     if (mode === 'EDIT' && !uploadedImage) {
-        alert("Please upload an image to edit.");
+        toast.info("Please upload an image to edit.");
         return;
     }
 
     setIsGenerating(true);
     setGeneratedVideo(null);
     try {
-      const base64Image = await generateVisual(prompt, lockedLead || { id: 'sandbox' } as Lead, mode === 'EDIT' ? uploadedImage || undefined : undefined);
-      if (base64Image) setGeneratedImage(base64Image);
+      const result = await generateVisual(prompt, lockedLead || { id: 'sandbox', businessName: 'Sandbox' } as Lead, mode === 'EDIT' ? uploadedImage || undefined : undefined);
+      if (result) {
+        setGeneratedImage(result);
+        toast.success("Visual Asset Synchronized.");
+      } else {
+        toast.error("Generation node busy. Retry.");
+      }
     } catch (e) {
       console.error(e);
-      alert("Generation failed.");
+      toast.error("Neural forge connection error.");
     } finally {
       setIsGenerating(false);
     }
@@ -79,12 +76,11 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
     if (!generatedImage) return;
     setIsAnimating(true);
     try {
-        const animPrompt = `Cinematic slow motion animation of this image. Bring the subject to life. ${prompt || 'High quality, 4k, trending on artstation'}`;
+        const animPrompt = `Cinematic subtle motion for this ${lockedLead?.businessName || 'brand'} asset. High resolution.`;
         const videoUrl = await generateVideoPayload(animPrompt, lockedLead?.id, generatedImage);
         if (videoUrl) setGeneratedVideo(videoUrl);
     } catch (e) {
         console.error(e);
-        alert("Animation failed.");
     } finally {
         setIsAnimating(false);
     }
@@ -101,12 +97,12 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
             Professional imagery generation for high-end branding.
           </p>
         </div>
-        <div className="bg-[#0b1021] border border-slate-800 rounded-full p-1 flex">
+        <div className="bg-[#0b1021] border border-slate-800 rounded-full p-1 flex shadow-lg">
            {['GENERATE', 'EDIT'].map((m) => (
              <button
                key={m}
                onClick={() => setMode(m as any)}
-               className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+               className={`px-8 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
                  mode === m ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'
                }`}
              >
@@ -118,9 +114,10 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-4 space-y-8">
-           <div className="bg-[#0b1021] border border-slate-800 rounded-[48px] p-10 shadow-2xl space-y-8">
+           <div className="bg-[#0b1021] border border-slate-800 rounded-[48px] p-10 shadow-2xl space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-600/5 blur-[80px] rounded-full"></div>
               {mode === 'EDIT' && (
-                <div className="space-y-4 animate-in slide-in-from-top-2">
+                <div className="space-y-4 animate-in slide-in-from-top-2 relative z-10">
                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">SOURCE IMAGE</h3>
                    <div 
                      onClick={() => fileInputRef.current?.click()}
@@ -131,20 +128,20 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
                    </div>
                 </div>
               )}
-              <div className="space-y-4">
+              <div className="space-y-4 relative z-10">
                  <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">
                     {mode === 'GENERATE' ? 'VISUAL DIRECTIVE' : 'EDIT INSTRUCTION'}
                  </h3>
                  <textarea 
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  className="w-full bg-[#020617] border border-slate-800 rounded-3xl p-8 text-sm font-medium text-slate-200 focus:outline-none focus:border-emerald-500 h-48 resize-none shadow-xl italic"
+                  className="w-full bg-[#020617] border border-slate-800 rounded-3xl p-8 text-sm font-medium text-slate-200 focus:outline-none focus:border-emerald-500 h-48 resize-none shadow-xl italic custom-scrollbar"
                  />
               </div>
               <button 
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-6 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-700"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white py-6 rounded-[24px] text-[12px] font-black uppercase tracking-[0.3em] transition-all shadow-xl shadow-emerald-600/20 active:scale-95 border-b-4 border-emerald-800 relative z-10"
               >
                 {isGenerating ? 'GENERATING...' : 'GENERATE ASSET'}
               </button>
@@ -153,23 +150,29 @@ export const VisualStudio: React.FC<VisualStudioProps> = ({ leads, lockedLead })
         <div className="lg:col-span-8">
            <div className="bg-[#0b1021] border border-slate-800 rounded-[56px] min-h-[700px] flex flex-col relative shadow-2xl overflow-hidden group items-center justify-center">
               {generatedVideo ? (
-                 <video src={generatedVideo} controls autoPlay loop className="w-full h-full object-contain p-8" />
+                 <video src={generatedVideo} controls autoPlay loop className="w-full h-full object-contain p-8 animate-in fade-in" />
               ) : generatedImage ? (
-                 <div className="relative w-full h-full flex flex-col p-8">
-                    <img src={generatedImage} alt="Generated Asset" className="w-full h-full object-contain rounded-[32px]" />
+                 <div className="relative w-full h-full flex flex-col p-8 animate-in zoom-in-95 duration-700">
+                    <img src={generatedImage} alt="Generated Asset" className="w-full h-full object-contain rounded-[32px] shadow-2xl" />
                     <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-all">
-                        <button onClick={handleAnimate} disabled={isAnimating} className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[20px] text-[11px] font-black uppercase tracking-widest shadow-2xl border-b-4 border-indigo-800">
+                        <button onClick={handleAnimate} disabled={isAnimating} className="px-10 py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full text-[11px] font-black uppercase tracking-widest shadow-2xl border-b-4 border-indigo-800 active:scale-95">
                            {isAnimating ? 'RENDERING...' : 'ANIMATE (VEO)'}
                         </button>
                     </div>
                  </div>
               ) : isGenerating ? (
-                 <div className="flex flex-col items-center justify-center space-y-6">
-                    <div className="w-16 h-16 border-4 border-slate-800 border-t-emerald-500 rounded-full animate-spin"></div>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">SYNTHESIZING...</p>
+                 <div className="flex flex-col items-center justify-center space-y-8">
+                    <div className="w-20 h-20 border-4 border-emerald-900 border-t-emerald-500 rounded-full animate-spin"></div>
+                    <div className="text-center space-y-2">
+                        <p className="text-[12px] font-black text-emerald-500 uppercase tracking-[0.5em] animate-pulse">SYNTHESIZING MATRIX</p>
+                        <p className="text-[9px] text-slate-600 uppercase tracking-widest italic">NEURAL PATH TRACING ACTIVE</p>
+                    </div>
                  </div>
               ) : (
-                 <div className="text-center opacity-10"><span className="text-9xl">🖼️</span></div>
+                 <div className="text-center space-y-6 opacity-10 grayscale scale-110">
+                    <span className="text-[160px]">🖼️</span>
+                    <p className="text-[12px] font-black uppercase tracking-[0.8em] text-white">FORGE IDLE</p>
+                 </div>
               )}
            </div>
         </div>

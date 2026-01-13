@@ -55,10 +55,10 @@ export const Sequencer: React.FC<SequencerProps> = ({ lead }) => {
         ) : (
           <div className="grid grid-cols-1 gap-6">
              {sequence.map((step, i) => (
-               <div key={i} className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 flex flex-col md:flex-row gap-8 hover:border-emerald-500/40 transition-all group">
+               <div key={i} className="bg-[#0b1021] border border-slate-800 rounded-[32px] p-8 flex flex-col md:flex-row gap-8 hover:border-emerald-500/40 transition-all group shadow-xl">
                   <div className="md:w-32 flex flex-col items-center justify-center border-r border-slate-800/50 pr-8">
                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">DAY</span>
-                     <span className="text-5xl font-black italic text-emerald-500 tracking-tighter">{step.day}</span>
+                     <span className="text-5xl font-black italic text-white group-hover:text-emerald-500 transition-colors tracking-tighter">{step.day}</span>
                   </div>
                   <div className="flex-1 space-y-4">
                      <div className="flex justify-between items-center">
@@ -67,12 +67,12 @@ export const Sequencer: React.FC<SequencerProps> = ({ lead }) => {
                         </span>
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{step.purpose}</span>
                      </div>
-                     <p className="text-slate-300 text-sm leading-relaxed italic border-l-2 border-slate-800 pl-6 py-2 group-hover:border-emerald-500 transition-colors">
-                       "{step.content}"
-                     </p>
+                     <div className="text-slate-300 text-sm leading-relaxed italic border-l-2 border-slate-800 pl-6 py-2 group-hover:border-emerald-500 transition-colors whitespace-pre-wrap">
+                       {step.body || "Awaiting drafting..."}
+                     </div>
                   </div>
                   <div className="md:w-48 flex items-center justify-end">
-                     <button className="bg-slate-900 border border-slate-800 text-slate-500 hover:text-white hover:border-slate-600 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
+                     <button className="bg-slate-900 border border-slate-800 text-slate-500 hover:text-white hover:bg-emerald-600 hover:border-emerald-500 px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95">
                         SEND TEST
                      </button>
                   </div>
