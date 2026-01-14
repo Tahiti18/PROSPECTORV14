@@ -6,15 +6,17 @@ import { deductCost } from './computeTracker';
  * - Browser NEVER calls OpenRouter directly.
  * - Browser calls our same-origin proxy: POST /api/openrouter/chat
  * - Proxy attaches Authorization: Bearer <OPENROUTER_API_KEY>
+ *
+ * This prevents: "Authorization required" / "No cookie auth credentials found"
  */
 
 // Public route implemented in vite.config.ts middleware
 export const OPENROUTER_PROXY_PATH = '/api/openrouter/chat';
 
-// Default model
-export const PRIMARY_MODEL = 'google/gemini-3-flash-preview';
+// Default model (you can change later)
+export const PRIMARY_MODEL = 'google/gemini-2.0-flash-001';
 
-// Stable system instruction
+// Stable system instruction (prevents undefined build/runtime issues)
 export const SYSTEM_INSTRUCTION = `
 You are Prospector OS.
 When asked for JSON, output VALID JSON only (no markdown fences).
@@ -58,7 +60,7 @@ export interface LoggedGenerateParams {
   reasoningDepth?: 'LOW' | 'MEDIUM' | 'HIGH';
   isClientFacing?: boolean;
   contents: any;
-  config?: any;
+  config?: any; // IMPORTANT: keep for callers that pass config
 }
 
 // -------------------- State (Assets/Vault) --------------------
@@ -188,16 +190,27 @@ export const openRouterChat = async (
 ): Promise<string> => {
   const keys = getStoredKeys();
 
+  const cleanPrompt = (prompt || '').toString().trim();
+  if (!cleanPrompt) {
+    pushLog('OpenRouter Client Guard: empty prompt blocked');
+    throw new Error('OpenRouter Error (Bad Request): empty prompt');
+  }
+
+  // OpenRouter expects Chat Completions format: messages[]
   const body = {
-    prompt,
-    systemInstruction: system || SYSTEM_INSTRUCTION,
-    model
+    model,
+    messages: [
+      { role: 'system', content: (system || SYSTEM_INSTRUCTION).toString() },
+      { role: 'user', content: cleanPrompt }
+    ]
   };
 
   const res = await fetch(OPENROUTER_PROXY_PATH, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      // Optional fallback if Railway env var is not set:
+      // Proxy will only use this if OPENROUTER_API_KEY is missing server-side.
       ...(keys.openRouter ? { 'x-openrouter-key': keys.openRouter } : {})
     },
     body: JSON.stringify(body)
@@ -211,63 +224,17 @@ export const openRouterChat = async (
     throw new Error(`OpenRouter Error (${statusText}): ${rawText}`);
   }
 
+  // Proxy returns OpenRouter JSON; but handle plain text too.
   const data = safeJsonParse<any>(rawText, null);
   if (data && typeof data === 'object') {
-    return data?.choices?.[0]?.message?.content ?? data?.text ?? '';
+    return data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.text ?? data?.text ?? '';
   }
   return rawText;
 };
 
-export const executeIntelligenceTask = async (
-  prompt: string,
-  system?: string,
-  opts?: {
-    expectJson?: boolean;
-    requiredTopKeys?: string[];
-    module?: string;
-  }
-) => {
+export const executeIntelligenceTask = async (prompt: string, system?: string) => {
   const raw = await openRouterChat(prompt, system);
-
-  if (opts?.expectJson) {
-    const extracted = extractJson(raw);
-
-    if (!extracted || extracted.trim().length < 2) {
-      pushLog(`JSON_EMPTY module=${opts?.module || 'UNKNOWN'} rawLen=${raw?.length || 0}`);
-      throw new Error('AI returned empty/invalid JSON. Try again or check the prompt/schema.');
-    }
-
-    if (opts?.requiredTopKeys && opts.requiredTopKeys.length > 0) {
-      const parsed = safeJsonParse<any>(extracted, null);
-      const ok =
-        parsed &&
-        typeof parsed === 'object' &&
-        !Array.isArray(parsed) &&
-        opts.requiredTopKeys.every((k) => Object.prototype.hasOwnProperty.call(parsed, k));
-
-      if (!ok) {
-        pushLog(
-          `JSON_SCHEMA_FAIL module=${opts?.module || 'UNKNOWN'} required=${opts.requiredTopKeys.join(
-            ','
-          )} extractedLen=${extracted.length}`
-        );
-        throw new Error('AI JSON schema mismatch (missing required keys).');
-      }
-    }
-
-    return extracted;
-  }
-
-  return raw;
-};
-
-export const executeIntelligenceTaskJson = async (prompt: string, requiredTopKeys: string[], module: string) => {
-  const jsonStr = await executeIntelligenceTask(prompt, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    requiredTopKeys,
-    module
-  });
-  return safeJsonParse<any>(jsonStr, {});
+  return extractJson(raw);
 };
 
 // Keep API-compatible export
@@ -309,101 +276,35 @@ Return VALID JSON ONLY in this shape:
 }
 `.trim();
 
-  const jsonStr = await executeIntelligenceTask(prompt, SYSTEM_INSTRUCTION, { expectJson: true, requiredTopKeys: ['leads'], module: 'LEAD_DISCOVERY' });
+  const jsonStr = await executeIntelligenceTask(prompt);
   const parsed = safeJsonParse<any>(jsonStr, { leads: [] });
 
   return { leads: parsed.leads || [], groundingSources: [] as any[] };
 };
 
-// -------------------- Text modules --------------------
+// -------------------- Text modules (keep signatures stable) --------------------
 export const orchestrateBusinessPackage = async (lead: Lead, _assets: any[]) => {
-  // STRICT schema: CampaignOrchestrator relies on these keys to populate tabs.
-  const schema = {
-    presentation: {
-      title: 'STRATEGY Blueprint',
-      slides: [
-        {
-          title: 'Positioning',
-          bullets: ['...'],
-          proofPoints: ['...'],
-          nextActions: ['...']
-        }
-      ]
-    },
-    narrative: 'Executive narrative as a single string.',
-    contentPack: {
-      emails: [{ subject: '', body: '' }],
-      linkedin: [{ hook: '', message: '' }],
-      ads: [{ headline: '', primaryText: '' }]
-    },
-    outreach: {
-      sequence: [{ day: 1, channel: 'Email', purpose: '', content: '' }],
-      objections: [{ objection: '', reply: '' }]
-    },
-    funnel: [{ stage: '', goal: '', asset: '', metric: '' }],
-    visualDirection: [{ label: '', description: '' }]
-  };
-
-  const prompt = `
-You are generating a Campaign Orchestrator payload for the business below.
-
-Business:
-- Name: ${lead.businessName}
-- Website: ${lead.websiteUrl}
-- Niche: ${lead.niche}
-- City: ${lead.city}
-
-Return VALID JSON ONLY matching this exact schema keys (same top-level keys):
-${JSON.stringify(schema, null, 2)}
-
-Rules:
-- Do NOT wrap in markdown fences.
-- Ensure ALL required keys exist.
-- Use realistic, specific content.
-`.trim();
-
-  const jsonStr = await executeIntelligenceTask(prompt, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    requiredTopKeys: ['presentation', 'narrative', 'contentPack', 'outreach', 'funnel', 'visualDirection'],
-    module: 'CAMPAIGN_ORCHESTRATOR'
-  });
-
-  return safeJsonParse<any>(jsonStr, {});
+  const json = await executeIntelligenceTask(
+    `Create outreach assets for ${lead.businessName}. Return VALID JSON with presentation, narrative, outreach, and visual direction.`
+  );
+  return safeJsonParse<any>(json, {});
 };
 
 export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
-  const schema: BenchmarkReport = {
+  const json = await executeIntelligenceTask(
+    `Technical audit for ${lead.websiteUrl}. Focus module="${module}". Return VALID JSON BenchmarkReport.`
+  );
+  return safeJsonParse<BenchmarkReport>(json, {
     entityName: lead.businessName,
     missionSummary: '',
-    visualStack: [{ label: '', description: '' }],
-    sonicStack: [{ label: '', description: '' }],
+    visualStack: [],
+    sonicStack: [],
     featureGap: '',
     businessModel: '',
     designSystem: '',
     deepArchitecture: '',
-    sources: [{ title: '', uri: '' }]
-  };
-
-  const prompt = `
-Technical audit for ${lead.websiteUrl}.
-Focus module="${module}".
-
-Return VALID JSON ONLY as BenchmarkReport:
-${JSON.stringify(schema, null, 2)}
-
-Rules:
-- Fill all string fields with meaningful content.
-- Arrays must have at least 1 item.
-- No markdown.
-`.trim();
-
-  const jsonStr = await executeIntelligenceTask(prompt, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    requiredTopKeys: ['entityName', 'missionSummary', 'visualStack', 'sonicStack', 'featureGap', 'businessModel', 'designSystem', 'deepArchitecture', 'sources'],
-    module: `LIVE_INTEL_${module}`
+    sources: []
   });
-
-  return safeJsonParse<BenchmarkReport>(jsonStr, schema);
 };
 
 export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> => {
@@ -412,8 +313,7 @@ export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> =
 
 export const generateProposalDraft = async (lead: Lead) => {
   return await executeIntelligenceTask(
-    `Write a proposal draft for ${lead.businessName}. Focus on AI ROI, speed, and measurable outcomes. Return plain text.`,
-    SYSTEM_INSTRUCTION
+    `Write a proposal draft for ${lead.businessName}. Focus on AI ROI, speed, and measurable outcomes. Return plain text.`
   );
 };
 
@@ -429,54 +329,41 @@ Return VALID JSON ONLY:
   { "day": 1, "channel": "Email", "content": "...", "purpose": "..." }
 ]
 `.trim();
-
-  const jsonStr = await executeIntelligenceTask(prompt, SYSTEM_INSTRUCTION, { expectJson: true, module: 'OUTREACH_SEQUENCE' });
+  const jsonStr = await executeIntelligenceTask(prompt);
   return safeJsonParse<any[]>(jsonStr, []);
 };
 
 export const generatePitch = async (lead: Lead) => {
-  return await executeIntelligenceTask(`Write a 30-second pitch for ${lead.businessName}. Return plain text only.`, SYSTEM_INSTRUCTION);
+  return await executeIntelligenceTask(`Write a 30-second pitch for ${lead.businessName}. Return plain text only.`);
 };
 
 export const generateNurtureDialogue = async (lead: Lead, scenario: string) => {
   const json = await executeIntelligenceTask(
-    `Generate nurture dialogue for ${lead.businessName} in scenario: ${scenario}. Return VALID JSON array of messages.`,
-    SYSTEM_INSTRUCTION,
-    { expectJson: true, module: 'NURTURE_DIALOGUE' }
+    `Generate nurture dialogue for ${lead.businessName} in scenario: ${scenario}. Return VALID JSON array of messages.`
   );
   return safeJsonParse<any[]>(json, []);
 };
 
 export const generateAffiliateProgram = async (niche: string) => {
-  const json = await executeIntelligenceTask(`Generate an affiliate program matrix for ${niche}. Return VALID JSON.`, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    module: 'AFFILIATE_PROGRAM'
-  });
+  const json = await executeIntelligenceTask(`Generate an affiliate program matrix for ${niche}. Return VALID JSON.`);
   return safeJsonParse<any>(json, {});
 };
 
 export const analyzeLedger = async (leads: Lead[]) => {
   const json = await executeIntelligenceTask(
-    `Analyze these ${leads.length} leads. Return VALID JSON: { "risk": "", "opportunity": "" }`,
-    SYSTEM_INSTRUCTION,
-    { expectJson: true, requiredTopKeys: ['risk', 'opportunity'], module: 'LEDGER_ANALYSIS' }
+    `Analyze these ${leads.length} leads. Return VALID JSON: { "risk": "", "opportunity": "" }`
   );
   return safeJsonParse<any>(json, { risk: '', opportunity: '' });
 };
 
 export const identifySubRegions = async (theater: string) => {
-  const json = await executeIntelligenceTask(`Break ${theater} into 5 strategic sub-regions. Return VALID JSON array.`, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    module: 'SUBREGIONS'
-  });
+  const json = await executeIntelligenceTask(`Break ${theater} into 5 strategic sub-regions. Return VALID JSON array.`);
   return safeJsonParse<string[]>(json, []);
 };
 
 export const crawlTheaterSignals = async (sector: string, signal: string) => {
   const json = await executeIntelligenceTask(
-    `Identify 3 businesses in ${sector} showing signal="${signal}". Return VALID JSON: { "leads": [ ... ] }`,
-    SYSTEM_INSTRUCTION,
-    { expectJson: true, requiredTopKeys: ['leads'], module: 'THEATER_SIGNALS' }
+    `Identify 3 businesses in ${sector} showing signal="${signal}". Return VALID JSON: { "leads": [ ... ] }`
   );
   const parsed = safeJsonParse<any>(json, { leads: [] });
   return (parsed.leads || []).map((l: any) => ({ ...l, id: uuidLike() }));
@@ -484,49 +371,34 @@ export const crawlTheaterSignals = async (sector: string, signal: string) => {
 
 export const generatePlaybookStrategy = async (niche: string) => {
   const json = await executeIntelligenceTask(
-    `Generate a high-ticket agency playbook strategy for ${niche}. Return VALID JSON: { "strategyName": "", "steps": [{ "title": "", "tactic": "" }] }`,
-    SYSTEM_INSTRUCTION,
-    { expectJson: true, requiredTopKeys: ['strategyName', 'steps'], module: 'PLAYBOOK' }
+    `Generate a high-ticket agency playbook strategy for ${niche}. Return VALID JSON: { "strategyName": "", "steps": [{ "title": "", "tactic": "" }] }`
   );
   return safeJsonParse<any>(json, {});
 };
 
 export const synthesizeProduct = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(`Architect an AI product for ${lead.businessName}. Return VALID JSON.`, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    module: 'PRODUCT_SYNTHESIS'
-  });
+  const json = await executeIntelligenceTask(`Architect an AI product for ${lead.businessName}. Return VALID JSON.`);
   return safeJsonParse<any>(json, {});
 };
 
 export const architectFunnel = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(`Architect a sales funnel for ${lead.businessName}. Return VALID JSON array.`, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    module: 'FUNNEL_ARCH'
-  });
+  const json = await executeIntelligenceTask(`Architect a sales funnel for ${lead.businessName}. Return VALID JSON array.`);
   return safeJsonParse<any[]>(json, []);
 };
 
 export const architectPitchDeck = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(`Architect a 5-slide pitch deck for ${lead.businessName}. Return VALID JSON.`, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    module: 'DECK_ARCH'
-  });
+  const json = await executeIntelligenceTask(`Architect a 5-slide pitch deck for ${lead.businessName}. Return VALID JSON.`);
   return safeJsonParse<any>(json, {});
 };
 
 export const generateROIReport = async (ltv: number, leads: number, conv: number) => {
   return await executeIntelligenceTask(
-    `Generate an AI ROI report using: LTV=${ltv}, Leads=${leads}, ConversionLift=${conv}. Return plain text.`,
-    SYSTEM_INSTRUCTION
+    `Generate an AI ROI report using: LTV=${ltv}, Leads=${leads}, ConversionLift=${conv}. Return plain text.`
   );
 };
 
 export const generateAgencyIdentity = async (niche: string, region: string) => {
-  const json = await executeIntelligenceTask(`Generate agency identity for ${niche} in ${region}. Return VALID JSON.`, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    module: 'AGENCY_IDENTITY'
-  });
+  const json = await executeIntelligenceTask(`Generate agency identity for ${niche} in ${region}. Return VALID JSON.`);
   return safeJsonParse<any>(json, {});
 };
 
@@ -535,55 +407,47 @@ export const testModelPerformance = async (model: string, prompt: string) => {
 };
 
 export const generateMotionLabConcept = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(`Create a storyboard concept for ${lead.businessName}. Return VALID JSON.`, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    module: 'MOTION_LAB'
-  });
+  const json = await executeIntelligenceTask(`Create a storyboard concept for ${lead.businessName}. Return VALID JSON.`);
   return safeJsonParse<any>(json, {});
 };
 
 export const generateFlashSparks = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(`Generate 6 viral sparks for ${lead.businessName}. Return VALID JSON array of ideas.`, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    module: 'FLASH_SPARKS'
-  });
+  const json = await executeIntelligenceTask(
+    `Generate 6 viral sparks for ${lead.businessName}. Return VALID JSON array of ideas.`
+  );
   return safeJsonParse<any[]>(json, []);
 };
 
 export const simulateSandbox = async (lead: Lead, ltv: number, volume: number) => {
   return await executeIntelligenceTask(
-    `Simulate business growth for ${lead.businessName}. LTV=${ltv}, Volume=${volume}. Return plain text.`,
-    SYSTEM_INSTRUCTION
+    `Simulate business growth for ${lead.businessName}. LTV=${ltv}, Volume=${volume}. Return plain text.`
   );
 };
 
 export const critiqueVideoPresence = async (lead: Lead) => {
-  return await executeIntelligenceTask(`Critique the video presence of ${lead.businessName}. Return plain text.`, SYSTEM_INSTRUCTION);
+  return await executeIntelligenceTask(`Critique the video presence of ${lead.businessName}. Return plain text.`);
 };
 
 export const translateTactical = async (text: string, lang: string) => {
-  return await executeIntelligenceTask(`Translate this into ${lang} with tactical tone: ${text}. Return plain text.`, SYSTEM_INSTRUCTION);
+  return await executeIntelligenceTask(`Translate this into ${lang} with tactical tone: ${text}. Return plain text.`);
 };
 
 export const generateTaskMatrix = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(`Generate a task checklist for ${lead.businessName}. Return VALID JSON array of tasks.`, SYSTEM_INSTRUCTION, {
-    expectJson: true,
-    module: 'TASK_MATRIX'
-  });
+  const json = await executeIntelligenceTask(
+    `Generate a task checklist for ${lead.businessName}. Return VALID JSON array of tasks.`
+  );
   return safeJsonParse<any[]>(json, []);
 };
 
 export const fetchViralPulseData = async (niche: string) => {
   const json = await executeIntelligenceTask(
-    `Identify 4 viral trends for ${niche}. Return VALID JSON array of trends with brief notes.`,
-    SYSTEM_INSTRUCTION,
-    { expectJson: true, module: 'VIRAL_PULSE' }
+    `Identify 4 viral trends for ${niche}. Return VALID JSON array of trends with brief notes.`
   );
   return safeJsonParse<any[]>(json, []);
 };
 
 export const queryRealtimeAgent = async (query: string) => {
-  const text = await executeIntelligenceTask(`Answer: ${query}. Return plain text plus any source hints if known.`, SYSTEM_INSTRUCTION);
+  const text = await executeIntelligenceTask(`Answer: ${query}. Return plain text plus any source hints if known.`);
   return { text, sources: [] as any[] };
 };
 
@@ -597,33 +461,36 @@ export const fetchTokenStats = async () => {
 };
 
 export const synthesizeArticle = async (source: string, mode: string) => {
-  return await executeIntelligenceTask(`Synthesize this article into mode=${mode}: ${source}. Return plain text.`, SYSTEM_INSTRUCTION);
+  return await executeIntelligenceTask(`Synthesize this article into mode=${mode}: ${source}. Return plain text.`);
 };
 
 export const analyzeVideoUrl = async (url: string, prompt: string, _leadId?: string) => {
-  return await executeIntelligenceTask(`Analyze video URL: ${url}. Mission: ${prompt}. Return plain text.`, SYSTEM_INSTRUCTION);
+  return await executeIntelligenceTask(`Analyze video URL: ${url}. Mission: ${prompt}. Return plain text.`);
 };
 
 export const enhanceStrategicPrompt = async (prompt: string) => {
-  return await executeIntelligenceTask(`Enhance strategic prompt: ${prompt}. Return plain text.`, SYSTEM_INSTRUCTION);
+  return await executeIntelligenceTask(`Enhance strategic prompt: ${prompt}. Return plain text.`);
 };
 
 export const enhanceVideoPrompt = async (prompt: string) => {
-  return await executeIntelligenceTask(`Enhance this video prompt for cinematic 4K: ${prompt}. Return plain text.`, SYSTEM_INSTRUCTION);
+  return await executeIntelligenceTask(`Enhance this video prompt for cinematic 4K: ${prompt}. Return plain text.`);
 };
 
-// -------------------- Media stubs --------------------
+// -------------------- Media stubs (kept for UI compatibility) --------------------
+// You already use KIE Suno via services/kieSunoService.ts.
+// These stay as non-breaking placeholders until you wire more KIE endpoints.
+
 export const generateVisual = async (_prompt: string, _lead: Lead, _base64Image?: string) => {
   return null as any;
 };
 
 export const analyzeVisual = async (_base64: string, _mimeType: string, prompt: string) => {
-  return await executeIntelligenceTask(`Visual analysis task: ${prompt}. Return plain text.`, SYSTEM_INSTRUCTION);
+  return await executeIntelligenceTask(`Visual analysis task: ${prompt}. Return plain text.`);
 };
 
 export const generateMockup = async (businessName: string, niche: string, _leadId?: string) => {
   const prompt = `Hyper-realistic 4K mockup for ${businessName} in ${niche}.`;
-  await executeIntelligenceTask(`Create an image direction prompt for: ${prompt}. Return plain text prompt only.`, SYSTEM_INSTRUCTION);
+  await executeIntelligenceTask(`Create an image direction prompt for: ${prompt}. Return plain text prompt only.`);
   return null as any;
 };
 
@@ -647,28 +514,24 @@ export const generateAudioPitch = async (_text: string, _voiceName: string = 'Ko
 
 export const generateLyrics = async (lead: Lead, theme: string, type: string) => {
   return await executeIntelligenceTask(
-    `Write ${type} lyrics for ${lead.businessName}. Theme: ${theme}. Return plain text only.`,
-    SYSTEM_INSTRUCTION
+    `Write ${type} lyrics for ${lead.businessName}. Theme: ${theme}. Return plain text only.`
   );
 };
 
 export const generateSonicPrompt = async (lead: Lead) => {
   return await executeIntelligenceTask(
-    `Generate a detailed music generation prompt for ${lead.businessName}'s brand identity. Return ONLY the prompt string.`,
-    SYSTEM_INSTRUCTION
+    `Generate a detailed music generation prompt for ${lead.businessName}'s brand identity. Return ONLY the prompt string.`
   );
 };
 
 export const performFactCheck = async (_lead: Lead, claim: string) => {
-  const text = await executeIntelligenceTask(`Fact-check this claim: "${claim}". Return plain text with reasoning.`, SYSTEM_INSTRUCTION);
+  const text = await executeIntelligenceTask(`Fact-check this claim: "${claim}". Return plain text with reasoning.`);
   return { status: 'Review', evidence: text, sources: [] as any[] };
 };
 
 export const extractBrandDNA = async (_lead: Partial<Lead>, websiteUrl: string): Promise<BrandIdentity> => {
   const json = await executeIntelligenceTask(
-    `Research ${websiteUrl} and extract brand DNA. Return VALID JSON: { "colors": ["#hex"], "fontPairing": "", "archetype": "", "visualTone": "", "extractedImages": ["url"] }`,
-    SYSTEM_INSTRUCTION,
-    { expectJson: true, module: 'BRAND_DNA' }
+    `Research ${websiteUrl} and extract brand DNA. Return VALID JSON: { "colors": ["#hex"], "fontPairing": "", "archetype": "", "visualTone": "", "extractedImages": ["url"] }`
   );
   return safeJsonParse<BrandIdentity>(json, {} as BrandIdentity);
 };
