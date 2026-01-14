@@ -1,669 +1,1144 @@
-// services/geminiService.ts
-import { Lead, BrandIdentity } from '../types';
-import { deductCost } from './computeTracker';
+/* services/geminiService.ts
+   Prospector v14 — unified AI + vault + logs service
+   Fixes: missing exports, wrong signatures, wrong return types, non-iterable logs/assets
+*/
 
-/**
- * COMPATIBILITY LAYER (V14)
- * -----------------------------------------
- * Goal: preserve the ORIGINAL exported surface area that the UI imports.
- * - Keep ALL named exports used across components/services.
- * - Keep function signatures compatible (argument counts).
- * - Keep return types compatible (arrays/objects/strings as expected).
- * - Route model calls through SAME-ORIGIN proxy: POST /api/openrouter/chat
- * - NEVER call OpenRouter directly from browser.
- *
- * IMPORTANT (iPad): This file is meant to be copy-pasted into GitHub directly.
- */
+import { Lead } from "../types";
 
-// -------------------- Proxy + Model Defaults --------------------
-export const OPENROUTER_PROXY_PATH = '/api/openrouter/chat';
+/* ---------------------------------------------
+   Storage keys
+---------------------------------------------- */
+const LS_OPENROUTER_KEY = "prospector.openrouterKey";
+const LS_KIE_KEY = "prospector.kieKey";
+const LS_ASSETS = "prospector.assets.v1";
+const LS_LOGS = "prospector.logs.v1";
 
-/**
- * Default model. You can change this later in one place.
- * (We keep it stable to avoid breaking caller expectations.)
- */
-export const PRIMARY_MODEL = 'google/gemini-2.0-flash-001';
+/* ---------------------------------------------
+   Types
+---------------------------------------------- */
+export type Role = "user" | "assistant" | "system";
+export type AssetType = "TEXT" | "IMAGE" | "VIDEO" | "AUDIO" | "JSON";
 
-/**
- * Stable system instruction.
- * Keep it deterministic and safe for JSON extraction.
- */
-export const SYSTEM_INSTRUCTION = `
-You are Prospector OS.
-When asked for JSON, output VALID JSON only (no markdown fences).
-Keep output structured and usable.
-`.trim();
-
-// -------------------- Types (exported for UI imports) --------------------
 export interface AssetRecord {
   id: string;
-  type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO';
-  title: string;
-  data: string;
-  module?: string;
-  leadId?: string;
+  type: AssetType;
+  module: string;
   timestamp: number;
-  metadata?: any;
+  title?: string;
+  leadId?: string;
+  data: string; // URL for media, or text for text/json
+  metadata?: Record<string, any>;
+}
+
+export interface ProductionLog {
+  id: string;
+  timestamp: number;
+  module: string;
+  level: "info" | "warn" | "error";
+  message: string;
+  meta?: Record<string, any>;
 }
 
 export interface BenchmarkReport {
   entityName: string;
   missionSummary: string;
-  visualStack: Array<{ label: string; description: string }>;
-  sonicStack: Array<{ label: string; description: string }>;
+  visualStack: string[];
+  sonicStack: string[];
   featureGap: string;
   businessModel: string;
   designSystem: string;
   deepArchitecture: string;
-  sources: Array<{ title: string; uri: string }>;
+  sources: string[];
 }
 
 export interface VeoConfig {
-  aspectRatio: '16:9' | '9:16';
-  resolution: '720p' | '1080p';
-  modelStr?: string;
+  prompt?: string;
+  durationSeconds?: number;
+  aspectRatio?: string; // <-- fixes TS2353 in VideoPitch
+  style?: string;
+  negativePrompt?: string;
+  seed?: number;
+  [k: string]: any;
 }
 
-export interface LoggedGenerateParams {
-  module: string;
-  model?: string;
-  modelClass?: 'FLASH' | 'PRO';
-  reasoningDepth?: 'LOW' | 'MEDIUM' | 'HIGH';
-  isClientFacing?: boolean;
-  contents: any;
-  config?: any; // keep for callers that pass config
+/* ---------------------------------------------
+   Public iterables (components use these as arrays)
+---------------------------------------------- */
+export const SESSION_ASSETS: AssetRecord[] = loadAssets();
+export const PRODUCTION_LOGS: ProductionLog[] = loadLogs();
+
+/* ---------------------------------------------
+   Subscribers
+---------------------------------------------- */
+const assetSubs = new Set<(assets: AssetRecord[]) => void>();
+const logSubs = new Set<(logs: ProductionLog[]) => void>();
+
+function notifyAssets() {
+  const snap = [...SESSION_ASSETS];
+  for (const cb of assetSubs) cb(snap);
+}
+function notifyLogs() {
+  const snap = [...PRODUCTION_LOGS];
+  for (const cb of logSubs) cb(snap);
 }
 
-// Some UIs treat “logs” as strings; some expect structured logs elsewhere.
-// We preserve the original array export that many modules import.
-export const PRODUCTION_LOGS: string[] = [];
+/* ---------------------------------------------
+   Utilities
+---------------------------------------------- */
+function nowId(prefix: string) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
 
-// -------------------- In-memory assets/vault (exported) --------------------
-export const SESSION_ASSETS: AssetRecord[] = [];
-const assetListeners = new Set<(assets: AssetRecord[]) => void>();
-
-const uuidLike = () => Math.random().toString(36).substring(2, 15);
-
-export const pushLog = (msg: string) => {
-  PRODUCTION_LOGS.unshift(`[${new Date().toLocaleTimeString()}] ${msg}`);
-  if (PRODUCTION_LOGS.length > 200) PRODUCTION_LOGS.pop();
-};
-
-export const subscribeToAssets = (listener: (assets: AssetRecord[]) => void) => {
-  assetListeners.add(listener);
-  listener(SESSION_ASSETS);
-  return () => assetListeners.delete(listener);
-};
-
-export const saveAsset = (
-  type: AssetRecord['type'],
-  title: string,
-  data: string,
-  module?: string,
-  leadId?: string,
-  metadata?: any
-) => {
-  const asset: AssetRecord = {
-    id: uuidLike(),
-    type,
-    title,
-    data,
-    module,
-    leadId,
-    timestamp: Date.now(),
-    metadata,
-  };
-  SESSION_ASSETS.unshift(asset);
-  assetListeners.forEach((l) => l([...SESSION_ASSETS]));
-  return asset;
-};
-
-export const deleteAsset = (id: string) => {
-  const idx = SESSION_ASSETS.findIndex((a) => a.id === id);
-  if (idx !== -1) {
-    SESSION_ASSETS.splice(idx, 1);
-    assetListeners.forEach((l) => l([...SESSION_ASSETS]));
-  }
-};
-
-export const clearVault = () => {
-  SESSION_ASSETS.length = 0;
-  assetListeners.forEach((l) => l([]));
-};
-
-export const importVault = (assets: AssetRecord[]) => {
-  SESSION_ASSETS.length = 0;
-  SESSION_ASSETS.push(...assets);
-  assetListeners.forEach((l) => l([...SESSION_ASSETS]));
-  return SESSION_ASSETS.length;
-};
-
-// -------------------- Key storage (local) --------------------
-const OR_KEY = 'POMELLI_OPENROUTER_KEY';
-const KIE_KEY = 'POMELLI_KIE_KEY';
-
-export const setStoredKeys = (openRouter?: string, kie?: string) => {
+function safeJsonParse<T = any>(text: string): T | null {
   try {
-    if (typeof window === 'undefined') return;
-    if (openRouter) window.localStorage.setItem(OR_KEY, openRouter.trim());
-    if (kie) window.localStorage.setItem(KIE_KEY, kie.trim());
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+function extractJsonBlock(text: string): string | null {
+  // Try fenced ```json ... ```
+  const fenced = text.match(/```json\s*([\s\S]*?)```/i) || text.match(/```\s*([\s\S]*?)```/);
+  if (fenced?.[1]) return fenced[1].trim();
+
+  // Try first { ... } or [ ... ]
+  const firstObj = text.indexOf("{");
+  const firstArr = text.indexOf("[");
+  const start = firstObj === -1 ? firstArr : firstArr === -1 ? firstObj : Math.min(firstObj, firstArr);
+  if (start === -1) return null;
+
+  // Very small brace/array balance scan
+  const open = text[start];
+  const close = open === "{" ? "}" : "]";
+  let depth = 0;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === open) depth++;
+    if (ch === close) depth--;
+    if (depth === 0) return text.slice(start, i + 1).trim();
+  }
+  return null;
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function loadAssets(): AssetRecord[] {
+  try {
+    const raw = localStorage.getItem(LS_ASSETS);
+    const parsed = raw ? (JSON.parse(raw) as AssetRecord[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistAssets() {
+  try {
+    localStorage.setItem(LS_ASSETS, JSON.stringify(SESSION_ASSETS));
   } catch {
     // ignore
   }
-};
+}
 
-export const getStoredKeys = () => {
+function loadLogs(): ProductionLog[] {
   try {
-    if (typeof window === 'undefined') return { openRouter: '', kie: '' };
-    return {
-      openRouter: window.localStorage.getItem(OR_KEY) || '',
-      kie: window.localStorage.getItem(KIE_KEY) || '',
-    };
+    const raw = localStorage.getItem(LS_LOGS);
+    const parsed = raw ? (JSON.parse(raw) as ProductionLog[]) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return { openRouter: '', kie: '' };
+    return [];
   }
-};
+}
 
-// -------------------- Helpers --------------------
-const safeJsonParse = <T = any>(s: string, fallback: T): T => {
+function persistLogs() {
   try {
-    return JSON.parse(s) as T;
+    localStorage.setItem(LS_LOGS, JSON.stringify(PRODUCTION_LOGS));
   } catch {
-    return fallback;
+    // ignore
   }
-};
+}
 
-const extractJson = (text: string) => {
-  if (!text) return '';
-  const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-
-  const objStart = cleaned.indexOf('{');
-  const objEnd = cleaned.lastIndexOf('}');
-  const arrStart = cleaned.indexOf('[');
-  const arrEnd = cleaned.lastIndexOf(']');
-
-  if (objStart !== -1 && (arrStart === -1 || objStart < arrStart) && objEnd > objStart) {
-    return cleaned.substring(objStart, objEnd + 1);
-  }
-  if (arrStart !== -1 && arrEnd > arrStart) {
-    return cleaned.substring(arrStart, arrEnd + 1);
-  }
-  return cleaned;
-};
-
-// Compatibility shim (older code imports getAI())
-export const getAI = () => null;
-
-// -------------------- OpenRouter (via proxy) --------------------
-type OpenRouterProxyRequest =
-  | {
-      model?: string;
-      prompt?: string;
-      systemInstruction?: string;
-      system?: string;
-      messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
-      temperature?: number;
-      max_tokens?: number;
-      [k: string]: any;
-    }
-  | any;
-
-const normalizeToMessages = (payload: OpenRouterProxyRequest) => {
-  const model = payload?.model || PRIMARY_MODEL;
-
-  const system =
-    payload?.systemInstruction ||
-    payload?.system ||
-    (typeof payload?.messages?.[0]?.role === 'system' ? payload?.messages?.[0]?.content : SYSTEM_INSTRUCTION) ||
-    SYSTEM_INSTRUCTION;
-
-  // Already in chat format
-  if (Array.isArray(payload?.messages) && payload.messages.length > 0) {
-    // Ensure a system message exists at top for stability
-    const msgs = [...payload.messages];
-    const hasSystem = msgs.some((m) => m?.role === 'system');
-    if (!hasSystem) msgs.unshift({ role: 'system', content: system });
-    return { model, messages: msgs };
-  }
-
-  // Legacy prompt format
-  const prompt =
-    (typeof payload?.prompt === 'string' && payload.prompt.trim()) ||
-    (typeof payload?.input === 'string' && payload.input.trim()) ||
-    (typeof payload?.text === 'string' && payload.text.trim()) ||
-    '';
-
-  if (!prompt) {
-    return { model, messages: [{ role: 'system', content: system }, { role: 'user', content: '' }] };
-  }
-
-  return {
-    model,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: prompt },
-    ],
+export function pushLog(module: string, message: string, level: "info" | "warn" | "error" = "info", meta?: Record<string, any>) {
+  const entry: ProductionLog = {
+    id: nowId("log"),
+    timestamp: Date.now(),
+    module,
+    level,
+    message,
+    meta,
   };
-};
+  PRODUCTION_LOGS.unshift(entry);
+  // cap logs
+  if (PRODUCTION_LOGS.length > 500) PRODUCTION_LOGS.length = 500;
+  persistLogs();
+  notifyLogs();
+  return entry;
+}
 
-export const openRouterChat = async (
-  prompt: string,
-  system?: string,
-  model: string = PRIMARY_MODEL
-): Promise<string> => {
-  const keys = getStoredKeys();
+/* ---------------------------------------------
+   Keys API (SecurityGateway expects positional args)
+---------------------------------------------- */
+export function setStoredKeys(openRouterKey: string, kieKey?: string) {
+  try {
+    if (openRouterKey) localStorage.setItem(LS_OPENROUTER_KEY, openRouterKey.trim());
+    if (typeof kieKey === "string") localStorage.setItem(LS_KIE_KEY, kieKey.trim());
+    pushLog("SecurityGateway", "Keys stored", "info");
+  } catch {
+    pushLog("SecurityGateway", "Failed to store keys", "warn");
+  }
+}
 
-  // The proxy may accept legacy payloads; we always send a stable shape.
-  const body = normalizeToMessages({
-    model,
-    prompt,
-    systemInstruction: system || SYSTEM_INSTRUCTION,
-  });
+export function getStoredKeys(): { openRouterKey: string; kieKey: string } {
+  const openRouterKey = (localStorage.getItem(LS_OPENROUTER_KEY) || "").trim();
+  const kieKey = (localStorage.getItem(LS_KIE_KEY) || "").trim();
+  return { openRouterKey, kieKey };
+}
 
-  const res = await fetch(OPENROUTER_PROXY_PATH, {
-    method: 'POST',
+/* ---------------------------------------------
+   Asset Vault API
+---------------------------------------------- */
+export function subscribeToAssets(cb: (assets: AssetRecord[]) => void) {
+  assetSubs.add(cb);
+  // immediate fire
+  cb([...SESSION_ASSETS]);
+  return () => assetSubs.delete(cb);
+}
+
+export function clearVault() {
+  SESSION_ASSETS.splice(0, SESSION_ASSETS.length);
+  persistAssets();
+  notifyAssets();
+  pushLog("Vault", "Vault cleared", "info");
+}
+
+export function deleteAsset(id: string) {
+  const idx = SESSION_ASSETS.findIndex((a) => a.id === id);
+  if (idx >= 0) {
+    const [removed] = SESSION_ASSETS.splice(idx, 1);
+    persistAssets();
+    notifyAssets();
+    pushLog("Vault", `Asset deleted: ${removed.type}`, "info", { id });
+  }
+}
+
+export async function importVault(items: AssetRecord[]) {
+  // merge by id
+  const map = new Map<string, AssetRecord>();
+  for (const a of SESSION_ASSETS) map.set(a.id, a);
+  for (const a of items || []) {
+    if (a && a.id) map.set(a.id, a);
+  }
+  const merged = Array.from(map.values()).sort((x, y) => y.timestamp - x.timestamp);
+  SESSION_ASSETS.splice(0, SESSION_ASSETS.length, ...merged);
+  persistAssets();
+  notifyAssets();
+  pushLog("Vault", "Vault imported", "info", { count: items?.length || 0 });
+}
+
+export async function saveAsset(
+  data: string,
+  type: AssetType,
+  module: string,
+  leadId?: string,
+  title?: string,
+  metadata?: Record<string, any>
+): Promise<AssetRecord> {
+  const rec: AssetRecord = {
+    id: nowId("asset"),
+    type,
+    module: module || "Unknown",
+    timestamp: Date.now(),
+    title,
+    leadId,
+    data,
+    metadata,
+  };
+  SESSION_ASSETS.unshift(rec);
+  if (SESSION_ASSETS.length > 1000) SESSION_ASSETS.length = 1000;
+  persistAssets();
+  notifyAssets();
+  pushLog(module || "Vault", `Asset saved (${type})`, "info", { id: rec.id, leadId });
+  return rec;
+}
+
+/* ---------------------------------------------
+   OpenRouter (primary)
+---------------------------------------------- */
+type ORMsg = { role: Role; content: string };
+
+async function openRouterRequest(opts: {
+  model: string;
+  messages: ORMsg[];
+  temperature?: number;
+  maxTokens?: number;
+  json?: boolean;
+}): Promise<{ text: string; raw: any }> {
+  const { openRouterKey } = getStoredKeys();
+  if (!openRouterKey) {
+    const msg = "Missing OpenRouter key. Go to Security Gateway and paste it.";
+    pushLog("OpenRouter", msg, "warn");
+    return { text: msg, raw: null };
+  }
+
+  const temperature = typeof opts.temperature === "number" ? clamp(opts.temperature, 0, 2) : 0.4;
+
+  const body: any = {
+    model: opts.model || "openai/gpt-4o-mini",
+    messages: opts.messages,
+    temperature,
+  };
+
+  if (opts.maxTokens) body.max_tokens = opts.maxTokens;
+  if (opts.json) body.response_format = { type: "json_object" };
+
+  const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      ...(keys.openRouter ? { 'x-openrouter-key': keys.openRouter } : {}),
+      Authorization: `Bearer ${openRouterKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": typeof window !== "undefined" ? window.location.origin : "",
+      "X-Title": "ProspectorV14",
     },
     body: JSON.stringify(body),
   });
 
-  const rawText = await res.text();
-
-  if (!res.ok) {
-    pushLog(`OpenRouter Proxy Error (${res.status}): ${rawText}`);
-    const statusText = res.status === 401 ? 'Unauthorized (Check Key)' : `Error ${res.status}`;
-    throw new Error(`OpenRouter Error (${statusText}): ${rawText}`);
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => "");
+    const msg = `OpenRouter error ${resp.status}: ${t || resp.statusText}`;
+    pushLog("OpenRouter", msg, "error");
+    return { text: msg, raw: { status: resp.status, body: t } };
   }
 
-  // Proxy returns OpenRouter JSON; handle plain text too.
-  const data = safeJsonParse<any>(rawText, null);
-  if (data && typeof data === 'object') {
-    return data?.choices?.[0]?.message?.content ?? data?.text ?? '';
-  }
-  return rawText;
-};
+  const raw = await resp.json();
+  const text =
+    raw?.choices?.[0]?.message?.content ??
+    raw?.choices?.[0]?.text ??
+    raw?.output_text ??
+    raw?.text ??
+    "";
 
-// Some UIs expect richer envelopes. Keep a helper that returns {ok,text,raw,error}
-export const openRouterChatEnvelope = async (
-  prompt: string,
-  system?: string,
-  model: string = PRIMARY_MODEL
-): Promise<{ ok: boolean; text: string; raw: any; error?: { message: string; code?: number } }> => {
-  try {
-    const text = await openRouterChat(prompt, system, model);
-    return { ok: true, text, raw: text };
-  } catch (e: any) {
-    return { ok: false, text: '', raw: null, error: { message: e?.message || String(e) } };
-  }
-};
+  return { text: String(text || "").trim(), raw };
+}
 
-export const executeIntelligenceTask = async (prompt: string, system?: string) => {
-  const raw = await openRouterChat(prompt, system);
-  return extractJson(raw);
-};
+/**
+ * openRouterChat overloads (used in many modules)
+ * - openRouterChat(prompt)
+ * - openRouterChat(prompt, system)
+ * - openRouterChat({prompt, system, model, temperature, json})
+ */
+export async function openRouterChat(
+  a: string | { prompt: string; system?: string; model?: string; temperature?: number; json?: boolean },
+  b?: string,
+  c?: string
+): Promise<string> {
+  const opts =
+    typeof a === "string"
+      ? { prompt: a, system: b, model: c }
+      : { prompt: a.prompt, system: a.system, model: a.model, temperature: a.temperature, json: a.json };
 
-// Keep API-compatible export
-export const loggedGenerateContent = async (params: LoggedGenerateParams): Promise<string> => {
-  const model = params.model || PRIMARY_MODEL;
-  const contentStr = typeof params.contents === 'string' ? params.contents : JSON.stringify(params.contents ?? {});
-  const started = Date.now();
+  const model = opts.model || "openai/gpt-4o-mini";
+  const messages: ORMsg[] = [];
+  if (opts.system) messages.push({ role: "system", content: opts.system });
+  messages.push({ role: "user", content: opts.prompt });
 
-  if (!contentStr || !contentStr.trim()) {
-    pushLog(`GENERATION_ERROR in ${params.module}: empty contents`);
-    throw new Error('Generation Error: empty contents');
-  }
+  const res = await openRouterRequest({ model, messages, temperature: opts.temperature, json: opts.json });
+  return res.text;
+}
 
-  try {
-    const text = await openRouterChat(contentStr, SYSTEM_INSTRUCTION, model);
-    deductCost(model, contentStr.length + text.length);
-    pushLog(`GEN_OK ${params.module} (${Date.now() - started}ms) model=${model}`);
-    return text;
-  } catch (e: any) {
-    pushLog(`GENERATION_ERROR in ${params.module}: ${e?.message || String(e)}`);
-    throw e;
-  }
-};
+/* ---------------------------------------------
+   Logged generation (supports BOTH object + positional calls)
+---------------------------------------------- */
+export async function loggedGenerateContent(
+  a:
+    | {
+        module: string;
+        prompt: string;
+        leadId?: string;
+        model?: string;
+        system?: string;
+        temperature?: number;
+        json?: boolean;
+      }
+    | string,
+  b?: string,
+  c?: string,
+  d?: string
+): Promise<string> {
+  const opts =
+    typeof a === "string"
+      ? { module: a, prompt: b || "", leadId: c, model: d }
+      : {
+          module: a.module,
+          prompt: a.prompt,
+          leadId: a.leadId,
+          model: a.model,
+          system: a.system,
+          temperature: a.temperature,
+          json: a.json,
+        };
 
-// -------------------- Core: Lead Discovery --------------------
-export const generateLeads = async (region: string, niche: string, count: number) => {
-  pushLog(`RECON: ${region} | ${niche} | count=${count}`);
+  pushLog(opts.module, "AI request started", "info", { leadId: opts.leadId, model: opts.model });
 
+  const text = await openRouterChat({
+    prompt: opts.prompt,
+    system: opts.system,
+    model: opts.model,
+    temperature: opts.temperature,
+    json: opts.json,
+  });
+
+  pushLog(opts.module, "AI request completed", "info", { leadId: opts.leadId });
+  return text;
+}
+
+/* ---------------------------------------------
+   Core generators used across the app
+---------------------------------------------- */
+export async function generateLeads(region: string, nicheHint: string, count: number): Promise<Lead[]> {
+  const module = "LeadGen";
   const prompt = `
-Find ${count} high-ticket B2B leads in ${region} for ${niche}.
-Return VALID JSON ONLY in this shape:
+Generate ${count} realistic business leads in JSON.
+Region: ${region}
+Niche hint: ${nicheHint}
+
+Return ONLY JSON with shape:
+{ "leads": [ { "businessName": string, "website": string|null, "region": string, "city": string, "niche": string, "description": string, "signals": string[], "email": string|null, "phone": string|null } ] }
+`;
+
+  const raw = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(raw) || raw;
+  const parsed = safeJsonParse<{ leads: any[] }>(block);
+
+  const leads = Array.isArray(parsed?.leads) ? parsed!.leads : [];
+  const cleaned: Lead[] = leads.map((x: any, i: number) => {
+    const businessName = String(x?.businessName || x?.name || `Lead ${i + 1}`);
+    return {
+      id: nowId("lead"),
+      businessName,
+      website: x?.website ? String(x.website) : "",
+      region: String(x?.region || region || ""),
+      city: String(x?.city || ""),
+      niche: String(x?.niche || nicheHint || ""),
+      description: String(x?.description || ""),
+      signals: Array.isArray(x?.signals) ? x.signals.map((s: any) => String(s)) : [],
+      email: x?.email ? String(x.email) : "",
+      phone: x?.phone ? String(x.phone) : "",
+      score: 0,
+      tags: [],
+      notes: "",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    } as any;
+  });
+
+  pushLog(module, `Generated leads: ${cleaned.length}`, "info");
+  return cleaned;
+}
+
+/**
+ * Grounded lead search used by AutomatedSearch + RadarRecon
+ * signature: groundedLeadSearch(query, region, count)
+ */
+export async function groundedLeadSearch(query: string, region: string, count: number): Promise<{
+  ok: boolean;
+  leads: Lead[];
+  text: string;
+  raw?: any;
+  groundingSources?: string[];
+  error?: any;
+}> {
+  const module = "GroundedSearch";
+  const prompt = `
+You are a lead research agent.
+
+Goal: find ${count} businesses relevant to:
+Query: ${query}
+Region: ${region}
+
+Return ONLY JSON:
 {
   "leads": [
     {
-      "businessName": "",
-      "websiteUrl": "",
-      "city": "",
-      "niche": "",
-      "leadScore": 0,
-      "assetGrade": "A",
-      "socialGap": ""
+      "businessName": string,
+      "website": string|null,
+      "region": string,
+      "city": string,
+      "niche": string,
+      "description": string,
+      "signals": string[]
     }
-  ]
-}
-`.trim();
-
-  const jsonStr = await executeIntelligenceTask(prompt);
-  const parsed = safeJsonParse<any>(jsonStr, { leads: [] });
-
-  return { leads: parsed.leads || [], groundingSources: [] as any[] };
-};
-
-/**
- * Some modules expect a “grounded” lead search export.
- * We keep it flexible to tolerate different call signatures across the codebase.
- */
-export const groundedLeadSearch = async (...args: any[]) => {
-  // Common patterns we’ve seen:
-  // - groundedLeadSearch(region, niche, count)
-  // - groundedLeadSearch(query, region, niche)
-  // - groundedLeadSearch(query)
-  const a0 = args[0];
-  const a1 = args[1];
-  const a2 = args[2];
-
-  let region = 'LOS ANGELES, USA';
-  let niche = 'marketing';
-  let count = 10;
-  let query = '';
-
-  if (typeof a0 === 'string' && typeof a1 === 'string' && typeof a2 === 'number') {
-    region = a0;
-    niche = a1;
-    count = a2;
-  } else if (typeof a0 === 'string' && typeof a1 === 'string' && typeof a2 === 'string') {
-    query = a0;
-    region = a1;
-    niche = a2;
-  } else if (typeof a0 === 'string') {
-    query = a0;
-  }
-
-  const prompt = `
-Find high-quality leads.
-Region: ${region}
-Niche: ${niche}
-Query hint: ${query || '(none)'}
-Count: ${count}
-
-Return VALID JSON ONLY:
-{
-  "leads": [
-    { "businessName": "", "websiteUrl": "", "city": "", "niche": "", "leadScore": 0, "assetGrade": "A", "socialGap": "" }
   ],
-  "sources": [
-    { "title": "", "uri": "" }
+  "groundingSources": [string]
+}
+Note: If you cannot truly browse, produce best-effort leads AND set groundingSources to [].
+`;
+
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
+
+  const leadsRaw = Array.isArray(parsed?.leads) ? parsed.leads : [];
+  const leads: Lead[] = leadsRaw.map((x: any) => ({
+    id: nowId("lead"),
+    businessName: String(x?.businessName || "Unknown"),
+    website: x?.website ? String(x.website) : "",
+    region: String(x?.region || region || ""),
+    city: String(x?.city || ""),
+    niche: String(x?.niche || ""),
+    description: String(x?.description || ""),
+    signals: Array.isArray(x?.signals) ? x.signals.map((s: any) => String(s)) : [],
+    score: 0,
+    tags: [],
+    notes: "",
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  })) as any;
+
+  return { ok: true, leads, text, groundingSources: Array.isArray(parsed?.groundingSources) ? parsed.groundingSources : [] };
+}
+
+/* ---------------------------------------------
+   Benchmarks / intel
+---------------------------------------------- */
+export async function fetchBenchmarkData(lead: Lead): Promise<{ ok: boolean; report?: BenchmarkReport; text: string; raw?: any; error?: any }> {
+  const module = "Benchmark";
+  const prompt = `
+Create a competitive benchmark report for:
+Business: ${lead.businessName}
+Website: ${lead.website || "(unknown)"}
+Region: ${lead.region || ""}
+
+Return ONLY JSON:
+{
+  "entityName": string,
+  "missionSummary": string,
+  "visualStack": string[],
+  "sonicStack": string[],
+  "featureGap": string,
+  "businessModel": string,
+  "designSystem": string,
+  "deepArchitecture": string,
+  "sources": string[]
+}
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
+
+  if (!parsed) return { ok: false, text, error: "Parse failed" };
+
+  const report: BenchmarkReport = {
+    entityName: String(parsed.entityName || lead.businessName || ""),
+    missionSummary: String(parsed.missionSummary || ""),
+    visualStack: Array.isArray(parsed.visualStack) ? parsed.visualStack.map((x: any) => String(x)) : [],
+    sonicStack: Array.isArray(parsed.sonicStack) ? parsed.sonicStack.map((x: any) => String(x)) : [],
+    featureGap: String(parsed.featureGap || ""),
+    businessModel: String(parsed.businessModel || ""),
+    designSystem: String(parsed.designSystem || ""),
+    deepArchitecture: String(parsed.deepArchitecture || ""),
+    sources: Array.isArray(parsed.sources) ? parsed.sources.map((x: any) => String(x)) : [],
+  };
+
+  return { ok: true, report, text, raw: parsed };
+}
+
+export async function fetchLiveIntel(lead: Lead, focus?: string): Promise<string> {
+  const module = "LiveIntel";
+  const prompt = `
+Provide actionable intelligence for:
+Business: ${lead.businessName}
+Website: ${lead.website || ""}
+Focus: ${focus || "positioning, offer, angles, objections, quick wins"}
+
+Return a concise, high-signal brief with bullets and short sections.
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+/* ---------------------------------------------
+   Writing / content
+---------------------------------------------- */
+export async function synthesizeArticle(topic: string, angle?: string): Promise<string> {
+  const module = "ArticleIntel";
+  const prompt = `
+Write a high-signal article draft.
+Topic: ${topic}
+Angle: ${angle || "practical, decision-maker oriented"}
+
+Constraints:
+- Clear headings
+- Bullet lists where useful
+- No fluff
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+export async function performFactCheck(text: string): Promise<string> {
+  const module = "FactCheck";
+  const prompt = `
+Fact-check the following content. List:
+- claims that are likely wrong/unsupported
+- what to verify
+- safer phrasing
+
+CONTENT:
+${text}
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+/* ---------------------------------------------
+   Campaign / outreach
+---------------------------------------------- */
+export async function generateOutreachSequence(lead: Lead, channel: string = "email", tone: string = "premium"): Promise<any[]> {
+  const module = "Sequencer";
+  const prompt = `
+Create an outreach sequence for:
+Business: ${lead.businessName}
+Website: ${lead.website || ""}
+Channel: ${channel}
+Tone: ${tone}
+
+Return ONLY JSON:
+{
+  "sequence": [
+    { "step": number, "subject": string, "body": string, "cta": string, "timing": string }
   ]
 }
-`.trim();
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
+  return Array.isArray(parsed?.sequence) ? parsed.sequence : [];
+}
 
-  try {
-    const jsonStr = await executeIntelligenceTask(prompt);
-    const parsed = safeJsonParse<any>(jsonStr, { leads: [], sources: [] });
-    return {
-      ok: true,
-      leads: parsed.leads || [],
-      groundingSources: parsed.sources || [],
-      text: jsonStr,
-      raw: parsed,
-    };
-  } catch (e: any) {
-    return { ok: false, leads: [], groundingSources: [], text: '', raw: null, error: e };
-  }
-};
-
-// -------------------- Text modules (keep signatures stable) --------------------
-export const orchestrateBusinessPackage = async (lead: Lead, _assets: any[]) => {
-  const json = await executeIntelligenceTask(
-    `Create outreach assets for ${lead.businessName}. Return VALID JSON with presentation, narrative, outreach, and visual direction.`
-  );
-  return safeJsonParse<any>(json, {});
-};
-
-export const fetchLiveIntel = async (lead: Lead, module: string): Promise<BenchmarkReport> => {
-  const json = await executeIntelligenceTask(
-    `Technical audit for ${lead.websiteUrl}. Focus module="${module}". Return VALID JSON BenchmarkReport.`
-  );
-  return safeJsonParse<BenchmarkReport>(json, {
-    entityName: lead.businessName,
-    missionSummary: '',
-    visualStack: [],
-    sonicStack: [],
-    featureGap: '',
-    businessModel: '',
-    designSystem: '',
-    deepArchitecture: '',
-    sources: [],
-  });
-};
-
-export const fetchBenchmarkData = async (lead: Lead): Promise<BenchmarkReport> => {
-  return await fetchLiveIntel(lead, 'benchmark');
-};
-
-export const generateProposalDraft = async (lead: Lead) => {
-  return await executeIntelligenceTask(
-    `Write a proposal draft for ${lead.businessName}. Focus on AI ROI, speed, and measurable outcomes. Return plain text.`
-  );
-};
-
-export const generateOutreachSequence = async (lead: Lead) => {
+export async function generateProposalDraft(lead: Lead): Promise<string> {
+  const module = "ProposalDraft";
   const prompt = `
-Create a 5-day multi-channel outreach sequence for:
+Draft a client proposal for:
 Business: ${lead.businessName}
-Niche: ${lead.niche}
-Website: ${lead.websiteUrl}
+Website: ${lead.website || ""}
 
-Return VALID JSON ONLY:
-[
-  { "day": 1, "channel": "Email", "content": "...", "purpose": "..." }
-]
-`.trim();
-  const jsonStr = await executeIntelligenceTask(prompt);
-  return safeJsonParse<any[]>(jsonStr, []);
-};
+Include:
+- Executive summary
+- Scope (phased)
+- Timeline
+- Deliverables
+- Pricing options (3 tiers)
+- Next steps
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const generatePitch = async (lead: Lead) => {
-  return await executeIntelligenceTask(`Write a 30-second pitch for ${lead.businessName}. Return plain text only.`);
-};
+export async function generateROIReport(lead: Lead, offer?: string): Promise<string> {
+  const module = "ROI";
+  const prompt = `
+Create an ROI report for:
+Business: ${lead.businessName}
+Offer: ${offer || "lead generation + conversion + follow-up automation"}
 
-export const generateNurtureDialogue = async (lead: Lead, scenario: string) => {
-  const json = await executeIntelligenceTask(
-    `Generate nurture dialogue for ${lead.businessName} in scenario: ${scenario}. Return VALID JSON array of messages.`
-  );
-  return safeJsonParse<any[]>(json, []);
-};
+Include:
+- assumptions
+- 3 scenarios (conservative/base/aggressive)
+- monthly impact
+- what must be true for the numbers
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const generateAffiliateProgram = async (niche: string) => {
-  const json = await executeIntelligenceTask(`Generate an affiliate program matrix for ${niche}. Return VALID JSON.`);
-  return safeJsonParse<any>(json, {});
-};
+export async function orchestrateBusinessPackage(lead: Lead): Promise<any> {
+  const module = "BusinessOrchestrator";
+  const prompt = `
+Create a packaged business plan + campaign blueprint for:
+Business: ${lead.businessName}
+Website: ${lead.website || ""}
 
-export const analyzeLedger = async (leads: Lead[]) => {
-  const json = await executeIntelligenceTask(
-    `Analyze these ${leads.length} leads. Return VALID JSON: { "risk": "", "opportunity": "" }`
-  );
-  return safeJsonParse<any>(json, { risk: '', opportunity: '' });
-};
+Return ONLY JSON:
+{
+  "summary": string,
+  "positioning": string,
+  "offerStack": string[],
+  "sequence": [{ "step": number, "subject": string, "body": string, "cta": string, "timing": string }],
+  "assetsToCreate": [{ "type": "IMAGE"|"VIDEO"|"TEXT"|"AUDIO", "title": string, "prompt": string }]
+}
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block) || { summary: text };
+  return parsed;
+}
 
-export const identifySubRegions = async (theater: string) => {
-  const json = await executeIntelligenceTask(`Break ${theater} into 5 strategic sub-regions. Return VALID JSON array.`);
-  return safeJsonParse<string[]>(json, []);
-};
+export async function generatePlaybookStrategy(lead: Lead): Promise<string> {
+  const module = "Playbook";
+  const prompt = `
+Create a concise playbook strategy for:
+Business: ${lead.businessName}
+Website: ${lead.website || ""}
 
-export const crawlTheaterSignals = async (sector: string, signal: string) => {
-  const json = await executeIntelligenceTask(
-    `Identify 3 businesses in ${sector} showing signal="${signal}". Return VALID JSON: { "leads": [ ... ] }`
-  );
-  const parsed = safeJsonParse<any>(json, { leads: [] });
-  return (parsed.leads || []).map((l: any) => ({ ...l, id: uuidLike() }));
-};
+Include:
+- ICP
+- offer angles
+- objections + counters
+- outreach hooks
+- landing page structure
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const generatePlaybookStrategy = async (niche: string) => {
-  const json = await executeIntelligenceTask(
-    `Generate a high-ticket agency playbook strategy for ${niche}. Return VALID JSON: { "strategyName": "", "steps": [{ "title": "", "tactic": "" }] }`
-  );
-  return safeJsonParse<any>(json, {});
-};
+export async function generateTaskMatrix(lead: Lead): Promise<any[]> {
+  const module = "TaskMatrix";
+  const prompt = `
+Generate a task matrix for executing a campaign for:
+Business: ${lead.businessName}
 
-export const synthesizeProduct = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(`Architect an AI product for ${lead.businessName}. Return VALID JSON.`);
-  return safeJsonParse<any>(json, {});
-};
+Return ONLY JSON:
+{
+  "tasks": [
+    { "area": string, "task": string, "owner": string, "priority": "P0"|"P1"|"P2", "eta": string }
+  ]
+}
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
+  return Array.isArray(parsed?.tasks) ? parsed.tasks : [];
+}
 
-export const architectFunnel = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(`Architect a sales funnel for ${lead.businessName}. Return VALID JSON array.`);
-  return safeJsonParse<any[]>(json, []);
-};
+export async function generateNurtureDialogue(lead: Lead, scenario: string): Promise<any[]> {
+  const module = "AIConcierge";
+  const prompt = `
+Simulate a short nurture conversation.
+Business: ${lead.businessName}
+Scenario: ${scenario}
 
-export const architectPitchDeck = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(`Architect a 5-slide pitch deck for ${lead.businessName}. Return VALID JSON.`);
-  return safeJsonParse<any>(json, {});
-};
+Return ONLY JSON:
+{
+  "messages": [
+    { "role": "user"|"assistant", "text": string }
+  ]
+}
+Rules:
+- 8 to 14 messages
+- realistic objections + concise responses
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
+  return Array.isArray(parsed?.messages) ? parsed.messages : [];
+}
 
-export const generateROIReport = async (ltv: number, leads: number, conv: number) => {
-  return await executeIntelligenceTask(
-    `Generate an AI ROI report using: LTV=${ltv}, Leads=${leads}, ConversionLift=${conv}. Return plain text.`
-  );
-};
+/* ---------------------------------------------
+   Brand / identity
+---------------------------------------------- */
+export async function extractBrandDNA(lead: Lead): Promise<any> {
+  const module = "BrandDNA";
+  const prompt = `
+Extract brand DNA for:
+Business: ${lead.businessName}
+Website: ${lead.website || ""}
 
-export const generateAgencyIdentity = async (niche: string, region: string) => {
-  const json = await executeIntelligenceTask(`Generate agency identity for ${niche} in ${region}. Return VALID JSON.`);
-  return safeJsonParse<any>(json, {});
-};
+Return ONLY JSON:
+{
+  "colors": string[],
+  "fontPairing": string,
+  "archetype": string,
+  "visualTone": string,
+  "messagingPillars": string[],
+  "taglines": string[]
+}
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  return safeJsonParse<any>(block) || {};
+}
 
-export const testModelPerformance = async (model: string, prompt: string) => {
-  return await loggedGenerateContent({ module: 'TEST', model, contents: prompt });
-};
+export async function generateAgencyIdentity(lead: Lead): Promise<string> {
+  const module = "IdentityNode";
+  const prompt = `
+Generate an agency identity brief for serving:
+Business: ${lead.businessName}
 
-export const generateMotionLabConcept = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(`Create a storyboard concept for ${lead.businessName}. Return VALID JSON.`);
-  return safeJsonParse<any>(json, {});
-};
+Include:
+- positioning statement
+- tone rules
+- do/don't list
+- example hero copy
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const generateFlashSparks = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(
-    `Generate 6 viral sparks for ${lead.businessName}. Return VALID JSON array of ideas.`
-  );
-  return safeJsonParse<any[]>(json, []);
-};
+/* ---------------------------------------------
+   Visual / video / audio helpers
+   (Real implementations: they produce prompts + optionally store assets.
+   If KIE endpoints are not configured, they return prompt payloads as text.)
+---------------------------------------------- */
+export async function generateVisual(lead: Lead, concept: string): Promise<string> {
+  const module = "VisualStudio";
+  const prompt = `
+Create an image generation prompt for:
+Business: ${lead.businessName}
+Concept: ${concept}
 
-export const simulateSandbox = async (lead: Lead, ltv: number, volume: number) => {
-  return await executeIntelligenceTask(
-    `Simulate business growth for ${lead.businessName}. LTV=${ltv}, Volume=${volume}. Return plain text.`
-  );
-};
+Return a single prompt line suitable for an image model.
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const critiqueVideoPresence = async (lead: Lead) => {
-  return await executeIntelligenceTask(`Critique the video presence of ${lead.businessName}. Return plain text.`);
-};
+export async function analyzeVisual(imageUrl: string, goal: string = "quality + message + improvements"): Promise<string> {
+  const module = "VisionLab";
+  const prompt = `
+Analyze this image URL:
+${imageUrl}
 
-export const translateTactical = async (text: string, lang: string) => {
-  return await executeIntelligenceTask(`Translate this into ${lang} with tactical tone: ${text}. Return plain text.`);
-};
+Goal:
+${goal}
 
-export const generateTaskMatrix = async (lead: Lead) => {
-  const json = await executeIntelligenceTask(
-    `Generate a task checklist for ${lead.businessName}. Return VALID JSON array of tasks.`
-  );
-  return safeJsonParse<any[]>(json, []);
-};
+Return structured feedback with bullets.
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const fetchViralPulseData = async (niche: string) => {
-  const json = await executeIntelligenceTask(
-    `Identify 4 viral trends for ${niche}. Return VALID JSON array of trends with brief notes.`
-  );
-  return safeJsonParse<any[]>(json, []);
-};
+export async function analyzeVideoUrl(videoUrl: string): Promise<string> {
+  const module = "VideoInsights";
+  const prompt = `
+Analyze this video URL:
+${videoUrl}
 
-export const queryRealtimeAgent = async (query: string) => {
-  const text = await executeIntelligenceTask(`Answer: ${query}. Return plain text plus any source hints if known.`);
-  return { text, sources: [] as any[] };
-};
+Return:
+- hook quality
+- pacing
+- clarity
+- improvement list
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const fetchTokenStats = async () => {
+export async function enhanceVideoPrompt(basePrompt: string): Promise<string> {
+  const module = "VideoPitch";
+  const prompt = `
+Rewrite this video generation prompt to be more specific and cinematic.
+Keep it concise.
+
+BASE:
+${basePrompt}
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+export async function generateVideoPayload(lead: Lead, config: VeoConfig): Promise<string> {
+  const module = "VideoProduction";
+  const prompt = `
+Create a Veo-style video payload as JSON for:
+Business: ${lead.businessName}
+
+Config:
+${JSON.stringify(config || {}, null, 2)}
+
+Return ONLY JSON with keys: prompt, durationSeconds, aspectRatio, style, negativePrompt.
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  return block; // payload JSON string
+}
+
+export async function critiqueVideoPresence(lead: Lead): Promise<string> {
+  const module = "VideoAudit";
+  const prompt = `
+Critique the video presence strategy for:
+Business: ${lead.businessName}
+Website: ${lead.website || ""}
+
+Return:
+- content pillars
+- posting cadence
+- hook templates
+- next 10 video ideas
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+export async function generateMockup(lead: Lead, angle: string): Promise<string> {
+  const module = "Mockups4K";
+  const prompt = `
+Create a mockup concept prompt for:
+Business: ${lead.businessName}
+Angle: ${angle}
+
+Return a concise prompt suitable for a mockup generator.
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+export async function generateAudioPitch(lead: Lead, vibe: string = "premium"): Promise<string> {
+  const module = "SonicStudio";
+  const prompt = `
+Write a short audio ad script (15-20s) for:
+Business: ${lead.businessName}
+Vibe: ${vibe}
+
+Include:
+- hook
+- value
+- CTA
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+/* ---------------------------------------------
+   Market trends / realtime agent (best-effort)
+---------------------------------------------- */
+export async function fetchViralPulseData(topic: string): Promise<any[]> {
+  const module = "ViralPulse";
+  const prompt = `
+Generate a "viral pulse" list for topic:
+${topic}
+
+Return ONLY JSON:
+{ "items": [ { "title": string, "angle": string, "whyNow": string } ] }
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
+  return Array.isArray(parsed?.items) ? parsed.items : [];
+}
+
+export async function queryRealtimeAgent(query: string): Promise<string> {
+  const module = "RealtimeAgent";
+  const prompt = `
+Answer this query with a practical, actionable response:
+${query}
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+/* ---------------------------------------------
+   Ledger / analytics (best-effort)
+---------------------------------------------- */
+export async function analyzeLedger(entries?: any[]): Promise<{ risk: string; opportunity: string }> {
+  const module = "AnalyticsHub";
+  const prompt = `
+Analyze this ledger data and return risk + opportunity.
+
+Return ONLY JSON:
+{ "risk": string, "opportunity": string }
+
+Ledger:
+${JSON.stringify(entries || [], null, 2)}
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
   return {
-    recentOps: [
-      { op: 'LEAD_RECON', id: '0x88FF', cost: 1200 },
-      { op: 'VIDEO_SYNTH', id: '0x12A4', cost: 45000 },
-    ],
+    risk: String(parsed?.risk || ""),
+    opportunity: String(parsed?.opportunity || ""),
   };
-};
+}
 
-export const synthesizeArticle = async (source: string, mode: string) => {
-  return await executeIntelligenceTask(`Synthesize this article into mode=${mode}: ${source}. Return plain text.`);
-};
+/* ---------------------------------------------
+   Affiliate / product synthesis
+---------------------------------------------- */
+export async function generateAffiliateProgram(lead: Lead): Promise<string> {
+  const module = "AffiliateNode";
+  const prompt = `
+Create an affiliate program plan for:
+Business: ${lead.businessName}
 
-export const analyzeVideoUrl = async (url: string, prompt: string, _leadId?: string) => {
-  return await executeIntelligenceTask(`Analyze video URL: ${url}. Mission: ${prompt}. Return plain text.`);
-};
+Include:
+- commission structure
+- rules
+- onboarding steps
+- promo assets list
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const enhanceStrategicPrompt = async (prompt: string) => {
-  return await executeIntelligenceTask(`Enhance strategic prompt: ${prompt}. Return plain text.`);
-};
+export async function synthesizeProduct(lead: Lead, idea?: string): Promise<string> {
+  const module = "ProductSynth";
+  const prompt = `
+Synthesize a product concept for:
+Business: ${lead.businessName}
+Idea hint: ${idea || "a productized service"}
 
-export const enhanceVideoPrompt = async (prompt: string) => {
-  return await executeIntelligenceTask(`Enhance this video prompt for cinematic 4K: ${prompt}. Return plain text.`);
-};
+Include:
+- what it is
+- why it wins
+- deliverables
+- price bands
+- FAQ
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-// -------------------- Media stubs (kept for UI compatibility) --------------------
-export const generateVisual = async (_prompt: string, _lead: Lead, _base64Image?: string) => {
-  return null as any;
-};
+/* ---------------------------------------------
+   Theater / regions (AutoCrawl expects arrays)
+---------------------------------------------- */
+export async function crawlTheaterSignals(region: string): Promise<string[]> {
+  const module = "AutoCrawl";
+  const prompt = `
+List theater/market signals for region: ${region}
+Return ONLY JSON: { "signals": [string] }
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
+  return Array.isArray(parsed?.signals) ? parsed.signals.map((x: any) => String(x)) : [];
+}
 
-export const analyzeVisual = async (_base64: string, _mimeType: string, prompt: string) => {
-  return await executeIntelligenceTask(`Visual analysis task: ${prompt}. Return plain text.`);
-};
+export async function identifySubRegions(region: string): Promise<string[]> {
+  const module = "AutoCrawl";
+  const prompt = `
+Identify sub-regions / neighborhoods inside: ${region}
+Return ONLY JSON: { "subRegions": [string] }
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
+  return Array.isArray(parsed?.subRegions) ? parsed.subRegions.map((x: any) => String(x)) : [];
+}
 
-export const generateMockup = async (businessName: string, niche: string, _leadId?: string) => {
-  const prompt = `Hyper-realistic 4K mockup for ${businessName} in ${niche}.`;
-  await executeIntelligenceTask(`Create an image direction prompt for: ${prompt}. Return plain text prompt only.`);
-  return null as any;
-};
+/* ---------------------------------------------
+   Sandbox / model testing
+---------------------------------------------- */
+export async function simulateSandbox(prompt: string): Promise<string> {
+  const module = "DemoSandbox";
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const generateVideoPayload = async (
-  prompt: string,
-  leadId?: string,
-  _startImageBase64?: string,
-  _endImageBase64?: string,
-  config: VeoConfig = { aspectRatio: '16:9', resolution: '720p' },
-  _referenceImages: string[] = [],
-  _inputVideoBase64?: string
-) => {
-  const payload = { provider: 'KIE', prompt, leadId, config };
-  saveAsset('TEXT', 'Video Payload', JSON.stringify(payload, null, 2), 'VIDEO_STUDIO', leadId);
-  return null as any;
-};
+export async function testModelPerformance(samplePrompt: string): Promise<string> {
+  const module = "ModelBench";
+  const prompt = `
+Run a lightweight model test.
+Prompt:
+${samplePrompt}
 
-export const generateAudioPitch = async (_text: string, _voiceName: string = 'Kore', _leadId?: string) => {
-  return null as any;
-};
+Return:
+- response quality notes
+- latency assumptions
+- cost sensitivity notes
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const generateLyrics = async (lead: Lead, theme: string, type: string) => {
-  return await executeIntelligenceTask(
-    `Write ${type} lyrics for ${lead.businessName}. Theme: ${theme}. Return plain text only.`
-  );
-};
+/* ---------------------------------------------
+   Strategic prompt enhancement
+---------------------------------------------- */
+export async function enhanceStrategicPrompt(base: string): Promise<string> {
+  const module = "CinemaIntel";
+  const prompt = `
+Improve this prompt for strategic clarity and output quality.
+Return the improved prompt only.
 
-export const generateSonicPrompt = async (lead: Lead) => {
-  return await executeIntelligenceTask(
-    `Generate a detailed music generation prompt for ${lead.businessName}'s brand identity. Return ONLY the prompt string.`
-  );
-};
+BASE:
+${base}
+`;
+  return loggedGenerateContent({ module, prompt });
+}
 
-export const performFactCheck = async (_lead: Lead, claim: string) => {
-  const text = await executeIntelligenceTask(`Fact-check this claim: "${claim}". Return plain text with reasoning.`);
-  return { status: 'Review', evidence: text, sources: [] as any[] };
-};
+/* ---------------------------------------------
+   Flash sparks / funnel / deck
+---------------------------------------------- */
+export async function generateFlashSparks(lead: Lead): Promise<string[]> {
+  const module = "FlashSpark";
+  const prompt = `
+Generate 12 flash sparks (hooks/angles) for:
+Business: ${lead.businessName}
 
-export const extractBrandDNA = async (_lead: Partial<Lead>, websiteUrl: string): Promise<BrandIdentity> => {
-  const json = await executeIntelligenceTask(
-    `Research ${websiteUrl} and extract brand DNA. Return VALID JSON: { "colors": ["#hex"], "fontPairing": "", "archetype": "", "visualTone": "", "extractedImages": ["url"] }`
-  );
-  return safeJsonParse<BrandIdentity>(json, {} as BrandIdentity);
-};
+Return ONLY JSON: { "sparks": [string] }
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
+  return Array.isArray(parsed?.sparks) ? parsed.sparks.map((x: any) => String(x)) : [];
+}
+
+export async function architectFunnel(lead: Lead): Promise<any[]> {
+  const module = "FunnelMap";
+  const prompt = `
+Architect a funnel for:
+Business: ${lead.businessName}
+
+Return ONLY JSON:
+{ "steps": [ { "stage": string, "goal": string, "asset": string, "kpi": string } ] }
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  const parsed = safeJsonParse<any>(block);
+  return Array.isArray(parsed?.steps) ? parsed.steps : [];
+}
+
+export async function architectPitchDeck(lead: Lead): Promise<string> {
+  const module = "DeckArch";
+  const prompt = `
+Create a pitch deck architecture (slide-by-slide outline) for:
+Business: ${lead.businessName}
+
+Return a numbered slide outline with titles + bullets.
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+export async function generatePitch(lead: Lead): Promise<string> {
+  const module = "PitchGen";
+  const prompt = `
+Write a short pitch script for:
+Business: ${lead.businessName}
+
+Include:
+- opener
+- pain
+- solution
+- proof
+- CTA
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+/* ---------------------------------------------
+   Motion lab (placeholder-free: returns a real concept)
+---------------------------------------------- */
+export async function generateMotionLabConcept(lead: Lead): Promise<string> {
+  const module = "MotionLab";
+  const prompt = `
+Generate a motion concept for a short animated ad for:
+Business: ${lead.businessName}
+
+Return:
+- concept
+- scene beats
+- text overlays
+`;
+  return loggedGenerateContent({ module, prompt });
+}
+
+/* ---------------------------------------------
+   Token stats (best-effort; UI expects something)
+---------------------------------------------- */
+export async function fetchTokenStats(): Promise<any> {
+  const module = "TokenNode";
+  const { openRouterKey } = getStoredKeys();
+  const prompt = `
+We cannot inspect actual provider usage without API access.
+Given key-present: ${openRouterKey ? "yes" : "no"}, return JSON:
+{ "status": string, "note": string }
+`;
+  const text = await loggedGenerateContent({ module, prompt, json: true });
+  const block = extractJsonBlock(text) || text;
+  return safeJsonParse<any>(block) || { status: "unknown", note: text };
+}
+
+/* ---------------------------------------------
+   Translation
+---------------------------------------------- */
+export async function translateTactical(text: string, targetLang: string = "English"): Promise<string> {
+  const module = "Translator";
+  const prompt = `
+Translate to ${targetLang}. Keep meaning, keep it concise.
+
+TEXT:
+${text}
+`;
+  return loggedGenerateContent({ module, prompt });
+}
